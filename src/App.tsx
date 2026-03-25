@@ -41,6 +41,7 @@ function App() {
   const [wheelRotation, setWheelRotation] = useState(0)
   const wheelRotationRef = useRef(0)
   const prevSelectedIndexRef = useRef(0)
+  const prevCategoryRef = useRef<BuildingCategory | null>(null)
   const categorySelectionRef = useRef<Partial<Record<BuildingCategory, BuildingId>>>({})
 
   useEffect(() => {
@@ -123,12 +124,6 @@ function App() {
     const next = rememberedValid ? remembered : fallback?.id
     if (next) gameRef.current?.setSelected(next)
   }
-  const onWheelMouseDown: React.MouseEventHandler<HTMLDivElement> = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (e.button === 0) jumpCategory(-1)
-    if (e.button === 2) jumpCategory(1)
-  }
   const selectedDescription = useMemo(() => {
     const id = selectedDef?.id
     if (!id) return ''
@@ -155,6 +150,14 @@ function App() {
 
   useEffect(() => {
     if (phase !== 'playing') return
+    // Prevent category switches from doing long spin animations.
+    if (prevCategoryRef.current !== selectedCategory) {
+      prevCategoryRef.current = selectedCategory
+      prevSelectedIndexRef.current = selectedIndex
+      wheelRotationRef.current = -selectedIndex * stepDeg
+      setWheelRotation(wheelRotationRef.current)
+      return
+    }
     const n = Math.max(1, categoryItems.length)
     let delta = selectedIndex - prevSelectedIndexRef.current
     if (delta > n / 2) delta -= n
@@ -162,7 +165,7 @@ function App() {
     wheelRotationRef.current += -delta * stepDeg
     prevSelectedIndexRef.current = selectedIndex
     setWheelRotation(wheelRotationRef.current)
-  }, [selectedIndex, stepDeg, categoryItems.length, phase])
+  }, [selectedIndex, stepDeg, categoryItems.length, phase, selectedCategory])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -171,6 +174,8 @@ function App() {
         if (!wheelOpenRef.current) {
           wheelOpenRef.current = true
           setWheelOpen(true)
+          // Allow cursor interaction with wheel items.
+          if (document.pointerLockElement) document.exitPointerLock()
         }
       }
     }
@@ -178,6 +183,9 @@ function App() {
       if (e.key === 'c' || e.key === 'C') {
         wheelOpenRef.current = false
         setWheelOpen(false)
+        // Re-enter pointer lock for gameplay look control.
+        const canvas = canvasRef.current
+        if (canvas && phase === 'playing') canvas.requestPointerLock()
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -197,14 +205,11 @@ function App() {
       e.preventDefault()
       const dir = Math.sign(e.deltaY)
       if (dir === 0) return
-      if (categoryItems.length === 0) return
-      const idx = categoryItems.findIndex((b) => b.id === state.selected)
-      const next = (idx + (dir > 0 ? 1 : -1) + categoryItems.length) % categoryItems.length
-      gameRef.current?.setSelected(categoryItems[next].id)
+      jumpCategory(dir > 0 ? 1 : -1)
     }
     canvas.addEventListener('wheel', onWheel, { passive: false })
     return () => canvas.removeEventListener('wheel', onWheel as any)
-  }, [categoryItems, state.selected, phase])
+  }, [phase, selectedCategory, buildingDefs])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -221,28 +226,6 @@ function App() {
     if (phase !== 'playing') return
     gameRef.current?.setWheelOpen(wheelOpen)
   }, [wheelOpen, phase])
-
-  useEffect(() => {
-    if (phase !== 'playing' || !wheelOpen) return
-    const onMouseDown = (e: MouseEvent) => {
-      if (e.button === 0) {
-        e.preventDefault()
-        jumpCategory(-1)
-      } else if (e.button === 2) {
-        e.preventDefault()
-        jumpCategory(1)
-      }
-    }
-    const onContext = (e: MouseEvent) => {
-      e.preventDefault()
-    }
-    window.addEventListener('mousedown', onMouseDown)
-    window.addEventListener('contextmenu', onContext)
-    return () => {
-      window.removeEventListener('mousedown', onMouseDown)
-      window.removeEventListener('contextmenu', onContext)
-    }
-  }, [wheelOpen, phase, selectedCategory])
 
   const startNewRun = () => {
     wheelOpenRef.current = false
@@ -270,12 +253,10 @@ function App() {
       {/* Crosshair (target is screen center while mouse-look is active) */}
       {phase === 'playing' && <div className="crosshair" />}
 
-      {phase === 'playing' && (
+      {phase === 'playing' && state.wave === 0 && !state.waveInProgress && (
         <div className="hud top-left">
           <h1>Meteor Base Defense</h1>
-          <p>
-            Desert night defense. Hold <b>C</b> + scroll for towers. <b>RMB</b> sell. Press <b>Space</b> to start waves.
-          </p>
+          <p>Press <b>Space</b> to start waves.</p>
         </div>
       )}
 
@@ -288,9 +269,6 @@ function App() {
           </div>
           <div>
             Power: {state.powerStored}/{state.powerCap}
-          </div>
-          <div className={state.waveReady ? 'wave-ready' : 'wave-wait'}>
-            {state.waveInProgress ? 'Wave running…' : state.waveReady ? 'Next wave ready (Space)' : 'Wave unavailable'}
           </div>
         </div>
       )}
@@ -313,7 +291,6 @@ function App() {
         <div
           className="wheel-overlay"
           aria-hidden="true"
-          onMouseDown={onWheelMouseDown}
           onContextMenu={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -328,17 +305,34 @@ function App() {
               {selectedDef ? selectedDef.wheelDetails()[1] : ''}
             </div>
             <div className="wheel-ring">
-              <div className="wheel-ring-track" style={{ transform: `rotate(${wheelRotation}deg)` }}>
+              <div className="wheel-ring-track">
                 {categoryItems.map((b, i) => {
-                  const angleDeg = i * (360 / Math.max(1, categoryItems.length))
+                  const angleDeg = i * (360 / Math.max(1, categoryItems.length)) + wheelRotation
+                  const angle = (angleDeg * Math.PI) / 180
+                  const r = 118
+                  const x = Math.sin(angle) * r
+                  const y = -Math.cos(angle) * r
                   const isSelected = b.id === state.selected
                   const affordable = state.credits >= b.creditCost && state.supplyUsed + b.supplyCost <= state.supplyCap
                   return (
                     <div
                       key={b.id}
-                      className={isSelected ? (affordable ? 'wheel-item selected' : 'wheel-item selected unaffordable') : affordable ? 'wheel-item' : 'wheel-item unaffordable'}
+                      className={
+                        isSelected
+                          ? affordable
+                            ? 'wheel-item selected'
+                            : 'wheel-item selected unaffordable'
+                          : affordable
+                            ? 'wheel-item'
+                            : 'wheel-item unaffordable'
+                      }
                       style={{
-                        transform: `translate(-50%, -50%) rotate(${angleDeg}deg) translateY(-118px) rotate(${-angleDeg - wheelRotation}deg)`,
+                        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (e.button === 0) gameRef.current?.setSelected(b.id)
                       }}
                     >
                       <div className="wheel-item-title">{b.label}</div>
@@ -382,7 +376,6 @@ function App() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
