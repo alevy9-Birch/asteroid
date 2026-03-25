@@ -64,6 +64,12 @@ type PlacedBuilding = {
   econTimer: number
 }
 
+type WeaponAim = {
+  yaw?: THREE.Object3D
+  pitch?: THREE.Object3D
+  muzzle?: THREE.Object3D
+}
+
 type Asteroid = {
   mesh: THREE.Mesh
   healthBar: HealthBar
@@ -304,6 +310,8 @@ export class BaseDefenseGame {
   private readonly pointer = new THREE.Vector2()
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
   private readonly tmpV3 = new THREE.Vector3()
+  private readonly tmpAimVec = new THREE.Vector3()
+  private readonly tmpAimPos = new THREE.Vector3()
 
   // Camera controls
   private camPos = new THREE.Vector3(0, 55, 70)
@@ -332,9 +340,20 @@ export class BaseDefenseGame {
   private firstWaveStarted = false
   private waveInProgress = false
   private waveReady = true
-  private autoWaveTimer = 0
   private toSpawn = 0
   private spawnTimer = 0
+
+  // Active/Inactive wave lifecycle.
+  // Active:
+  // - spawn window: timer counts down while enemies spawn (circle fills on UI)
+  // - cleanup: spawning stops when timer ends; wave continues until asteroids are destroyed
+  // Inactive:
+  // - lasts up to 60s (UI shows timer); player can press Space early to start next wave
+  private spawnWindowDurationSec = 0
+  private spawnWindowElapsedSec = 0
+  private spawnWindowEnded = false
+  private inactiveTimeLeftSec = 0
+  private readonly inactiveDurationSec = 60
 
   // World state
   private readonly buildings: PlacedBuilding[] = []
@@ -363,6 +382,10 @@ export class BaseDefenseGame {
     wave: number
     waveReady: boolean
     waveInProgress: boolean
+    waveSpawnProgress: number
+    waveSpawnEnded: boolean
+    inactiveTimeLeftSec: number
+    asteroidsRemaining: number
     selected: BuildingId
     gameOver: boolean
   }) => void
@@ -397,17 +420,45 @@ export class BaseDefenseGame {
     this.wheelOpen = open
   }
 
-  startNextWave() {
+  startNextWave(manual: boolean = true) {
     if (this.isLost) return
-    if (!this.waveReady || this.waveInProgress) return
-    // Manual trigger is only needed/allowed for the first wave.
-    if (this.firstWaveStarted) return
-    this.firstWaveStarted = true
+
+    // Can't start while a wave is active.
+    if (this.waveInProgress) return
+
+    // Avoid starting while asteroids are still alive.
+    const asteroidsClear = this.asteroids.every((a) => !a.alive)
+    if (!asteroidsClear) return
+
+    // First wave can always be started manually.
+    if (!this.firstWaveStarted) {
+      if (!manual) return
+      this.firstWaveStarted = true
+    }
+
+    // During inactive: allow manual early-start with Space, or auto-start at the end.
+    if (this.firstWaveStarted && this.wave > 0) {
+      if (manual) {
+        if (this.inactiveTimeLeftSec <= 0) return
+      } else {
+        if (this.inactiveTimeLeftSec > 0) return
+      }
+    }
+
     this.wave += 1
     this.waveInProgress = true
     this.waveReady = false
+
+    this.spawnWindowEnded = false
+    this.spawnWindowElapsedSec = 0
     this.toSpawn = 18 + this.wave * 10
     this.spawnTimer = 0
+
+    // Approximate how long spawning will last so the UI circle matches the spawn window.
+    const spawnInterval = Math.max(0.08, 0.38 - this.wave * 0.012)
+    this.spawnWindowDurationSec = Math.max(6, this.toSpawn * spawnInterval)
+    this.inactiveTimeLeftSec = 0
+
     this.emitState()
   }
 
@@ -433,9 +484,12 @@ export class BaseDefenseGame {
     this.firstWaveStarted = false
     this.waveInProgress = false
     this.waveReady = true
-    this.autoWaveTimer = 0
     this.toSpawn = 0
     this.spawnTimer = 0
+    this.spawnWindowDurationSec = 0
+    this.spawnWindowElapsedSec = 0
+    this.spawnWindowEnded = false
+    this.inactiveTimeLeftSec = 0
 
     // Place initial command center at grid center.
     const cc = BUILDINGS.find((d) => d.id === 'command_center')!
@@ -548,7 +602,8 @@ export class BaseDefenseGame {
       const dy = this.lookLocked ? e.movementY : e.clientY - this.lastMouseY
       this.lastMouseX = e.clientX
       this.lastMouseY = e.clientY
-      applyLook(dx, dy)
+      // Keep gameplay camera fixed while the wheel UI is open.
+      if (!this.wheelOpen) applyLook(dx, dy)
     }
 
     const rect = this.canvas.getBoundingClientRect()
@@ -563,6 +618,9 @@ export class BaseDefenseGame {
       this.canvas.requestPointerLock()
       return
     }
+
+    // During active waves, building placement and selling are disabled.
+    if (this.waveInProgress) return
 
     if (e.button === 2) {
       this.sellLookedAt()
@@ -589,6 +647,8 @@ export class BaseDefenseGame {
 
   private readonly onPointerLockChange = () => {
     this.lookLocked = document.pointerLockElement === this.canvas
+    // Prevent large jumps when pointer lock is toggled (e.g., interacting with UI).
+    this.hasMousePos = false
   }
 
   private tick = () => {
@@ -600,8 +660,13 @@ export class BaseDefenseGame {
 
   private update(dt: number) {
     this.updateCamera(dt)
-    this.updateHover()
-    this.updateHoverIndicators()
+    if (!this.waveInProgress && !this.wheelOpen) {
+      this.updateHover()
+      this.updateHoverIndicators()
+    } else {
+      this.hoverValid = false
+      if (this.hoverGhost) this.hoverGhost.visible = false
+    }
     this.updateResources(dt)
     this.updateWave(dt)
     this.updateAsteroids(dt)
@@ -633,7 +698,8 @@ export class BaseDefenseGame {
     if (this.moveKeys.has('q')) move.sub(up)
     if (move.lengthSq() > 0) this.camPos.add(move.normalize().multiplyScalar(speed * dt))
 
-    this.camPos.y = clamp(this.camPos.y, 14, 140)
+    // Allow the player camera to dip closer to the ground for building inspection.
+    this.camPos.y = clamp(this.camPos.y, 6, 140)
     this.camPos.x = clamp(this.camPos.x, -170, 170)
     this.camPos.z = clamp(this.camPos.z, -170, 170)
 
@@ -689,39 +755,57 @@ export class BaseDefenseGame {
   }
 
   private updateWave(dt: number) {
-    if (!this.waveInProgress) {
-      const clear = this.asteroids.every((a) => !a.alive)
-      if (!clear) return
-      // Before first wave, wait for Space.
-      if (!this.firstWaveStarted) {
-        this.waveReady = true
-        return
+    const asteroidsAlive = this.asteroids.some((a) => a.alive)
+
+    // ACTIVE: spawn + cleanup until asteroids are gone.
+    if (this.waveInProgress) {
+      this.spawnWindowElapsedSec += dt
+
+      // When the spawn timer ends, stop spawning but keep the wave active
+      // until all existing asteroids are destroyed.
+      if (!this.spawnWindowEnded && this.spawnWindowElapsedSec >= this.spawnWindowDurationSec) {
+        this.spawnWindowEnded = true
+        this.toSpawn = 0
       }
-      // After first wave, auto-start subsequent waves.
-      this.waveReady = false
-      this.autoWaveTimer -= dt
-      if (this.autoWaveTimer <= 0) {
-        this.wave += 1
-        this.waveInProgress = true
-        this.toSpawn = 18 + this.wave * 10
-        this.spawnTimer = 0
+
+      if (!this.spawnWindowEnded && this.toSpawn > 0) {
+        this.spawnTimer -= dt
+        if (this.spawnTimer <= 0) {
+          const spawnInterval = Math.max(0.08, 0.38 - this.wave * 0.012)
+          this.spawnTimer = spawnInterval
+          this.spawnAsteroid()
+          this.toSpawn -= 1
+        }
+      }
+
+      // Cleanup end condition: no asteroids remain.
+      if (!asteroidsAlive && (this.spawnWindowEnded || this.toSpawn <= 0)) {
+        this.waveInProgress = false
+        this.waveReady = true
+        this.inactiveTimeLeftSec = this.inactiveDurationSec
+        this.spawnWindowEnded = false
+        this.spawnWindowDurationSec = 0
+        this.spawnWindowElapsedSec = 0
+        this.emitState()
       }
       return
     }
 
-    // spawn
-    this.spawnTimer -= dt
-    if (this.toSpawn > 0 && this.spawnTimer <= 0) {
-      this.spawnTimer = Math.max(0.08, 0.38 - this.wave * 0.012)
-      this.spawnAsteroid()
-      this.toSpawn -= 1
+    // INACTIVE
+    if (!this.firstWaveStarted) {
+      this.waveReady = true
+      return
     }
 
-    const active = this.asteroids.some((a) => a.alive)
-    if (!active && this.toSpawn <= 0) {
-      this.waveInProgress = false
-      this.waveReady = false
-      this.autoWaveTimer = 6
+    // If there are still asteroids alive, don't start the timer yet.
+    if (asteroidsAlive) return
+
+    this.waveReady = this.inactiveTimeLeftSec > 0
+    this.inactiveTimeLeftSec -= dt
+    if (this.inactiveTimeLeftSec <= 0) {
+      this.inactiveTimeLeftSec = 0
+      // Auto-start at the end of the 1-minute inactive window.
+      this.startNextWave(false)
     }
   }
 
@@ -813,12 +897,14 @@ export class BaseDefenseGame {
       b.cooldown -= dt
       if (b.cooldown > 0) continue
 
-      const origin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 1.1, b.origin.z + (d.size.h - 1) / 2)
+      const baseOrigin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 1.1, b.origin.z + (d.size.h - 1) / 2)
+      const aim = (b.mesh.userData as any)?.aim as WeaponAim | undefined
+
       let target: Asteroid | null = null
       let best = Infinity
       for (const a of this.asteroids) {
         if (!a.alive) continue
-        const dist = origin.distanceTo(a.mesh.position)
+        const dist = baseOrigin.distanceTo(a.mesh.position)
         if (dist > d.range) continue
         if (dist < best) {
           best = dist
@@ -828,6 +914,30 @@ export class BaseDefenseGame {
       if (!target) continue
 
       b.cooldown = 1 / d.fireRate
+      const origin = baseOrigin.clone()
+      if (aim?.muzzle) origin.copy(aim.muzzle.getWorldPosition(this.tmpAimPos))
+
+      if (aim?.yaw && aim?.pitch) {
+        // Horizontal yaw (around +Y) points the turret toward the target.
+        const yawObj = aim.yaw
+        yawObj.getWorldPosition(this.tmpAimPos)
+        this.tmpAimVec.copy(target.mesh.position).sub(this.tmpAimPos)
+        const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+        yawObj.rotation.y = yaw
+
+        // Barrel pitch (up/down) pitches toward the target's elevation.
+        const pitchDist = Math.hypot(this.tmpAimVec.x, this.tmpAimVec.z)
+        const pitch = Math.atan2(this.tmpAimVec.y, pitchDist)
+        // Sign is flipped because of the barrel's base orientation in the composed meshes.
+        const limit = Math.PI / 3
+        aim.pitch.rotation.x = -clamp(pitch, -limit, limit)
+      } else if (aim?.yaw) {
+        const yawObj = aim.yaw
+        yawObj.getWorldPosition(this.tmpAimPos)
+        this.tmpAimVec.copy(target.mesh.position).sub(this.tmpAimPos)
+        const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+        yawObj.rotation.y = yaw
+      }
 
       if (d.kind === 'hitscan') {
         target.hp -= d.damage
@@ -1033,8 +1143,14 @@ export class BaseDefenseGame {
         new THREE.SphereGeometry(def.range ?? 12, 26, 18),
         new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.08 }),
       )
-      bubble.position.y = 4.0
-      mesh.add(bubble)
+      const anchor = (mesh.userData as any)?.shieldBubbleAnchor as THREE.Object3D | undefined
+      if (anchor) {
+        anchor.add(bubble)
+        bubble.position.set(0, 0, 0)
+      } else {
+        bubble.position.y = 4.0
+        mesh.add(bubble)
+      }
     }
 
     const placed: PlacedBuilding = {
@@ -1053,26 +1169,352 @@ export class BaseDefenseGame {
 
   private createBuildingMesh(def: BuildingDef): THREE.Object3D {
     const group = new THREE.Group()
-    const isWeapon = def.category === 'turrets' || def.category === 'missile'
-    const baseH = def.id === 'command_center' ? 4.0 : isWeapon ? 2.0 : 2.4
-    const geo = new THREE.BoxGeometry(def.size.w, baseH, def.size.h)
-    const mat = new THREE.MeshStandardMaterial({ color: def.color, metalness: 0.1, roughness: 0.88 })
-    const body = new THREE.Mesh(geo, mat)
-    body.position.y = baseH / 2
-    body.castShadow = true
-    group.add(body)
+    const aim: WeaponAim = {}
 
-    // simple turret barrel detail
-    if (isWeapon) {
-      const barrel = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.12, 0.12, 1.6, 10),
-        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.3, roughness: 0.4 }),
-      )
-      barrel.rotation.z = Math.PI / 2
-      barrel.position.set(0, baseH + 0.2, 0.25)
-      group.add(barrel)
+    const mkMat = (color: number, metalness = 0.1, roughness = 0.88) =>
+      new THREE.MeshStandardMaterial({ color, metalness, roughness })
+    const mkEmat = (color: number, intensity = 0.35, roughness = 0.45) =>
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: color, emissiveIntensity: intensity, roughness })
+
+    const metalDark = mkMat(def.color, 0.08, 0.95)
+    const glass = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.14,
+      metalness: 0.0,
+      roughness: 0.1,
+      emissive: def.color,
+      emissiveIntensity: 0.22,
+    })
+
+    const w = def.size.w
+    const h = def.size.h
+
+    const addBase = (baseH: number, bodyColor = def.color) => {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(w, baseH, h), mkMat(bodyColor, 0.14, 0.88))
+      body.position.y = baseH / 2
+      body.castShadow = true
+      group.add(body)
+      return { baseH, body }
     }
 
+    if (def.id === 'command_center') {
+      const { baseH } = addBase(3.4, def.color)
+      // bunker lip
+      const lip = new THREE.Mesh(new THREE.BoxGeometry(w * 0.98, 0.18, h * 0.98), mkMat(0x0b1220, 0.02, 0.95))
+      lip.position.y = baseH + 0.09
+      group.add(lip)
+      // central core
+      const core = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.75, 2.2, 14), mkEmat(def.color, 0.55, 0.35))
+      core.position.set(0, baseH + 1.1, 0)
+      group.add(core)
+      const coreTop = new THREE.Mesh(new THREE.SphereGeometry(0.34, 14, 10), mkEmat(0x22d3ee, 0.8, 0.25))
+      coreTop.position.set(0, baseH + 2.2, 0)
+      group.add(coreTop)
+
+      // antenna
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.9, 10), mkMat(0xe2e8f0, 0.25, 0.5))
+      ant.position.set(0, baseH + 2.65, 0)
+      group.add(ant)
+      return group
+    }
+
+    if (def.id === 'supply_depot') {
+      const { baseH } = addBase(1.9, def.color)
+      // stacks of crates
+      const crateMat = mkMat(0x9ca3af, 0.06, 0.92)
+      const stackW = w * 0.35
+      const stackD = h * 0.35
+      for (let r = -1; r <= 1; r += 2) {
+        for (let s = -1; s <= 1; s += 2) {
+          const crate = new THREE.Mesh(new THREE.BoxGeometry(stackW, 0.6, stackD), crateMat)
+          crate.position.set(r * w * 0.2, 0.65 + r * 0.0, s * h * 0.2)
+          group.add(crate)
+        }
+      }
+      // conveyor plates
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 0.06, h * 0.92), mkMat(0x0b1220, 0.02, 0.95))
+      plate.position.y = baseH + 0.03
+      group.add(plate)
+      return group
+    }
+
+    if (def.id === 'factory_business' || def.id === 'factory_factory' || def.id === 'factory_megacomplex') {
+      const tiers = def.id === 'factory_business' ? 1 : def.id === 'factory_factory' ? 2 : 3
+      const baseH = 2.2 + tiers * 0.45
+      const { body } = addBase(baseH, def.color)
+      // stacked decks
+      const deckCount = tiers
+      for (let i = 0; i < deckCount; i++) {
+        const deckT = 0.18
+        const deckSizeX = w * (0.78 - i * 0.08)
+        const deckSizeZ = h * (0.78 - i * 0.08)
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(deckSizeX, deckT, deckSizeZ), metalDark)
+        deck.position.y = 0.9 + i * (0.7 + (tiers * 0.07))
+        group.add(deck)
+      }
+      // chimney stacks
+      const stackMat = mkMat(0xe2e8f0, 0.2, 0.55)
+      for (let i = 0; i < tiers; i++) {
+        const sx = (i - (tiers - 1) / 2) * (w * 0.18)
+        const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 1.0 + tiers * 0.2, 12), stackMat)
+        chimney.position.set(sx, baseH + 0.2 + i * 0.1, 0)
+        group.add(chimney)
+      }
+      // small emitter light
+      ;(body.material as THREE.MeshStandardMaterial).emissive.setHex(def.color)
+      return group
+    }
+
+    if (def.id === 'generator_small' || def.id === 'generator_large') {
+      const isLarge = def.id === 'generator_large'
+      const baseH = isLarge ? 2.8 : 2.1
+      addBase(baseH, def.color)
+
+      // central generator core
+      const core = new THREE.Mesh(
+        new THREE.CylinderGeometry(isLarge ? 0.35 : 0.27, isLarge ? 0.45 : 0.33, isLarge ? 1.7 : 1.2, 14),
+        mkEmat(0xeab308, isLarge ? 0.55 : 0.42, 0.3),
+      )
+      core.position.set(0, baseH + (isLarge ? 0.85 : 0.6), 0)
+      group.add(core)
+
+      // side vents
+      const ventMat = mkMat(0x0b1220, 0.02, 0.95)
+      const ventCount = isLarge ? 4 : 2
+      for (let i = 0; i < ventCount; i++) {
+        const a = (i / ventCount) * Math.PI * 2
+        const vx = Math.sin(a) * w * 0.25
+        const vz = Math.cos(a) * h * 0.25
+        const vent = new THREE.Mesh(new THREE.BoxGeometry(isLarge ? 0.55 : 0.4, 0.18, isLarge ? 0.12 : 0.1), ventMat)
+        vent.position.set(vx, baseH + 0.3, vz)
+        group.add(vent)
+      }
+      if (isLarge) {
+        // tall tower fins
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 2.4, 10), mkMat(0xe2e8f0, 0.25, 0.5))
+        tower.position.set(0, baseH + 1.2, 0)
+        group.add(tower)
+      }
+      return group
+    }
+
+    if (def.id === 'battery') {
+      const baseH = 1.5
+      addBase(baseH, def.color)
+      // cell grid
+      const cellMat = new THREE.MeshStandardMaterial({
+        color: 0x0f172a,
+        metalness: 0.05,
+        roughness: 0.85,
+        emissive: def.color,
+        emissiveIntensity: 0.18,
+      })
+      const count = 2
+      const cellW = w / count
+      const cellD = h / count
+      for (let ix = 0; ix < count; ix++) {
+        for (let iz = 0; iz < count; iz++) {
+          const cell = new THREE.Mesh(new THREE.BoxGeometry(cellW * 0.7, 0.35, cellD * 0.7), cellMat)
+          cell.position.set(-w / 2 + cellW * (ix + 0.5), 0.75, -h / 2 + cellD * (iz + 0.5))
+          group.add(cell)
+        }
+      }
+      // terminals
+      const term = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.12), mkMat(0xe2e8f0, 0.25, 0.5))
+      term.position.set(0, baseH + 0.35, h * 0.28)
+      group.add(term)
+      return group
+    }
+
+    // Weapons with aiming + muzzle
+    if (def.id === 'auto_turret' || def.id === 'siege_cannon' || def.id === 'missile_launcher' || def.id === 'silo') {
+      const isAuto = def.id === 'auto_turret'
+      const isSiege = def.id === 'siege_cannon'
+      const isMissile = def.id === 'missile_launcher'
+      const isSilo = def.id === 'silo'
+      const baseH = isSilo ? 1.0 : 2.0
+
+      if (isSilo) {
+        // circular low base
+        const radius = Math.max(w, h) * 0.5
+        const base = new THREE.Mesh(
+          new THREE.CylinderGeometry(radius * 0.98, radius * 1.02, 0.95, 18),
+          mkMat(def.color, 0.12, 0.9),
+        )
+        base.position.y = 0.48
+        base.castShadow = true
+        group.add(base)
+
+        // concrete ring bands
+        for (let i = 0; i < 3; i++) {
+          const ring = new THREE.Mesh(new THREE.CylinderGeometry(radius * (0.76 - i * 0.1), radius * (0.82 - i * 0.1), 0.08, 18), mkMat(0x0b1220, 0.02, 0.95))
+          ring.position.y = 0.52 + i * 0.1
+          group.add(ring)
+        }
+
+        const missile = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.14, 0.22, 2.7, 14),
+          mkMat(0xe2e8f0, 0.25, 0.45),
+        )
+        missile.position.set(0, 1.05 + 1.35, 0)
+        missile.castShadow = true
+        group.add(missile)
+
+        const tip = new THREE.Mesh(
+          new THREE.ConeGeometry(0.22, 0.45, 12),
+          mkEmat(def.color, 0.65, 0.25),
+        )
+        tip.position.set(0, 1.05 + 2.7 + 0.22, 0)
+        group.add(tip)
+
+        const muzzle = new THREE.Object3D()
+        muzzle.position.set(0, 1.05 + 2.7 + 0.45, 0)
+        group.add(muzzle)
+        aim.muzzle = muzzle
+        group.userData.aim = aim
+        return group
+      }
+
+      // Square-ish base for turrets/launchers
+      const { baseH: builtBaseH } = addBase(baseH, def.color)
+
+      const yawPivot = new THREE.Group()
+      yawPivot.position.set(0, builtBaseH + 0.28, 0)
+      group.add(yawPivot)
+
+      if (isAuto) {
+        const turretBody = new THREE.Mesh(new THREE.BoxGeometry(w * 0.86, 0.22, h * 0.86), metalDark)
+        turretBody.position.y = 0.12
+        yawPivot.add(turretBody)
+
+        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.24, 12), mkEmat(def.color, 0.55, 0.25))
+        core.position.set(0, 0.28, 0)
+        yawPivot.add(core)
+
+        const barrelPivot = new THREE.Group()
+        barrelPivot.position.set(0, 0.16, 0)
+        yawPivot.add(barrelPivot)
+
+        const barrelLen = 1.8
+        const barrel = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.07, 0.09, barrelLen, 12),
+          mkMat(0xe2e8f0, 0.28, 0.42),
+        )
+        barrel.rotation.x = Math.PI / 2 // axis along +Z
+        barrel.position.set(0, 0, barrelLen / 2)
+        barrel.castShadow = true
+        barrelPivot.add(barrel)
+
+        const muzzle = new THREE.Object3D()
+        muzzle.position.set(0, 0, barrelLen)
+        barrelPivot.add(muzzle)
+
+        aim.yaw = yawPivot
+        aim.pitch = barrelPivot
+        aim.muzzle = muzzle
+        group.userData.aim = aim
+        return group
+      }
+
+      if (isSiege) {
+        const turretBody = new THREE.Mesh(new THREE.BoxGeometry(w * 0.98, 0.24, h * 0.98), metalDark)
+        turretBody.position.y = 0.14
+        yawPivot.add(turretBody)
+
+        const armor = new THREE.Mesh(new THREE.BoxGeometry(w * 0.68, 0.12, h * 0.68), mkMat(0x0b1220, 0.02, 0.95))
+        armor.position.set(0, 0.25, 0)
+        yawPivot.add(armor)
+
+        const barrelPivot = new THREE.Group()
+        barrelPivot.position.set(0, 0.18, 0)
+        yawPivot.add(barrelPivot)
+
+        const barrelLen = 2.6
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.14, barrelLen, 14), mkMat(0xe2e8f0, 0.28, 0.42))
+        barrel.rotation.x = Math.PI / 2
+        barrel.position.set(0, 0, barrelLen / 2)
+        barrel.castShadow = true
+        barrelPivot.add(barrel)
+
+        // muzzle brake
+        const brake = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.18), mkEmat(def.color, 0.45, 0.3))
+        brake.position.set(0, -0.02, barrelLen - 0.08)
+        barrelPivot.add(brake)
+
+        const muzzle = new THREE.Object3D()
+        muzzle.position.set(0, 0, barrelLen)
+        barrelPivot.add(muzzle)
+
+        aim.yaw = yawPivot
+        aim.pitch = barrelPivot
+        aim.muzzle = muzzle
+        group.userData.aim = aim
+        return group
+      }
+
+      if (isMissile) {
+        // rotating launcher platform + pods
+        const turretBody = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 0.22, h * 0.9), metalDark)
+        turretBody.position.y = 0.12
+        yawPivot.add(turretBody)
+
+        const dish = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), mkEmat(def.color, 0.38, 0.22))
+        dish.position.set(0, 0.30, 0)
+        yawPivot.add(dish)
+
+        const podMat = mkMat(0xe2e8f0, 0.22, 0.45)
+        const podLen = 0.7
+        const podZ = 0.62
+        const pods = [-0.18, 0, 0.18]
+        for (let i = 0; i < pods.length; i++) {
+          const pod = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, podLen, 10), podMat)
+          pod.rotation.x = Math.PI / 2
+          pod.position.set(pods[i], 0.16, podZ)
+          yawPivot.add(pod)
+        }
+
+        const muzzle = new THREE.Object3D()
+        muzzle.position.set(0, 0.16, podZ + podLen / 2)
+        yawPivot.add(muzzle)
+
+        aim.yaw = yawPivot
+        aim.muzzle = muzzle
+        group.userData.aim = aim
+        return group
+      }
+
+      // fallback
+      group.userData.aim = aim
+      return group
+    }
+
+    if (def.id === 'shield_generator') {
+      const baseH = 2.2
+      addBase(baseH, def.color)
+      // base ring
+      const radius = Math.max(w, h) * 0.65
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.15, 12, 26), mkMat(0x93c5fd, 0.12, 0.62))
+      ring.position.y = baseH + 0.3
+      ring.rotation.x = Math.PI / 2
+      ring.castShadow = false
+      group.add(ring)
+      // energy dome
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.62, 22, 16), glass)
+      dome.position.y = baseH + 0.65
+      group.add(dome)
+
+      // anchor for shield bubble sphere
+      const anchor = new THREE.Object3D()
+      anchor.position.set(0, baseH + 0.65, 0)
+      group.add(anchor)
+      group.userData.shieldBubbleAnchor = anchor
+      return group
+    }
+
+    // Default fallback: simple body
+    addBase(2.4, def.color)
+    group.userData.aim = aim
     return group
   }
 
@@ -1311,6 +1753,9 @@ export class BaseDefenseGame {
   }
 
   private emitState() {
+    const asteroidsRemaining = this.asteroids.reduce((acc, a) => acc + (a.alive ? 1 : 0), 0)
+    const waveSpawnProgress =
+      this.waveInProgress && this.spawnWindowDurationSec > 0 ? clamp(this.spawnWindowElapsedSec / this.spawnWindowDurationSec, 0, 1) : 0
     this.onStateChange?.({
       credits: Math.floor(this.credits),
       supplyUsed: Math.floor(this.supplyUsed),
@@ -1320,6 +1765,10 @@ export class BaseDefenseGame {
       wave: this.wave,
       waveReady: this.waveReady,
       waveInProgress: this.waveInProgress,
+      waveSpawnProgress,
+      waveSpawnEnded: this.spawnWindowEnded,
+      inactiveTimeLeftSec: this.inactiveTimeLeftSec,
+      asteroidsRemaining,
       selected: this.selected,
       gameOver: this.isLost,
     })

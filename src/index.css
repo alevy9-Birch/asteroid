@@ -123,6 +123,12 @@ body,
   opacity: 1;
 }
 
+.wheel-item.hovered {
+  border-color: color-mix(in srgb, var(--accent-color, #22d3ee) 70%, rgba(226, 232, 240, 0.9));
+  background: color-mix(in srgb, var(--accent-color, #22d3ee) 14%, rgba(15, 23, 42, 0.82));
+  opacity: 0.96;
+}
+
 .wheel-item.unaffordable {
   opacity: 0.38;
   filter: grayscale(1);
@@ -131,6 +137,24 @@ body,
 .wheel-item-title {
   font-size: 12px;
   font-weight: 800;
+}
+
+.wheel-virtual-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.wheel-virtual-line {
+  stroke: color-mix(in srgb, var(--accent-color, #22d3ee) 65%, rgba(226, 232, 240, 0.9));
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.wheel-virtual-cursor {
+  fill: rgba(15, 23, 42, 0.85);
+  stroke: color-mix(in srgb, var(--accent-color, #22d3ee) 80%, white);
+  stroke-width: 2;
 }
 
 .wheel-category-outside {
@@ -176,6 +200,31 @@ body,
 .top-right {
   right: 16px;
   top: 16px;
+}
+
+.wave-timer {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  min-width: 240px;
+  justify-content: center;
+}
+
+.wave-timer-svg {
+  flex: 0 0 auto;
+  display: block;
+}
+
+.wave-timer-text {
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  opacity: 0.95;
 }
 
 .stats {
