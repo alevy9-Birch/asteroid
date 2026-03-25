@@ -307,7 +307,7 @@ export class BaseDefenseGame {
 
   // Camera controls
   private camPos = new THREE.Vector3(0, 55, 70)
-  private yaw = Math.PI
+  private yaw = 0
   private pitch = -0.65
   private readonly moveKeys = new Set<string>()
   private lookLocked = false
@@ -451,7 +451,7 @@ export class BaseDefenseGame {
 
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x030712)
-    this.scene.fog = new THREE.Fog(0x05070f, 80, 320)
+    this.scene.fog = new THREE.Fog(0x050617, 90, 360)
 
     this.camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1400)
     this.camera.position.copy(this.camPos)
@@ -467,19 +467,34 @@ export class BaseDefenseGame {
     this.scene.add(this.projectiles)
     this.scene.add(this.effects)
 
-    // Generic dark ground
+    // Desert ground
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(101, 101),
-      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95, metalness: 0.02 }),
+      new THREE.PlaneGeometry(220, 220),
+      new THREE.MeshStandardMaterial({ color: 0xcbb48a, roughness: 0.98, metalness: 0.0 }),
     )
     ground.rotation.x = -Math.PI / 2
     ground.receiveShadow = true
     this.world.add(ground)
 
-    // 101 cells at 1 unit each: lines at half-cell boundaries align to integer cell centers.
-    const grid = new THREE.GridHelper(101, 101, 0x1e3a8a, 0x1e293b)
+    const grid = new THREE.GridHelper(202, 101, 0x8b7a56, 0x6b5d44)
     grid.position.y = 0.01
     this.world.add(grid)
+
+    // Sandy mountains ring just out of bounds
+    const mountains = new THREE.Group()
+    const mGeo = new THREE.ConeGeometry(6, 22, 6)
+    const mMat = new THREE.MeshStandardMaterial({ color: 0xbca57d, roughness: 1 })
+    const r = 120
+    for (let i = 0; i < 32; i++) {
+      const a = (i / 32) * Math.PI * 2
+      const peak = new THREE.Mesh(mGeo, mMat)
+      peak.position.set(Math.cos(a) * r, 11, Math.sin(a) * r)
+      peak.rotation.y = a + Math.random() * 0.6
+      peak.scale.setScalar(0.8 + Math.random() * 0.7)
+      peak.castShadow = true
+      mountains.add(peak)
+    }
+    this.world.add(mountains)
 
     // Night sky + stars
     const sky = new THREE.Mesh(
