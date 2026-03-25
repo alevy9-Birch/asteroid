@@ -26,10 +26,146 @@ body,
   display: block;
 }
 
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(226, 232, 240, 0.55);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-color, #22d3ee) 40%, transparent);
+  pointer-events: none;
+}
+
+.wheel-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+.wheel {
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-color, #22d3ee) 55%, rgba(148, 163, 184, 0.25));
+  background: radial-gradient(
+    circle at 30% 25%,
+    color-mix(in srgb, var(--accent-color, #22d3ee) 24%, transparent),
+    rgba(2, 6, 23, 0.78)
+  );
+  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 18px;
+  position: relative;
+  pointer-events: none;
+}
+
+.wheel-selected {
+  font-size: 20px;
+  font-weight: 900;
+  color: rgba(226, 232, 240, 0.95);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--accent-color, #22d3ee) 35%, transparent);
+  margin-top: 6px;
+}
+
+.wheel-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.78;
+  line-height: 1.25;
+}
+
+.wheel-ring {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.wheel-ring-track {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 180ms ease-out;
+}
+
+.wheel-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 118px;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.84;
+  transition: border-color 160ms ease-out, background 160ms ease-out, opacity 160ms ease-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wheel-item.selected {
+  border-color: color-mix(in srgb, var(--accent-color, #22d3ee) 95%, white);
+  background: color-mix(in srgb, var(--accent-color, #22d3ee) 22%, rgba(8, 47, 73, 0.88));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-color, #22d3ee) 30%, transparent);
+  opacity: 1;
+}
+
+.wheel-item.unaffordable {
+  opacity: 0.38;
+  filter: grayscale(1);
+}
+
+.wheel-item-title {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wheel-divider {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(148, 163, 184, 0.25),
+    rgba(148, 163, 184, 0.9),
+    rgba(148, 163, 184, 0.25)
+  );
+  box-shadow: 0 0 8px rgba(148, 163, 184, 0.35);
+}
+
+.wheel-category-outside {
+  position: absolute;
+  top: calc(50% - 205px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: color-mix(in srgb, var(--accent-color, #22d3ee) 85%, white);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent-color, #22d3ee) 25%, transparent);
+}
+
 .hud {
   position: absolute;
   z-index: 10;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid color-mix(in srgb, var(--accent-color, #22d3ee) 40%, rgba(148, 163, 184, 0.22));
   border-radius: 12px;
   background: rgba(2, 6, 23, 0.6);
   backdrop-filter: blur(6px);
@@ -72,38 +208,43 @@ body,
   width: min(530px, calc(100% - 32px));
 }
 
-.hint {
-  margin-bottom: 8px;
-  font-size: 13px;
-  opacity: 0.85;
+.bottom-info {
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(700px, calc(100% - 20px));
+  text-align: center;
+  padding: 8px 12px;
 }
 
-.building-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.selected-name {
+  font-weight: 900;
+  font-size: 14px;
 }
 
-.building-btn {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(30, 41, 59, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  color: #e2e8f0;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 13px;
-  cursor: pointer;
+.selected-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.9;
 }
 
-.building-btn:hover {
-  border-color: rgba(56, 189, 248, 0.75);
+.selected-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.78;
+  font-weight: 700;
 }
 
-.building-btn.selected {
-  border-color: rgba(34, 211, 238, 0.95);
-  background: rgba(8, 47, 73, 0.82);
+.wave-ready {
+  margin-top: 6px;
+  font-weight: 900;
+  color: color-mix(in srgb, var(--accent-color, #22d3ee) 95%, white);
+}
+
+.wave-wait {
+  margin-top: 6px;
+  font-weight: 800;
+  opacity: 0.75;
 }
 
 .game-over {
@@ -127,4 +268,70 @@ body,
 .game-over-card h2 {
   margin-top: 0;
   margin-bottom: 8px;
+}
+
+.screen-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.55);
+}
+
+.screen-card {
+  width: min(520px, calc(100% - 28px));
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.screen-card h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.screen-card p {
+  margin: 8px 0;
+  opacity: 0.92;
+}
+
+.screen-card .small {
+  font-size: 13px;
+  opacity: 0.76;
+}
+
+.screen-card.danger {
+  border-color: rgba(251, 113, 133, 0.5);
+  background: rgba(40, 10, 20, 0.8);
+}
+
+.screen-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+}
+
+.primary-btn,
+.secondary-btn {
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-btn {
+  border: 1px solid color-mix(in srgb, var(--accent-color, #22d3ee) 80%, white);
+  background: color-mix(in srgb, var(--accent-color, #22d3ee) 25%, rgba(8, 47, 73, 0.85));
+  color: #e2e8f0;
+}
+
+.secondary-btn {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
 }
