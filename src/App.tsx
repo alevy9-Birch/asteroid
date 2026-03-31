@@ -14,6 +14,7 @@ type State = {
   waveSpawnEnded: boolean
   inactiveTimeLeftSec: number
   asteroidsRemaining: number
+  asteroidDiscovery: { variant: string; name: string; description: string; color: number } | null
   unlockedBuildingIds: BuildingId[]
   purchasedUpgradeIds: UpgradeId[]
   refundableUpgradeIds: UpgradeId[]
@@ -34,6 +35,7 @@ const INITIAL_STATE: State = {
   waveSpawnEnded: false,
   inactiveTimeLeftSec: 0,
   asteroidsRemaining: 0,
+  asteroidDiscovery: null,
   unlockedBuildingIds: [
     'command_center',
     'supply_depot_s',
@@ -79,6 +81,7 @@ function App() {
   const [lastWave, setLastWave] = useState(0)
   const [virtualCursor, setVirtualCursor] = useState({ x: 0, y: -118 })
   const virtualCursorLiveRef = useRef(virtualCursor)
+  const pendingLockedWheelSelectionRef = useRef<BuildingId | undefined>(undefined)
   const categorySelectionRef = useRef<Partial<Record<BuildingCategory, BuildingId>>>({})
   const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox' }>({
     mode: 'normal',
@@ -223,52 +226,61 @@ function App() {
     const coordById = new Map<UpgradeId, Hex>()
     coordById.set('core_protocol', { q: 0, r: 0 })
     const occupied = new Set<string>(['0,0'])
-    const frontier = new Set<string>()
-    for (const d of dirs) frontier.add(`${d.q},${d.r}`)
+    const hasOccupiedNeighbor = (h: Hex) =>
+      dirs.some((d) => occupied.has(`${h.q + d.q},${h.r + d.r}`))
 
-    const dist = (h: Hex) => (Math.abs(h.q) + Math.abs(h.r) + Math.abs(h.q + h.r)) / 2
-    const parse = (k: string): Hex => {
-      const [q, r] = k.split(',').map(Number)
-      return { q, r }
-    }
-    const scoreCell = (h: Hex, cat: BuildingCategory) => {
-      const angleByCat: Record<BuildingCategory, number> = {
-        structural: Math.PI,
-        economy: (-2 * Math.PI) / 3,
-        electrical: (2 * Math.PI) / 3,
-        turrets: -Math.PI / 3,
-        missile: 0,
-        energy: Math.PI / 3,
+    // Build true concentric hex rings, but leave roughly 1/5 blank slots distributed.
+    const chosenCells: Hex[] = []
+    let ring = 1
+    let ordinal = 0
+    const blankEvery = 5 // 1/5 blank
+    while (chosenCells.length < upgrades.length) {
+      let cur: Hex = { q: -ring, r: ring }
+      for (let side = 0; side < 6; side++) {
+        for (let step = 0; step < ring; step++) {
+          ordinal += 1
+          const candidate = { q: cur.q, r: cur.r }
+          const shouldBlank = ordinal % blankEvery === 0
+          if (!shouldBlank || !hasOccupiedNeighbor(candidate)) {
+            chosenCells.push(candidate)
+            occupied.add(`${candidate.q},${candidate.r}`)
+            if (chosenCells.length >= upgrades.length) break
+          }
+          cur = { q: cur.q + dirs[side].q, r: cur.r + dirs[side].r }
+        }
+        if (chosenCells.length >= upgrades.length) break
       }
-      const ang = Math.atan2(h.r * 1.5, (Math.sqrt(3) / 2) * (2 * h.q + h.r))
-      const target = angleByCat[cat]
-      let d = Math.abs(ang - target)
-      if (d > Math.PI) d = 2 * Math.PI - d
-      return d + dist(h) * 0.02
+      ring += 1
     }
-
+    const ringOf = (h: Hex) => (Math.abs(h.q) + Math.abs(h.r) + Math.abs(h.q + h.r)) / 2
+    const angleOf = (h: Hex) => Math.atan2(h.r * 1.5, (Math.sqrt(3) / 2) * (2 * h.q + h.r))
+    const angleByCat: Record<BuildingCategory, number> = {
+      structural: Math.PI,
+      economy: (-2 * Math.PI) / 3,
+      electrical: (2 * Math.PI) / 3,
+      turrets: -Math.PI / 3,
+      missile: 0,
+      energy: Math.PI / 3,
+    }
+    const remainingCells = [...chosenCells]
     for (const up of upgrades) {
-      let bestKey: string | null = null
+      const desiredRing = Math.max(1, depthOf(up.id))
+      const targetAngle = angleByCat[up.category]
+      let bestIdx = 0
       let bestScore = Infinity
-      for (const k of frontier) {
-        const h = parse(k)
-        const s = scoreCell(h, up.category)
-        if (s < bestScore) {
-          bestScore = s
-          bestKey = k
+      for (let i = 0; i < remainingCells.length; i++) {
+        const c = remainingCells[i]
+        const dr = Math.abs(ringOf(c) - desiredRing)
+        let da = Math.abs(angleOf(c) - targetAngle)
+        if (da > Math.PI) da = 2 * Math.PI - da
+        const score = dr * 2.5 + da
+        if (score < bestScore) {
+          bestScore = score
+          bestIdx = i
         }
       }
-      if (!bestKey) break
-      const chosen = parse(bestKey)
-      coordById.set(up.id, chosen)
-      frontier.delete(bestKey)
-      occupied.add(bestKey)
-      for (const d of dirs) {
-        const nq = chosen.q + d.q
-        const nr = chosen.r + d.r
-        const nk = `${nq},${nr}`
-        if (!occupied.has(nk)) frontier.add(nk)
-      }
+      const picked = remainingCells.splice(bestIdx, 1)[0]
+      coordById.set(up.id, picked)
     }
 
     const cellSize = 150
@@ -321,6 +333,37 @@ function App() {
   }, [purchasedUpgrades, skillAdj])
   const canBuyUpgrade = (id: UpgradeId, cost: number) =>
     unlockedUpgradeSet.has(id) && !purchasedUpgrades.has(id) && state.credits >= cost
+
+  const findUnlockUpgradeForBuilding = (id: BuildingId): UpgradeId | undefined => {
+    const candidates = UPGRADES.filter((u) => (u.unlockBuildingIds ?? []).includes(id) && !purchasedUpgrades.has(u.id))
+    if (candidates.length === 0) return undefined
+    const byId = new Map(UPGRADES.map((u) => [u.id, u]))
+    const memo = new Map<UpgradeId, number>()
+    const depth = (uid: UpgradeId): number => {
+      const cached = memo.get(uid)
+      if (cached !== undefined) return cached
+      const up = byId.get(uid)
+      if (!up) return 0
+      const d = 1 + Math.max(0, ...(up.prereqIds ?? []).map((p) => depth(p)))
+      memo.set(uid, d)
+      return d
+    }
+    candidates.sort((a, b) => depth(a.id) - depth(b.id))
+    return candidates[0]?.id
+  }
+
+  const openUpgradeForBuilding = (buildingId: BuildingId) => {
+    const target = findUnlockUpgradeForBuilding(buildingId)
+    if (!target) return
+    const node = skillNodes.find((n) => n.id === target)
+    if (!node) return
+    wheelOpenRef.current = false
+    setWheelOpen(false)
+    upgradeOpenRef.current = true
+    setUpgradeOpen(true)
+    // Center the target upgrade under the reticle.
+    setSkillCam((prev) => ({ ...prev, x: node.x, y: node.y }))
+  }
 
   const jumpCategory = (dir: 1 | -1) => {
     const curIdx = categoryOrder.indexOf(selectedCategory)
@@ -399,31 +442,40 @@ function App() {
     if (phase !== 'playing') return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'c' || e.key === 'C') {
-        if (upgradeOpenRef.current) return
+        if (upgradeOpenRef.current) {
+          upgradeOpenRef.current = false
+          setUpgradeOpen(false)
+          if (!wheelOpenRef.current) {
+            pendingLockedWheelSelectionRef.current = undefined
+            wheelOpenRef.current = true
+            setWheelOpen(true)
+          }
+          return
+        }
         if (!wheelOpenRef.current) {
+          pendingLockedWheelSelectionRef.current = undefined
           wheelOpenRef.current = true
           setWheelOpen(true)
         }
       }
       if (e.key === 'u' || e.key === 'U') {
+        if (e.repeat) return
         if (wheelOpenRef.current) {
           wheelOpenRef.current = false
           setWheelOpen(false)
         }
-        if (!upgradeOpenRef.current) {
-          upgradeOpenRef.current = true
-          setUpgradeOpen(true)
-        }
+        const next = !upgradeOpenRef.current
+        upgradeOpenRef.current = next
+        setUpgradeOpen(next)
       }
     }
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'c' || e.key === 'C') {
         wheelOpenRef.current = false
         setWheelOpen(false)
-      }
-      if (e.key === 'u' || e.key === 'U') {
-        upgradeOpenRef.current = false
-        setUpgradeOpen(false)
+        const pending = pendingLockedWheelSelectionRef.current
+        pendingLockedWheelSelectionRef.current = undefined
+        if (pending && !unlockedSet.has(pending)) openUpgradeForBuilding(pending)
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -432,7 +484,7 @@ function App() {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [phase])
+  }, [phase, unlockedSet, skillNodes, purchasedUpgrades])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -511,7 +563,10 @@ function App() {
                 best = entry
               }
             }
-            if (best.b.id !== state.selected) gameRef.current?.setSelected(best.b.id)
+            if (best.b.id !== state.selected) {
+              gameRef.current?.setSelected(best.b.id)
+              pendingLockedWheelSelectionRef.current = unlockedSet.has(best.b.id) ? undefined : best.b.id
+            }
           }
           return { x, y }
         })
@@ -519,7 +574,7 @@ function App() {
     }
     window.addEventListener('mousemove', onMouseMove)
     return () => window.removeEventListener('mousemove', onMouseMove)
-  }, [phase, itemRadius, itemLayout, state.selected])
+  }, [phase, itemRadius, itemLayout, state.selected, unlockedSet, skillNodes, purchasedUpgrades])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -760,6 +815,20 @@ function App() {
           </div>
         </div>
       )}
+      {phase === 'playing' && state.asteroidDiscovery && (
+        <div className="asteroid-discovery-toast">
+          <div
+            className="asteroid-discovery-icon"
+            style={{
+              ['--asteroid-color' as string]: `#${state.asteroidDiscovery.color.toString(16).padStart(6, '0')}`,
+            }}
+          />
+          <div className="asteroid-discovery-text">
+            <div className="asteroid-discovery-title">New Asteroid: {state.asteroidDiscovery.name}</div>
+            <div className="asteroid-discovery-body">{state.asteroidDiscovery.description}</div>
+          </div>
+        </div>
+      )}
 
       {phase === 'playing' && (
         <div className="hud bottom-info">
@@ -822,6 +891,7 @@ function App() {
                     }}
                   >
                     {refundable && <div className="skill-node-refund">$</div>}
+                    <div className="skill-node-cat-dot" aria-hidden="true" />
                     <div className="skill-node-label">{up.label}</div>
                     <div className="skill-node-cost">{purchased ? 'Owned' : `${up.creditCost}c`}</div>
                   </div>
@@ -879,7 +949,10 @@ function App() {
                 best = entry
               }
             }
-            if (best?.b) gameRef.current?.setSelected(best.b.id)
+            if (best?.b) {
+              gameRef.current?.setSelected(best.b.id)
+              pendingLockedWheelSelectionRef.current = unlockedSet.has(best.b.id) ? undefined : best.b.id
+            }
           }}
           onContextMenu={(e) => {
             e.preventDefault()

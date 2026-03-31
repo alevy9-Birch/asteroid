@@ -102,6 +102,8 @@ type WeaponAim = {
   muzzle?: THREE.Object3D
 }
 
+type AsteroidVariant = 'normal' | 'splitter' | 'explosive' | 'meteor' | 'seeker' | 'planet' | 'gold' | 'spawner' | 'emp' | 'colossus'
+
 type Asteroid = {
   id: string
   mesh: THREE.Mesh
@@ -109,7 +111,7 @@ type Asteroid = {
   hp: number
   maxHp: number
   alive: boolean
-  variant: 'normal' | 'splitter' | 'explosive' | 'meteor' | 'seeker' | 'planet' | 'gold' | 'spawner' | 'emp' | 'colossus'
+  variant: AsteroidVariant
   splitLevel: number // 0..2 only relevant for variant==='splitter'
   speed: number // magnitude of velocity (for seeker steering)
   spawnCooldown: number // used by spawner asteroid
@@ -300,6 +302,18 @@ const VARS = {
 // Global multiplier to tighten power budgeting.
 // Increase if power feels "too generous" during active waves.
 const POWER_DRAIN_GLOBAL_MUL = 1.5
+const ALL_ASTEROID_VARIANTS: AsteroidVariant[] = [
+  'normal',
+  'splitter',
+  'explosive',
+  'meteor',
+  'seeker',
+  'planet',
+  'gold',
+  'spawner',
+  'emp',
+  'colossus',
+]
 
 export const BUILDINGS: BuildingDef[] = [
   {
@@ -1742,6 +1756,7 @@ export class BaseDefenseGame {
   private waveReady = true
   private toSpawn = 0
   private spawnTimer = 0
+  private waveVariantPool: AsteroidVariant[] = ['normal']
 
   // Active/Inactive wave lifecycle.
   // Active:
@@ -1757,6 +1772,9 @@ export class BaseDefenseGame {
   private currentInactivePhase = 0
   private readonly purchasedUpgradeIds = new Set<UpgradeId>()
   private readonly purchasedUpgradePhase = new Map<UpgradeId, number>()
+  private readonly discoveredAsteroidVariants = new Set<AsteroidVariant>()
+  private asteroidDiscoveryTimerSec = 0
+  private activeAsteroidDiscovery: AsteroidVariant | null = null
   private readonly unlockedBuildingIds = new Set<BuildingId>([
     'command_center',
     'supply_depot_s',
@@ -1783,6 +1801,12 @@ export class BaseDefenseGame {
 
   private isLost = false
   private wheelOpen = false
+  private draggingBuild = false
+  private dragBuildTimer = 0
+  private readonly dragBuildIntervalSec = 0.055
+  private draggingSell = false
+  private dragSellTimer = 0
+  private readonly dragSellIntervalSec = 0.07
   private asteroidIdSeed = 0
   private volleyIdSeed = 0
   private autoWavesEnabled = true
@@ -1810,6 +1834,7 @@ export class BaseDefenseGame {
     waveSpawnEnded: boolean
     inactiveTimeLeftSec: number
     asteroidsRemaining: number
+    asteroidDiscovery: { variant: AsteroidVariant; name: string; description: string; color: number } | null
     unlockedBuildingIds: BuildingId[]
     purchasedUpgradeIds: UpgradeId[]
     refundableUpgradeIds: UpgradeId[]
@@ -1874,6 +1899,7 @@ export class BaseDefenseGame {
     this.credits += up.creditCost
     this.purchasedUpgradeIds.delete(id)
     this.purchasedUpgradePhase.delete(id)
+    this.refundInvalidCurrentPhaseUpgrades()
     this.recomputeUnlockedBuildingIds()
 
     if (!this.unlockedBuildingIds.has(this.selected)) {
@@ -1884,6 +1910,27 @@ export class BaseDefenseGame {
       }
     }
     this.emitState()
+  }
+
+  // If a refunded upgrade breaks prereq chains, auto-refund dependent upgrades
+  // purchased in this same inactive phase.
+  private refundInvalidCurrentPhaseUpgrades() {
+    let changed = true
+    while (changed) {
+      changed = false
+      for (const upId of [...this.purchasedUpgradeIds]) {
+        if (upId === 'core_protocol') continue
+        if (this.purchasedUpgradePhase.get(upId) !== this.currentInactivePhase) continue
+        const up = UPGRADES.find((u) => u.id === upId)
+        if (!up) continue
+        if (up.prereqIds?.some((p) => !this.purchasedUpgradeIds.has(p))) {
+          this.credits += up.creditCost
+          this.purchasedUpgradeIds.delete(upId)
+          this.purchasedUpgradePhase.delete(upId)
+          changed = true
+        }
+      }
+    }
   }
 
   startNextWave(manual: boolean = true) {
@@ -1930,6 +1977,7 @@ export class BaseDefenseGame {
     const spawnInterval = Math.max(0.035, spawnIntervalBase * lateMult)
     this.spawnWindowDurationSec = Math.max(6, this.toSpawn * spawnInterval)
     this.inactiveTimeLeftSec = 0
+    this.configureWaveVariantPool()
 
     this.emitState()
   }
@@ -1965,6 +2013,10 @@ export class BaseDefenseGame {
     this.waveReady = true
     this.toSpawn = 0
     this.spawnTimer = 0
+    this.waveVariantPool = ['normal']
+    this.discoveredAsteroidVariants.clear()
+    this.activeAsteroidDiscovery = null
+    this.asteroidDiscoveryTimerSec = 0
     this.spawnWindowDurationSec = 0
     this.spawnWindowElapsedSec = 0
     this.spawnWindowEnded = false
@@ -2068,6 +2120,7 @@ export class BaseDefenseGame {
   private attachEvents() {
     this.canvas.addEventListener('pointermove', this.onPointerMove)
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
+    window.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault())
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
@@ -2077,6 +2130,7 @@ export class BaseDefenseGame {
   private detachEvents() {
     this.canvas.removeEventListener('pointermove', this.onPointerMove)
     this.canvas.removeEventListener('pointerdown', this.onPointerDown)
+    window.removeEventListener('pointerup', this.onPointerUp)
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     document.removeEventListener('pointerlockchange', this.onPointerLockChange)
@@ -2107,11 +2161,28 @@ export class BaseDefenseGame {
     const rect = this.canvas.getBoundingClientRect()
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+    // Continuous drag-build while holding LMB and moving.
+    if (this.draggingBuild && !this.waveInProgress && !this.wheelOpen && this.lookLocked) {
+      this.updateHover()
+      if (this.hoverValid) {
+        const def = this.getEffectiveDef(this.selected)
+        if (def) this.tryPlace(def, this.hoverCell.x, this.hoverCell.z)
+      }
+    }
   }
 
   private readonly onPointerDown = (e: PointerEvent) => {
     if (this.isLost) return
     if (this.wheelOpen) return
+    if (e.button === 0) {
+      this.draggingBuild = true
+      this.dragBuildTimer = 0
+    }
+    if (e.button === 2) {
+      this.draggingSell = true
+      this.dragSellTimer = 0
+    }
     if (document.pointerLockElement !== this.canvas) {
       this.canvas.requestPointerLock()
       return
@@ -2121,6 +2192,7 @@ export class BaseDefenseGame {
     if (this.waveInProgress) return
 
     if (e.button === 2) {
+      this.draggingBuild = false
       this.sellLookedAt()
       return
     }
@@ -2131,6 +2203,11 @@ export class BaseDefenseGame {
     const def = this.getEffectiveDef(this.selected)
     if (!def) return
     this.tryPlace(def, this.hoverCell.x, this.hoverCell.z)
+  }
+
+  private readonly onPointerUp = (e: PointerEvent) => {
+    if (e.button === 0) this.draggingBuild = false
+    if (e.button === 2) this.draggingSell = false
   }
 
   private readonly onKeyDown = (e: KeyboardEvent) => {
@@ -2145,6 +2222,10 @@ export class BaseDefenseGame {
 
   private readonly onPointerLockChange = () => {
     this.lookLocked = document.pointerLockElement === this.canvas
+    if (!this.lookLocked) {
+      this.draggingBuild = false
+      this.draggingSell = false
+    }
     // Prevent large jumps when pointer lock is toggled (e.g., interacting with UI).
     this.hasMousePos = false
   }
@@ -2165,6 +2246,8 @@ export class BaseDefenseGame {
       this.hoverValid = false
       if (this.hoverGhost) this.hoverGhost.visible = false
     }
+    this.updateDragBuild(dt)
+    this.updateDragSell(dt)
     this.updateResources(dt)
     this.updateWave(dt)
     this.updateAsteroids(dt)
@@ -2172,8 +2255,36 @@ export class BaseDefenseGame {
     this.updateSupportSystems(dt)
     this.updateProjectiles(dt)
     this.updateHealthBars()
+    if (this.asteroidDiscoveryTimerSec > 0) {
+      this.asteroidDiscoveryTimerSec -= dt
+      if (this.asteroidDiscoveryTimerSec <= 0) this.activeAsteroidDiscovery = null
+    }
     this.updateRefundSprites()
     this.emitState()
+  }
+
+  private updateDragBuild(dt: number) {
+    if (!this.draggingBuild) return
+    if (this.isLost || this.waveInProgress || this.wheelOpen) return
+    if (document.pointerLockElement !== this.canvas) return
+    this.dragBuildTimer -= dt
+    if (this.dragBuildTimer > 0) return
+    this.dragBuildTimer = this.dragBuildIntervalSec
+    this.updateHover()
+    if (!this.hoverValid) return
+    const def = this.getEffectiveDef(this.selected)
+    if (!def) return
+    this.tryPlace(def, this.hoverCell.x, this.hoverCell.z)
+  }
+
+  private updateDragSell(dt: number) {
+    if (!this.draggingSell) return
+    if (this.isLost || this.waveInProgress || this.wheelOpen) return
+    if (document.pointerLockElement !== this.canvas) return
+    this.dragSellTimer -= dt
+    if (this.dragSellTimer > 0) return
+    this.dragSellTimer = this.dragSellIntervalSec
+    this.sellLookedAt()
   }
 
   private updateCamera(dt: number) {
@@ -2365,34 +2476,66 @@ export class BaseDefenseGame {
   }
 
   private pickAsteroidVariant(): { variant: Asteroid['variant']; splitLevel: number } {
-    // Special asteroids are rare early, and become more common as waves progress.
+    const weights = this.getAsteroidVariantWeights()
+    const allowed: AsteroidVariant[] = this.waveVariantPool.length > 0 ? this.waveVariantPool : ['normal']
+    let total = 0
+    for (const v of allowed) total += Math.max(0.0001, weights[v] ?? 0.01)
+    let r = Math.random() * total
+    let picked: AsteroidVariant = 'normal'
+    for (const v of allowed) {
+      r -= Math.max(0.0001, weights[v] ?? 0.01)
+      if (r <= 0) {
+        picked = v
+        break
+      }
+    }
+    return { variant: picked, splitLevel: 0 }
+  }
+
+  private getAsteroidVariantWeights(): Record<AsteroidVariant, number> {
     const waveT = clamp(this.wave / 18, 0, 1)
+    const w: Record<AsteroidVariant, number> = {
+      normal: 1,
+      splitter: 0.035 + 0.11 * waveT,
+      explosive: 0.02 + 0.085 * waveT,
+      meteor: 0.015 + 0.07 * waveT,
+      seeker: 0.02 + 0.06 * waveT,
+      planet: 0.008 + 0.03 * waveT,
+      gold: 0.015 + 0.06 * waveT,
+      spawner: 0.006 + 0.03 * waveT,
+      emp: 0.01 + 0.045 * waveT,
+      colossus: 0.002 + 0.012 * waveT,
+    }
+    return w
+  }
 
-    const wSplitter = 0.035 + 0.11 * waveT // up to ~14.5% of spawns
-    const wExplosive = 0.02 + 0.085 * waveT
-    const wMeteor = 0.015 + 0.07 * waveT
-    const wSeeker = 0.02 + 0.06 * waveT
-    const wPlanet = 0.008 + 0.03 * waveT
-    const wGold = 0.015 + 0.06 * waveT
-    const wSpawner = 0.006 + 0.03 * waveT
-    const wEmp = 0.01 + 0.045 * waveT
-    const wColossus = 0.002 + 0.012 * waveT
+  private configureWaveVariantPool() {
+    const weights = this.getAsteroidVariantWeights()
+    const maxTypesThisWave = Math.min(ALL_ASTEROID_VARIANTS.length, 2 + Math.floor(this.wave / 3))
+    const known = [...this.discoveredAsteroidVariants]
+    if (!known.includes('normal')) known.unshift('normal')
+    if (known.length === 0) known.push('normal')
+    known.sort((a, b) => (weights[b] ?? 0) - (weights[a] ?? 0))
+    let pool = known.slice(0, maxTypesThisWave)
+    if (!pool.includes('normal')) {
+      if (pool.length >= maxTypesThisWave) pool[pool.length - 1] = 'normal'
+      else pool.push('normal')
+    }
 
-    const totalSpecial = wSplitter + wExplosive + wMeteor + wSeeker + wPlanet + wGold + wSpawner + wEmp + wColossus
-    // Remaining chance spawns a normal asteroid.
-    if (Math.random() > totalSpecial) return { variant: 'normal', splitLevel: 0 }
-
-    const r = Math.random() * totalSpecial
-
-    if (r < wSplitter) return { variant: 'splitter', splitLevel: 0 }
-    if (r < wSplitter + wExplosive) return { variant: 'explosive', splitLevel: 0 }
-    if (r < wSplitter + wExplosive + wMeteor) return { variant: 'meteor', splitLevel: 0 }
-    if (r < wSplitter + wExplosive + wMeteor + wSeeker) return { variant: 'seeker', splitLevel: 0 }
-    if (r < wSplitter + wExplosive + wMeteor + wSeeker + wPlanet) return { variant: 'planet', splitLevel: 0 }
-    if (r < wSplitter + wExplosive + wMeteor + wSeeker + wPlanet + wGold) return { variant: 'gold', splitLevel: 0 }
-    if (r < wSplitter + wExplosive + wMeteor + wSeeker + wPlanet + wGold + wSpawner) return { variant: 'spawner', splitLevel: 0 }
-    if (r < wSplitter + wExplosive + wMeteor + wSeeker + wPlanet + wGold + wSpawner + wEmp) return { variant: 'emp', splitLevel: 0 }
-    return { variant: 'colossus', splitLevel: 0 }
+    const unknown = ALL_ASTEROID_VARIANTS.filter((v) => !this.discoveredAsteroidVariants.has(v))
+    if (unknown.length > 0 && this.wave >= 2) {
+      unknown.sort((a, b) => (weights[b] ?? 0) - (weights[a] ?? 0))
+      const intro = unknown[0]
+      if (!pool.includes(intro)) {
+        if (pool.length >= maxTypesThisWave) {
+          const idx = pool.findIndex((v) => v !== 'normal')
+          if (idx >= 0) pool[idx] = intro
+        } else {
+          pool.push(intro)
+        }
+      }
+    }
+    this.waveVariantPool = [...new Set(pool)]
   }
 
   private getAsteroidKillReward(a: Asteroid): number {
@@ -2492,6 +2635,7 @@ export class BaseDefenseGame {
       impactRadius: 0.95,
       impactDamage: Math.round(parent.impactDamage * 0.8),
     })
+    this.registerAsteroidDiscovery('meteor')
   }
 
   private spawnSplitterChild(parent: Asteroid, side: -1 | 1, splitLevel: number) {
@@ -2541,6 +2685,7 @@ export class BaseDefenseGame {
       impactRadius: parent.impactRadius * radiusMul,
       impactDamage: parent.impactDamage * dmgMul,
     })
+    this.registerAsteroidDiscovery('splitter')
   }
 
   private spawnAsteroid() {
@@ -2713,6 +2858,39 @@ export class BaseDefenseGame {
       impactRadius,
       impactDamage,
     })
+    this.registerAsteroidDiscovery(pick.variant)
+  }
+
+  private registerAsteroidDiscovery(variant: AsteroidVariant) {
+    if (this.discoveredAsteroidVariants.has(variant)) return
+    this.discoveredAsteroidVariants.add(variant)
+    this.activeAsteroidDiscovery = variant
+    this.asteroidDiscoveryTimerSec = 5
+  }
+
+  private getAsteroidVariantInfo(variant: AsteroidVariant): { name: string; description: string; color: number } {
+    switch (variant) {
+      case 'splitter':
+        return { name: 'Splitter', description: 'Splits into smaller splitters on death.', color: 0xa21caf }
+      case 'explosive':
+        return { name: 'Explosive', description: 'Detonates on death, even mid-air.', color: 0xff4d6d }
+      case 'meteor':
+        return { name: 'Meteor', description: 'Fast impactor with high single-hit damage.', color: 0x38bdf8 }
+      case 'seeker':
+        return { name: 'Seeker', description: 'Steers toward buildings during flight.', color: 0x22c55e }
+      case 'planet':
+        return { name: 'Planet', description: 'Huge and durable, but moves slower.', color: 0xeab308 }
+      case 'gold':
+        return { name: 'Gold', description: 'Drops bonus credits when destroyed.', color: 0xfacc15 }
+      case 'spawner':
+        return { name: 'Spawner', description: 'Periodically launches fast blue meteors.', color: 0x0ea5e9 }
+      case 'emp':
+        return { name: 'EMP', description: 'Death blast drains power in a massive area.', color: 0x7dd3fc }
+      case 'colossus':
+        return { name: 'Colossus', description: 'Gigantic, tanky, and slow-moving threat.', color: 0x9ca3af }
+      default:
+        return { name: 'Asteroid', description: 'Standard impact asteroid.', color: 0x9f1239 }
+    }
   }
 
   private updateAsteroids(dt: number) {
@@ -4436,6 +4614,9 @@ export class BaseDefenseGame {
     const refundableUpgradeIds = [...this.purchasedUpgradeIds].filter(
       (id) => id !== 'core_protocol' && this.purchasedUpgradePhase.get(id) === this.currentInactivePhase && !this.waveInProgress,
     )
+    const asteroidDiscovery = this.activeAsteroidDiscovery
+      ? { variant: this.activeAsteroidDiscovery, ...this.getAsteroidVariantInfo(this.activeAsteroidDiscovery) }
+      : null
     this.onStateChange?.({
       credits: Math.floor(this.credits),
       supplyUsed: Math.floor(this.supplyUsed),
@@ -4449,6 +4630,7 @@ export class BaseDefenseGame {
       waveSpawnEnded: this.spawnWindowEnded,
       inactiveTimeLeftSec: this.inactiveTimeLeftSec,
       asteroidsRemaining,
+      asteroidDiscovery,
       unlockedBuildingIds: [...this.unlockedBuildingIds],
       purchasedUpgradeIds: [...this.purchasedUpgradeIds],
       refundableUpgradeIds,
