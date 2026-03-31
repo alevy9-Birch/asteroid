@@ -1,7 +1,7 @@
 id,label,category,size_w,size_h,hp,cost_C,supply_cost,range,fire_rate,damage,power_drain_per_sec,aoe_radius,notes
-auto_turret,Auto-Turret,turrets,1,1,260,90,2,15,8.5,11,1.6,0,Cheap fast normal-damage tower high power draw
-auto_turret_large,Auto-Turret (L),turrets,2,2,680,320,5,18,9.2,16,2.6,0,Larger auto turret variant
-siege_cannon,Siege Cannon,turrets,2,2,520,260,6,40,0.28,260,0.9,0,Slow long-range high single-target damage
-heavy_siege_gun,Heavy Siege Gun,turrets,3,3,980,620,10,44,0.2,420,1.4,0,Heavier siege variant
+auto_turret,Auto-Turret,turrets,1,1,260,90,2,17,8.5,11,1.6,0,Cheap fast normal-damage tower high power draw
+auto_turret_large,Auto-Turret (L),turrets,2,2,680,320,5,20,9.2,16,2.6,0,Larger auto turret variant
+siege_cannon,Siege Cannon,turrets,2,2,520,260,6,40,0.33,260,0.9,0,Slow long-range high single-target damage
+heavy_siege_gun,Heavy Siege Cannon,turrets,3,3,980,620,10,44,0.24,420,1.4,0,Heavier siege variant
 aa_gun,AA Gun,turrets,2,2,620,630,7,65,1.05,68,1.1,2.4,4-barrel low-profile explosive gun
 railgun,Railgun,turrets,3,3,900,900,12,70,charge_based,700,charge_based,piercing,Consumes power while charging then fires piercing beam

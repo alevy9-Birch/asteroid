@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BaseDefenseGame, BUILDINGS, UPGRADES, type BuildingCategory, type BuildingId, type UpgradeId } from './game/BaseDefenseGame'
+import { BaseDefenseGame, BUILDINGS, UPGRADES, type BuildingCategory, type BuildingId, type GameDifficulty, type UpgradeId } from './game/BaseDefenseGame'
 
 type State = {
   credits: number
@@ -83,8 +83,10 @@ function App() {
   const virtualCursorLiveRef = useRef(virtualCursor)
   const pendingLockedWheelSelectionRef = useRef<BuildingId | undefined>(undefined)
   const categorySelectionRef = useRef<Partial<Record<BuildingCategory, BuildingId>>>({})
-  const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox' }>({
+  const [selectedDifficulty, setSelectedDifficulty] = useState<GameDifficulty>('hard')
+  const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty }>({
     mode: 'normal',
+    difficulty: 'hard',
   })
 
   useEffect(() => {
@@ -404,7 +406,7 @@ function App() {
     if (id === 'auto_turret') return 'Cheap short-range machine-gun turret with high fire rate.'
     if (id === 'auto_turret_large') return '2x2 auto-turret with higher sustained damage and power draw.'
     if (id === 'siege_cannon') return 'Low-profile long-range artillery with slow heavy shots.'
-    if (id === 'heavy_siege_gun') return 'Heavier siege platform with stronger single-target hits.'
+    if (id === 'heavy_siege_gun') return 'Heavy siege cannon platform with stronger single-target hits.'
     if (id === 'aa_gun') return 'Low-profile 4-barrel gun with explosive shots and very long range.'
     if (id === 'railgun') return 'Charges from power, then fires high-damage piercing beam shots.'
     if (id === 'missile_launcher_s') return '2x2 launcher with lower power cost and reliable death-location missile blasts.'
@@ -661,7 +663,7 @@ function App() {
   }, [wheelOpen, upgradeOpen, phase])
 
   const startNewRun = () => {
-    runConfigRef.current = { mode: 'normal' }
+    runConfigRef.current = { mode: 'normal', difficulty: selectedDifficulty }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
     setWheelOpen(false)
@@ -674,7 +676,7 @@ function App() {
   }
 
   const startSandbox = () => {
-    runConfigRef.current = { mode: 'sandbox' }
+    runConfigRef.current = { mode: 'sandbox', difficulty: selectedDifficulty }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
     setWheelOpen(false)
@@ -1041,10 +1043,28 @@ function App() {
             <h2>Meteor Base Defense</h2>
             <p>Defend your command center(s) against massive meteor impacts.</p>
             <p className="small">
-              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, hold U for skill tree, RMB sell, Space starts next wave.
+              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, press U for skill tree, RMB sell, Space starts next wave.
             </p>
+            <div className="difficulty-picker">
+              {([
+                ['easy', 'Easy'],
+                ['medium', 'Medium'],
+                ['hard', 'Hard'],
+                ['brutal', 'Brutal'],
+                ['deadly', 'Deadly'],
+              ] as Array<[GameDifficulty, string]>).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={selectedDifficulty === id ? 'secondary-btn active' : 'secondary-btn'}
+                  onClick={() => setSelectedDifficulty(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <button type="button" className="primary-btn" onClick={startNewRun}>
-              Start Game
+              Start Game ({selectedDifficulty[0].toUpperCase() + selectedDifficulty.slice(1)})
             </button>
             <div className="screen-actions" style={{ marginTop: 10 }}>
               <button type="button" className="secondary-btn" onClick={startSandbox}>

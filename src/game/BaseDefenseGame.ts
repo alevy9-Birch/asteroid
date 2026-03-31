@@ -39,6 +39,7 @@ export type BuildingId =
   | 'plasma_laser_l'
 
 export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'energy'
+export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'brutal' | 'deadly'
 
 type BuildingDef = {
   id: BuildingId
@@ -566,7 +567,7 @@ export const BUILDINGS: BuildingDef[] = [
     supplyCost: 2,
     powerDrainPerSec: 1.6 * VARS.P,
     kind: 'hitscan',
-    range: 15,
+    range: 17,
     fireRate: 8.5,
     damage: 11,
     wheelDetails: () => ['Fast, normal-damage turret', 'High power draw'],
@@ -582,7 +583,7 @@ export const BUILDINGS: BuildingDef[] = [
     supplyCost: 5,
     powerDrainPerSec: 2.6 * VARS.P,
     kind: 'hitscan',
-    range: 18,
+    range: 20,
     fireRate: 9.2,
     damage: 16,
     wheelDetails: () => ['Large rapid-fire turret', 'Higher power, higher DPS'],
@@ -599,13 +600,13 @@ export const BUILDINGS: BuildingDef[] = [
     powerDrainPerSec: 0.9 * VARS.P,
     kind: 'hitscan',
     range: 40,
-    fireRate: 0.28,
+    fireRate: 0.33,
     damage: 260,
     wheelDetails: () => ['Long-range slow artillery', 'High single-target damage'],
   },
   {
     id: 'heavy_siege_gun',
-    label: 'Heavy Siege Gun',
+    label: 'Heavy Siege Cannon',
     category: 'turrets',
     color: 0xf97316,
     size: { w: 3, h: 3 },
@@ -615,7 +616,7 @@ export const BUILDINGS: BuildingDef[] = [
     powerDrainPerSec: 1.4 * VARS.P,
     kind: 'hitscan',
     range: 44,
-    fireRate: 0.2,
+    fireRate: 0.24,
     damage: 420,
     wheelDetails: () => ['Heavier siege platform', 'Very high single-shot damage'],
   },
@@ -665,7 +666,7 @@ export const BUILDINGS: BuildingDef[] = [
     kind: 'missiles',
     range: 46,
     fireRate: 1.1,
-    damage: 95,
+    damage: 200,
     aoeRadius: 3.6,
     burst: 1,
     projectileSpeed: 46,
@@ -684,7 +685,7 @@ export const BUILDINGS: BuildingDef[] = [
     kind: 'missiles',
     range: 52,
     fireRate: 1.0,
-    damage: 130,
+    damage: 280,
     aoeRadius: 4.2,
     burst: 1,
     projectileSpeed: 44,
@@ -703,7 +704,7 @@ export const BUILDINGS: BuildingDef[] = [
     kind: 'missiles',
     range: 66,
     fireRate: 0.22,
-    damage: 280,
+    damage: 600,
     aoeRadius: 5.2,
     burst: 1,
     projectileSpeed: 48,
@@ -722,7 +723,7 @@ export const BUILDINGS: BuildingDef[] = [
     kind: 'missiles',
     range: 76,
     fireRate: 0.14,
-    damage: 520,
+    damage: 1000,
     aoeRadius: 7.8,
     burst: 1,
     projectileSpeed: 46,
@@ -741,7 +742,7 @@ export const BUILDINGS: BuildingDef[] = [
     kind: 'missiles',
     range: 90,
     fireRate: 0.08,
-    damage: 1250,
+    damage: 2200,
     aoeRadius: 12,
     burst: 1,
     projectileSpeed: 44,
@@ -760,7 +761,7 @@ export const BUILDINGS: BuildingDef[] = [
     kind: 'missiles',
     range: 60,
     fireRate: 0.2,
-    damage: 70,
+    damage: 120,
     aoeRadius: 0,
     burst: 12,
     projectileSpeed: 68,
@@ -864,7 +865,7 @@ export const BUILDINGS: BuildingDef[] = [
   },
 ]
 
-export const UPGRADES: UpgradeDef[] = [
+const UPGRADES_RAW: UpgradeDef[] = [
   {
     id: 'core_protocol',
     label: 'Core Protocol',
@@ -966,7 +967,7 @@ export const UPGRADES: UpgradeDef[] = [
     label: 'Unlock Heavy Turrets',
     category: 'turrets',
     creditCost: 650,
-    description: 'Unlocks larger and specialized turret platforms.',
+    description: 'Unlocks larger and specialized turret/cannon platforms.',
     unlockBuildingIds: ['auto_turret_large', 'heavy_siege_gun', 'aa_gun'],
   },
   {
@@ -1575,10 +1576,10 @@ export const UPGRADES: UpgradeDef[] = [
   },
   {
     id: 'heavy_siege_gun_mk2',
-    label: 'Heavy Siege Gun Level 2',
+    label: 'Heavy Siege Cannon Level 2',
     category: 'turrets',
     creditCost: 1250,
-    description: 'Heavy Siege Guns gain range and heavy-shot damage.',
+    description: 'Heavy Siege Cannons gain range and heavy-shot damage.',
     prereqIds: ['unlock_turret_t2'],
     modifiers: { heavy_siege_gun: { rangeAdd: 4, damageAdd: 120 } },
   },
@@ -1710,9 +1711,16 @@ export const UPGRADES: UpgradeDef[] = [
   },
 ]
 
+// Globally reduce upgrade credit costs (5-10% target).
+export const UPGRADES: UpgradeDef[] = UPGRADES_RAW.map((u) => {
+  if (u.creditCost <= 0) return u
+  return { ...u, creditCost: Math.round(u.creditCost * 0.93) }
+})
+
 export class BaseDefenseGame {
   private readonly canvas: HTMLCanvasElement
   private readonly mode: 'normal' | 'sandbox'
+  private readonly difficulty: GameDifficulty
   private renderer!: THREE.WebGLRenderer
   private scene!: THREE.Scene
   private camera!: THREE.PerspectiveCamera
@@ -1842,9 +1850,26 @@ export class BaseDefenseGame {
     gameOver: boolean
   }) => void
 
-  constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox' }) {
+  constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty }) {
     this.canvas = canvas
     this.mode = opts?.mode ?? 'normal'
+    this.difficulty = opts?.difficulty ?? 'hard'
+  }
+
+  private getDifficultyScale() {
+    switch (this.difficulty) {
+      case 'easy':
+        return { countMul: 0.72, hpMul: 0.72, damageMul: 0.75, speedMul: 0.82, spawnIntervalMul: 1.22 }
+      case 'medium':
+        return { countMul: 0.86, hpMul: 0.86, damageMul: 0.9, speedMul: 0.92, spawnIntervalMul: 1.1 }
+      case 'brutal':
+        return { countMul: 1.22, hpMul: 1.2, damageMul: 1.2, speedMul: 1.12, spawnIntervalMul: 0.9 }
+      case 'deadly':
+        return { countMul: 1.48, hpMul: 1.45, damageMul: 1.45, speedMul: 1.24, spawnIntervalMul: 0.8 }
+      case 'hard':
+      default:
+        return { countMul: 1, hpMul: 1, damageMul: 1, speedMul: 1, spawnIntervalMul: 1 }
+    }
   }
 
   start() {
@@ -1965,16 +1990,17 @@ export class BaseDefenseGame {
 
     this.spawnWindowEnded = false
     this.spawnWindowElapsedSec = 0
+    const diff = this.getDifficultyScale()
     // Earlier waves should be calmer; after wave 5 difficulty ramps up aggressively.
     const baseCount = 10 + this.wave * 3.5
     const extra = this.wave > 5 ? 6 * Math.pow(1.18, this.wave - 5) : 0
-    this.toSpawn = Math.round(baseCount + extra)
+    this.toSpawn = Math.max(1, Math.round((baseCount + extra) * diff.countMul))
     this.spawnTimer = 0
 
     // Approximate how long spawning will last so the UI circle matches the spawn window.
     const spawnIntervalBase = Math.max(0.06, 0.34 - this.wave * 0.015)
     const lateMult = this.wave > 5 ? Math.pow(0.93, this.wave - 5) : 1
-    const spawnInterval = Math.max(0.035, spawnIntervalBase * lateMult)
+    const spawnInterval = Math.max(0.035, spawnIntervalBase * lateMult * diff.spawnIntervalMul)
     this.spawnWindowDurationSec = Math.max(6, this.toSpawn * spawnInterval)
     this.inactiveTimeLeftSec = 0
     this.configureWaveVariantPool()
@@ -2347,6 +2373,21 @@ export class BaseDefenseGame {
     return out
   }
 
+  private getPassivePowerDrainPerSec(def: BuildingDef): number {
+    // Turrets/missiles only draw when firing; railgun draws while charging.
+    if (def.kind === 'railgun') return 0
+    if (def.category === 'turrets' || def.category === 'missile') return 0
+    return def.powerDrainPerSec ?? 0
+  }
+
+  private tryConsumeShotPower(def: BuildingDef, scale: number = 1): boolean {
+    const cost = Math.max(0, (def.powerDrainPerSec ?? 0) * POWER_DRAIN_GLOBAL_MUL * scale)
+    if (cost <= 0) return true
+    if (this.powerStored < cost) return false
+    this.powerStored -= cost
+    return true
+  }
+
   private updateResources(dt: number) {
     let gen = 0
     let drain = 0
@@ -2369,7 +2410,7 @@ export class BaseDefenseGame {
       supplyUsed += d.supplyCost
       powerCap += d.powerCapAdd ?? 0
       gen += d.powerGenPerSec ?? 0
-      drain += (d.powerDrainPerSec ?? 0) * POWER_DRAIN_GLOBAL_MUL
+      drain += this.getPassivePowerDrainPerSec(d) * POWER_DRAIN_GLOBAL_MUL
     }
 
     // Pylon network bonus: each pylon gains power per nearby pylon within radius 5.
@@ -2437,7 +2478,7 @@ export class BaseDefenseGame {
         if (this.spawnTimer <= 0) {
           const spawnIntervalBase = Math.max(0.06, 0.34 - this.wave * 0.015)
           const lateMult = this.wave > 5 ? Math.pow(0.93, this.wave - 5) : 1
-          const spawnInterval = Math.max(0.035, spawnIntervalBase * lateMult)
+          const spawnInterval = Math.max(0.035, spawnIntervalBase * lateMult * this.getDifficultyScale().spawnIntervalMul)
           this.spawnTimer = spawnInterval
           this.spawnAsteroid()
           this.toSpawn -= 1
@@ -2727,9 +2768,12 @@ export class BaseDefenseGame {
 
     // Stronger scaling: gets significantly harder over time.
     const wavePow = Math.max(0, this.wave - 1)
-    const baseHp = Math.round(100 + this.wave * 26 + Math.pow(wavePow, 1.3) * 14)
-    const baseDamage = Math.round(360 + this.wave * 42 + Math.pow(wavePow, 1.22) * 16)
-    const baseSpeed = 15 + this.wave * 0.9 + Math.pow(wavePow, 1.08) * 0.18
+    const diff = this.getDifficultyScale()
+    // Global asteroid health nerf to keep waves killable.
+    const ASTEROID_HP_GLOBAL_MUL = 0.78
+    const baseHp = Math.round((100 + this.wave * 26 + Math.pow(wavePow, 1.3) * 14) * diff.hpMul * ASTEROID_HP_GLOBAL_MUL)
+    const baseDamage = Math.round((360 + this.wave * 42 + Math.pow(wavePow, 1.22) * 16) * diff.damageMul)
+    const baseSpeed = (15 + this.wave * 0.9 + Math.pow(wavePow, 1.08) * 0.18) * diff.speedMul
 
     let sizeMul = 1
     let hpMul = 1
@@ -2985,11 +3029,18 @@ export class BaseDefenseGame {
           ? anchor.getWorldPosition(this.tmpAimPos)
           : new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 2.8, b.origin.z + (d.size.h - 1) / 2)
         const dps = d.damage ?? 0
-        let hitAny = false
+        const targets: Asteroid[] = []
         for (const a of this.asteroids) {
           if (!a.alive) continue
           const dist = origin.distanceTo(a.mesh.position)
           if (dist > (d.range ?? 0)) continue
+          targets.push(a)
+        }
+        if (targets.length === 0) continue
+        // Energy weapons: constant drain handled in resources, plus extra while firing.
+        if (!this.tryConsumeShotPower(d, dt)) continue
+        let hitAny = false
+        for (const a of targets) {
           a.hp -= dps * dt
           this.spawnShot(origin, a.mesh.position, 0x67e8f9)
           hitAny = true
@@ -3090,6 +3141,8 @@ export class BaseDefenseGame {
 
       if (d.kind === 'hitscan') {
         if (isPlasma) {
+          // Energy weapons: constant drain handled in resources, plus extra while firing.
+          if (!this.tryConsumeShotPower(d, dt)) continue
           target.hp -= (d.damage ?? 0) * dt
           this.spawnShot(origin, target.mesh.position, 0x22d3ee)
           if (target.hp <= 0) {
@@ -3103,6 +3156,7 @@ export class BaseDefenseGame {
           }
           continue
         }
+        if (!this.tryConsumeShotPower(d)) continue
         if ((d.aoeRadius ?? 0) > 0.01) {
           this.explodeAt(target.mesh.position, d.aoeRadius ?? 2, d.damage, d.color)
           this.spawnShot(origin, target.mesh.position, d.color)
@@ -4480,6 +4534,7 @@ export class BaseDefenseGame {
     noSplash: boolean,
     volleyId: string | null,
   ) {
+    if (!this.tryConsumeShotPower(def)) return
     const geo = new THREE.ConeGeometry(0.15, 0.7, 10)
     const mat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, emissive: 0xf59e0b, emissiveIntensity: 0.4 })
     const mesh = new THREE.Mesh(geo, mat)
@@ -4529,6 +4584,7 @@ export class BaseDefenseGame {
   }
 
   private spawnBallistic(origin: THREE.Vector3, targetPos: THREE.Vector3, def: BuildingDef) {
+    if (!this.tryConsumeShotPower(def)) return
     const geo = new THREE.CylinderGeometry(0.22, 0.22, 1.2, 10)
     const mat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, emissive: 0xef4444, emissiveIntensity: 0.35 })
     const mesh = new THREE.Mesh(geo, mat)
