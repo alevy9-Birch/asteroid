@@ -107,8 +107,8 @@ body,
 
 .skill-node {
   position: absolute;
-  width: 118px;
-  min-height: 68px;
+  width: 96px;
+  min-height: 56px;
   transform: translate(-50%, -50%);
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--node-color, #22d3ee) 60%, rgba(148, 163, 184, 0.4));
@@ -116,9 +116,9 @@ body,
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 2px;
+  gap: 1px;
   text-align: center;
-  padding: 6px;
+  padding: 5px;
 }
 
 .skill-node.locked {
@@ -142,12 +142,12 @@ body,
 }
 
 .skill-node-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
 }
 
 .skill-node-cost {
-  font-size: 11px;
+  font-size: 9px;
   opacity: 0.82;
   font-weight: 700;
 }
@@ -307,18 +307,22 @@ body,
 }
 
 .wheel-selected {
-  font-size: 20px;
+  font-size: 13px;
   font-weight: 900;
   color: rgba(226, 232, 240, 0.95);
   text-shadow: 0 0 22px color-mix(in srgb, var(--accent-color, #22d3ee) 35%, transparent);
-  margin-top: 6px;
+  margin-top: 0;
+  position: relative;
+  top: 14px;
 }
 
 .wheel-sub {
-  margin-top: 2px;
-  font-size: 12px;
+  margin-top: -1px;
+  font-size: 9px;
   opacity: 0.78;
-  line-height: 1.25;
+  line-height: 1.2;
+  position: relative;
+  top: -10px;
 }
 
 .wheel-ring {

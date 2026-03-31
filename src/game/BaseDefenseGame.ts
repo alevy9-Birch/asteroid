@@ -4205,6 +4205,8 @@ export class BaseDefenseGame {
 
   private setHealthBar(bar: HealthBar, hp: number, maxHp: number) {
     const t = Math.max(0, Math.min(1, maxHp <= 0 ? 0 : hp / maxHp))
+    // Only show bars for damaged entities.
+    bar.group.visible = hp > 0 && t < 0.999
     bar.fill.scale.x = t
     bar.fill.position.x = (t - 1) * 0.5
     const mat = bar.fill.material as THREE.MeshBasicMaterial

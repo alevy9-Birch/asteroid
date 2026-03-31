@@ -78,7 +78,6 @@ function App() {
   const upgradeOpenRef = useRef(false)
   const [skillCam, setSkillCam] = useState({ x: 0, y: 0, zoom: 1 })
   const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight })
-  const hoverStabilityRef = useRef<{ id?: BuildingId; ticks: number }>({ id: undefined, ticks: 0 })
   const hoveredUpgradeRef = useRef<UpgradeId | undefined>(undefined)
   const hoveredUpgradeCanBuyRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('menu')
@@ -193,25 +192,80 @@ function App() {
   const refundableUpgrades = useMemo(() => new Set(state.refundableUpgradeIds), [state.refundableUpgradeIds])
   const skillNodes = useMemo(() => {
     const nodes: Array<{ id: UpgradeId; x: number; y: number }> = [{ id: 'core_protocol', x: 0, y: 0 }]
-    const anchors: Record<Exclude<BuildingCategory, 'structural'> | 'structural', { x: number; y: number }> = {
-      structural: { x: -520, y: 0 },
-      economy: { x: -360, y: -460 },
-      electrical: { x: -360, y: 460 },
-      turrets: { x: 360, y: -460 },
-      missile: { x: 520, y: 0 },
-      energy: { x: 360, y: 460 },
+    const byId = new Map(UPGRADES.map((u) => [u.id, u]))
+    const memo = new Map<UpgradeId, number>()
+    const depthOf = (id: UpgradeId): number => {
+      if (id === 'core_protocol') return 0
+      const cached = memo.get(id)
+      if (cached !== undefined) return cached
+      const up = byId.get(id)
+      if (!up || !up.prereqIds || up.prereqIds.length === 0) {
+        memo.set(id, 1)
+        return 1
+      }
+      const d = Math.max(...up.prereqIds.map((p) => depthOf(p) + 1))
+      memo.set(id, d)
+      return d
     }
+
+    const categoryAngle: Record<BuildingCategory, number> = {
+      structural: Math.PI, // left
+      economy: (-2 * Math.PI) / 3, // upper-left
+      electrical: (2 * Math.PI) / 3, // lower-left
+      turrets: -Math.PI / 3, // upper-right
+      missile: 0, // right
+      energy: Math.PI / 3, // lower-right
+    }
+    const ringStep = 290
+    const laneStep = 190
+
     for (const cat of categoryOrder) {
       const list = UPGRADES.filter((u) => u.id !== 'core_protocol' && u.category === cat)
-      const anchor = anchors[cat]
-      for (let i = 0; i < list.length; i++) {
-        const col = Math.floor(i / 6)
-        const row = i % 6
-        nodes.push({
-          id: list[i].id,
-          x: anchor.x + col * 165,
-          y: anchor.y + (row - 2.5) * 102,
-        })
+      const angle = categoryAngle[cat]
+      const dirX = Math.cos(angle)
+      const dirY = Math.sin(angle)
+      const perpX = -dirY
+      const perpY = dirX
+
+      const groups = new Map<number, UpgradeId[]>()
+      for (const u of list) {
+        const d = depthOf(u.id)
+        const arr = groups.get(d) ?? []
+        arr.push(u.id)
+        groups.set(d, arr)
+      }
+
+      const laneById = new Map<UpgradeId, number>()
+      for (const [depth, ids] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
+        if (depth === 1) {
+          ids.sort((a, b) => (byId.get(a)?.label ?? a).localeCompare(byId.get(b)?.label ?? b))
+        } else {
+          ids.sort((a, b) => {
+            const avgLane = (id: UpgradeId) => {
+              const pre = (byId.get(id)?.prereqIds ?? []).filter((p) => laneById.has(p))
+              if (pre.length === 0) return 0
+              return pre.reduce((s, p) => s + (laneById.get(p) ?? 0), 0) / pre.length
+            }
+            const da = avgLane(a)
+            const db = avgLane(b)
+            if (da !== db) return da - db
+            return (byId.get(a)?.label ?? a).localeCompare(byId.get(b)?.label ?? b)
+          })
+        }
+        for (let i = 0; i < ids.length; i++) laneById.set(ids[i], i - (ids.length - 1) / 2)
+      }
+
+      for (const [depth, ids] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
+        const radius = depth * ringStep
+        for (let i = 0; i < ids.length; i++) {
+          const lane = laneById.get(ids[i]) ?? i - (ids.length - 1) / 2
+          const tangent = lane * laneStep
+          nodes.push({
+            id: ids[i],
+            x: dirX * radius + perpX * tangent,
+            y: dirY * radius + perpY * tangent,
+          })
+        }
       }
     }
     return nodes
@@ -226,13 +280,32 @@ function App() {
     for (const u of UPGRADES) {
       for (const p of u.prereqIds ?? []) link(u.id, p)
     }
-    for (const cat of categoryOrder) {
-      const list = UPGRADES.filter((u) => u.id !== 'core_protocol' && u.category === cat)
-      if (list[0]) link('core_protocol', list[0].id)
-      for (let i = 1; i < list.length; i++) link(list[i - 1].id, list[i].id)
+    // Ensure first-tier upgrades are reachable from the center.
+    for (const u of UPGRADES) {
+      if (u.id === 'core_protocol') continue
+      if (!u.prereqIds || u.prereqIds.length === 0) link('core_protocol', u.id)
     }
     return adj
-  }, [categoryOrder])
+  }, [])
+  const skillEdges = useMemo(() => {
+    const edges = new Set<string>()
+    for (const up of UPGRADES) {
+      if (up.id === 'core_protocol') continue
+      if (!up.prereqIds || up.prereqIds.length === 0) {
+        edges.add(`core_protocol|${up.id}`)
+        continue
+      }
+      for (const p of up.prereqIds) {
+        const a = p < up.id ? p : up.id
+        const b = p < up.id ? up.id : p
+        edges.add(`${a}|${b}`)
+      }
+    }
+    return [...edges].map((k) => {
+      const [from, to] = k.split('|') as [UpgradeId, UpgradeId]
+      return { from, to }
+    })
+  }, [])
   const unlockedUpgradeSet = useMemo(() => {
     const s = new Set<UpgradeId>(['core_protocol'])
     for (const p of purchasedUpgrades) {
@@ -386,19 +459,6 @@ function App() {
   }, [wheelOpen, itemLayout])
 
   useEffect(() => {
-    if (!wheelOpen || !hoveredItem) return
-    if (hoverStabilityRef.current.id === hoveredItem.id) {
-      hoverStabilityRef.current.ticks += 1
-    } else {
-      hoverStabilityRef.current.id = hoveredItem.id
-      hoverStabilityRef.current.ticks = 1
-    }
-    if (hoverStabilityRef.current.ticks >= 2 && hoveredItem.id !== state.selected) {
-      gameRef.current?.setSelected(hoveredItem.id)
-    }
-  }, [wheelOpen, hoveredItem, state.selected])
-
-  useEffect(() => {
     const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight })
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
@@ -434,13 +494,27 @@ function App() {
             y *= s
           }
           virtualCursorLiveRef.current = { x, y }
+          if (itemLayout.length > 0) {
+            let best = itemLayout[0]
+            let bestD = Infinity
+            for (const entry of itemLayout) {
+              const ddx = entry.x - x
+              const ddy = entry.y - y
+              const d2 = ddx * ddx + ddy * ddy
+              if (d2 < bestD) {
+                bestD = d2
+                best = entry
+              }
+            }
+            if (best.b.id !== state.selected) gameRef.current?.setSelected(best.b.id)
+          }
           return { x, y }
         })
       }
     }
     window.addEventListener('mousemove', onMouseMove)
     return () => window.removeEventListener('mousemove', onMouseMove)
-  }, [phase, itemRadius])
+  }, [phase, itemRadius, itemLayout, state.selected])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -581,7 +655,7 @@ function App() {
     [skillNodes, skillCam],
   )
   // Slightly smaller nodes (the new tree got busy).
-  const nodeScale = Math.max(0.6, Math.min(1.25, skillCam.zoom * 0.95))
+  const nodeScale = Math.max(0.45, Math.min(1.0, skillCam.zoom * 0.9))
   const hoveredUpgradeId = useMemo(() => {
     let best: UpgradeId | undefined
     let bestDist = Infinity
@@ -592,7 +666,7 @@ function App() {
         best = n.id
       }
     }
-    return bestDist <= 34 * nodeScale ? best : undefined
+    return bestDist <= 30 * nodeScale ? best : undefined
   }, [renderedSkillNodes, treeCx, treeCy, nodeScale])
   const hoveredUpgradeDef = UPGRADES.find((u) => u.id === hoveredUpgradeId)
   const hoveredNodeCanBuy = hoveredUpgradeDef ? canBuyUpgrade(hoveredUpgradeDef.id, hoveredUpgradeDef.creditCost) : false
@@ -712,15 +786,12 @@ function App() {
             </div>
             <div className="skilltree-canvas" style={{ width: treeW, height: treeH }}>
               <svg className="skilltree-lines" viewBox={`0 0 ${treeW} ${treeH}`} aria-hidden="true">
-                {renderedSkillNodes.flatMap((n) =>
-                  (skillAdj[n.id] ?? [])
-                    .filter((to) => n.id < to)
-                    .map((to) => {
-                      const t = renderedSkillNodes.find((k) => k.id === to)
-                      if (!t) return null
-                      return <line key={`${n.id}-${to}`} x1={n.sx} y1={n.sy} x2={t.sx} y2={t.sy} className="skilltree-line" />
-                    }),
-                )}
+                {skillEdges.map(({ from, to }) => {
+                  const a = renderedSkillNodes.find((k) => k.id === from)
+                  const b = renderedSkillNodes.find((k) => k.id === to)
+                  if (!a || !b) return null
+                  return <line key={`${from}-${to}`} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy} className="skilltree-line" />
+                })}
               </svg>
 
               {renderedSkillNodes.map((n) => {
@@ -830,12 +901,6 @@ function App() {
             <span className="wheel-adjacent-arrow">▶</span>
           </div>
           <div className="wheel">
-            <div className="wheel-selected">{selectedDef?.label ?? state.selected}</div>
-            <div className="wheel-sub">
-              {selectedDef ? selectedDef.wheelDetails()[0] : ''}
-              <br />
-              {selectedDef ? selectedDef.wheelDetails()[1] : ''}
-            </div>
             <div className="wheel-ring">
               <div className="wheel-ring-track">
                 {itemLayout.map(({ b, x, y }) => {
