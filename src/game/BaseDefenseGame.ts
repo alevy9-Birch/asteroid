@@ -213,6 +213,11 @@ export type UpgradeId =
   | 'economy_optimization_2'
   | 'unlock_refinery'
   | 'unlock_mega_refinery'
+  | 'unlock_repair_infra'
+  | 'unlock_reconstruction_yard'
+  | 'unlock_grid_expansion'
+  | 'unlock_pylon'
+  | 'unlock_nuclear_plant'
   | 'command_center_mk2'
   | 'supply_depot_s_mk2'
   | 'supply_depot_l_mk2'
@@ -897,6 +902,50 @@ export const UPGRADES: UpgradeDef[] = [
       pylon: { powerGenMul: 1.25 },
       nuclear_plant: { powerGenMul: 1.15 },
     },
+  },
+  {
+    id: 'unlock_repair_infra',
+    label: 'Unlock Repair Bay',
+    category: 'structural',
+    creditCost: 520,
+    description: 'Unlocks the Repair Bay.',
+    unlockBuildingIds: ['repair_bay'],
+  },
+  {
+    id: 'unlock_reconstruction_yard',
+    label: 'Unlock Reconstruction Yard',
+    category: 'structural',
+    creditCost: 780,
+    description: 'Unlocks the Reconstruction Yard.',
+    prereqIds: ['unlock_repair_infra'],
+    unlockBuildingIds: ['reconstruction_yard'],
+  },
+  {
+    id: 'unlock_grid_expansion',
+    label: 'Unlock Grid Expansion',
+    category: 'electrical',
+    creditCost: 700,
+    description: 'Unlocks the Large Generator and Large Battery.',
+    prereqIds: ['generator_efficiency'],
+    unlockBuildingIds: ['generator_large', 'battery_large'],
+  },
+  {
+    id: 'unlock_pylon',
+    label: 'Unlock Pylon Network',
+    category: 'electrical',
+    creditCost: 650,
+    description: 'Unlocks Pylon structures.',
+    prereqIds: ['generator_efficiency'],
+    unlockBuildingIds: ['pylon'],
+  },
+  {
+    id: 'unlock_nuclear_plant',
+    label: 'Unlock Nuclear Plant',
+    category: 'electrical',
+    creditCost: 1100,
+    description: 'Unlocks the Nuclear Plant.',
+    prereqIds: ['unlock_grid_expansion'],
+    unlockBuildingIds: ['nuclear_plant'],
   },
   {
     id: 'unlock_turret_t2',
@@ -1712,16 +1761,10 @@ export class BaseDefenseGame {
     'command_center',
     'supply_depot_s',
     'supply_depot_l',
-    'repair_bay',
     'support_node',
-    'reconstruction_yard',
     'factory_business',
     'generator_small',
-    'generator_large',
     'battery_small',
-    'battery_large',
-    'pylon',
-    'nuclear_plant',
     'auto_turret',
     'siege_cannon',
     'missile_launcher_s',
@@ -1811,7 +1854,6 @@ export class BaseDefenseGame {
     if (!up) return
     if (this.purchasedUpgradeIds.has(id)) return
     if (this.credits < up.creditCost) return
-    if (up.prereqIds?.some((p) => !this.purchasedUpgradeIds.has(p))) return
 
     this.credits -= up.creditCost
     this.purchasedUpgradeIds.add(id)
@@ -4420,16 +4462,10 @@ export class BaseDefenseGame {
     this.unlockedBuildingIds.add('command_center')
     this.unlockedBuildingIds.add('supply_depot_s')
     this.unlockedBuildingIds.add('supply_depot_l')
-    this.unlockedBuildingIds.add('repair_bay')
     this.unlockedBuildingIds.add('support_node')
-    this.unlockedBuildingIds.add('reconstruction_yard')
     this.unlockedBuildingIds.add('factory_business')
     this.unlockedBuildingIds.add('generator_small')
-    this.unlockedBuildingIds.add('generator_large')
     this.unlockedBuildingIds.add('battery_small')
-    this.unlockedBuildingIds.add('battery_large')
-    this.unlockedBuildingIds.add('pylon')
-    this.unlockedBuildingIds.add('nuclear_plant')
     this.unlockedBuildingIds.add('auto_turret')
     this.unlockedBuildingIds.add('siege_cannon')
     this.unlockedBuildingIds.add('missile_launcher_s')

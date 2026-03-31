@@ -38,18 +38,12 @@ const INITIAL_STATE: State = {
     'command_center',
     'supply_depot_s',
     'supply_depot_l',
-    'repair_bay',
     'support_node',
-    'reconstruction_yard',
     'factory_business',
     'refinery',
     'mega_refinery',
     'generator_small',
-    'generator_large',
     'battery_small',
-    'battery_large',
-    'pylon',
-    'nuclear_plant',
     'auto_turret',
     'auto_turret_large',
     'siege_cannon',
@@ -190,9 +184,18 @@ function App() {
   const selectedStat = buildDesc(selectedDef)
   const purchasedUpgrades = useMemo(() => new Set(state.purchasedUpgradeIds), [state.purchasedUpgradeIds])
   const refundableUpgrades = useMemo(() => new Set(state.refundableUpgradeIds), [state.refundableUpgradeIds])
-  const skillNodes = useMemo(() => {
-    const nodes: Array<{ id: UpgradeId; x: number; y: number }> = [{ id: 'core_protocol', x: 0, y: 0 }]
+  const skillHexLayout = useMemo(() => {
+    type Hex = { q: number; r: number }
+    const dirs: Hex[] = [
+      { q: 1, r: 0 },
+      { q: 1, r: -1 },
+      { q: 0, r: -1 },
+      { q: -1, r: 0 },
+      { q: -1, r: 1 },
+      { q: 0, r: 1 },
+    ]
     const byId = new Map(UPGRADES.map((u) => [u.id, u]))
+    const catOrder = new Map(categoryOrder.map((c, i) => [c, i]))
     const memo = new Map<UpgradeId, number>()
     const depthOf = (id: UpgradeId): number => {
       if (id === 'core_protocol') return 0
@@ -207,105 +210,107 @@ function App() {
       memo.set(id, d)
       return d
     }
+    const upgrades = UPGRADES.filter((u) => u.id !== 'core_protocol').sort((a, b) => {
+      const da = depthOf(a.id)
+      const db = depthOf(b.id)
+      if (da !== db) return da - db
+      const ca = catOrder.get(a.category) ?? 0
+      const cb = catOrder.get(b.category) ?? 0
+      if (ca !== cb) return ca - cb
+      return a.label.localeCompare(b.label)
+    })
 
-    const categoryAngle: Record<BuildingCategory, number> = {
-      structural: Math.PI, // left
-      economy: (-2 * Math.PI) / 3, // upper-left
-      electrical: (2 * Math.PI) / 3, // lower-left
-      turrets: -Math.PI / 3, // upper-right
-      missile: 0, // right
-      energy: Math.PI / 3, // lower-right
+    const coordById = new Map<UpgradeId, Hex>()
+    coordById.set('core_protocol', { q: 0, r: 0 })
+    const occupied = new Set<string>(['0,0'])
+    const frontier = new Set<string>()
+    for (const d of dirs) frontier.add(`${d.q},${d.r}`)
+
+    const dist = (h: Hex) => (Math.abs(h.q) + Math.abs(h.r) + Math.abs(h.q + h.r)) / 2
+    const parse = (k: string): Hex => {
+      const [q, r] = k.split(',').map(Number)
+      return { q, r }
     }
-    const ringStep = 290
-    const laneStep = 190
-
-    for (const cat of categoryOrder) {
-      const list = UPGRADES.filter((u) => u.id !== 'core_protocol' && u.category === cat)
-      const angle = categoryAngle[cat]
-      const dirX = Math.cos(angle)
-      const dirY = Math.sin(angle)
-      const perpX = -dirY
-      const perpY = dirX
-
-      const groups = new Map<number, UpgradeId[]>()
-      for (const u of list) {
-        const d = depthOf(u.id)
-        const arr = groups.get(d) ?? []
-        arr.push(u.id)
-        groups.set(d, arr)
+    const scoreCell = (h: Hex, cat: BuildingCategory) => {
+      const angleByCat: Record<BuildingCategory, number> = {
+        structural: Math.PI,
+        economy: (-2 * Math.PI) / 3,
+        electrical: (2 * Math.PI) / 3,
+        turrets: -Math.PI / 3,
+        missile: 0,
+        energy: Math.PI / 3,
       }
+      const ang = Math.atan2(h.r * 1.5, (Math.sqrt(3) / 2) * (2 * h.q + h.r))
+      const target = angleByCat[cat]
+      let d = Math.abs(ang - target)
+      if (d > Math.PI) d = 2 * Math.PI - d
+      return d + dist(h) * 0.02
+    }
 
-      const laneById = new Map<UpgradeId, number>()
-      for (const [depth, ids] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
-        if (depth === 1) {
-          ids.sort((a, b) => (byId.get(a)?.label ?? a).localeCompare(byId.get(b)?.label ?? b))
-        } else {
-          ids.sort((a, b) => {
-            const avgLane = (id: UpgradeId) => {
-              const pre = (byId.get(id)?.prereqIds ?? []).filter((p) => laneById.has(p))
-              if (pre.length === 0) return 0
-              return pre.reduce((s, p) => s + (laneById.get(p) ?? 0), 0) / pre.length
-            }
-            const da = avgLane(a)
-            const db = avgLane(b)
-            if (da !== db) return da - db
-            return (byId.get(a)?.label ?? a).localeCompare(byId.get(b)?.label ?? b)
-          })
-        }
-        for (let i = 0; i < ids.length; i++) laneById.set(ids[i], i - (ids.length - 1) / 2)
-      }
-
-      for (const [depth, ids] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
-        const radius = depth * ringStep
-        for (let i = 0; i < ids.length; i++) {
-          const lane = laneById.get(ids[i]) ?? i - (ids.length - 1) / 2
-          const tangent = lane * laneStep
-          nodes.push({
-            id: ids[i],
-            x: dirX * radius + perpX * tangent,
-            y: dirY * radius + perpY * tangent,
-          })
+    for (const up of upgrades) {
+      let bestKey: string | null = null
+      let bestScore = Infinity
+      for (const k of frontier) {
+        const h = parse(k)
+        const s = scoreCell(h, up.category)
+        if (s < bestScore) {
+          bestScore = s
+          bestKey = k
         }
       }
+      if (!bestKey) break
+      const chosen = parse(bestKey)
+      coordById.set(up.id, chosen)
+      frontier.delete(bestKey)
+      occupied.add(bestKey)
+      for (const d of dirs) {
+        const nq = chosen.q + d.q
+        const nr = chosen.r + d.r
+        const nk = `${nq},${nr}`
+        if (!occupied.has(nk)) frontier.add(nk)
+      }
     }
-    return nodes
-  }, [categoryOrder])
-  const skillAdj = useMemo(() => {
-    const adj = {} as Record<UpgradeId, UpgradeId[]>
-    for (const u of UPGRADES) adj[u.id] = []
-    const link = (a: UpgradeId, b: UpgradeId) => {
-      if (!adj[a].includes(b)) adj[a].push(b)
-      if (!adj[b].includes(a)) adj[b].push(a)
-    }
-    for (const u of UPGRADES) {
-      for (const p of u.prereqIds ?? []) link(u.id, p)
-    }
-    // Ensure first-tier upgrades are reachable from the center.
-    for (const u of UPGRADES) {
-      if (u.id === 'core_protocol') continue
-      if (!u.prereqIds || u.prereqIds.length === 0) link('core_protocol', u.id)
-    }
-    return adj
-  }, [])
-  const skillEdges = useMemo(() => {
-    const edges = new Set<string>()
+
+    const cellSize = 150
+    const nodes: Array<{ id: UpgradeId; x: number; y: number }> = []
     for (const up of UPGRADES) {
-      if (up.id === 'core_protocol') continue
-      if (!up.prereqIds || up.prereqIds.length === 0) {
-        edges.add(`core_protocol|${up.id}`)
-        continue
+      const c = coordById.get(up.id) ?? { q: 0, r: 0 }
+      const x = cellSize * Math.sqrt(3) * (c.q + c.r / 2)
+      const y = cellSize * 1.5 * c.r
+      nodes.push({ id: up.id, x, y })
+    }
+
+    const idByCoord = new Map<string, UpgradeId>()
+    for (const [id, c] of coordById) idByCoord.set(`${c.q},${c.r}`, id)
+    const adj = {} as Record<UpgradeId, UpgradeId[]>
+    for (const u of UPGRADES) {
+      const c = coordById.get(u.id) ?? { q: 0, r: 0 }
+      const neighbors: UpgradeId[] = []
+      for (const d of dirs) {
+        const n = idByCoord.get(`${c.q + d.q},${c.r + d.r}`)
+        if (n) neighbors.push(n)
       }
-      for (const p of up.prereqIds) {
-        const a = p < up.id ? p : up.id
-        const b = p < up.id ? up.id : p
+      adj[u.id] = neighbors
+    }
+
+    const edges = new Set<string>()
+    for (const [id, list] of Object.entries(adj) as Array<[UpgradeId, UpgradeId[]]>) {
+      for (const to of list) {
+        const a = id < to ? id : to
+        const b = id < to ? to : id
         edges.add(`${a}|${b}`)
       }
     }
-    return [...edges].map((k) => {
+    const edgeList = [...edges].map((k) => {
       const [from, to] = k.split('|') as [UpgradeId, UpgradeId]
       return { from, to }
     })
-  }, [])
+
+    return { nodes, adj, edges: edgeList }
+  }, [categoryOrder])
+  const skillNodes = skillHexLayout.nodes
+  const skillAdj = skillHexLayout.adj
+  const skillEdges = skillHexLayout.edges
   const unlockedUpgradeSet = useMemo(() => {
     const s = new Set<UpgradeId>(['core_protocol'])
     for (const p of purchasedUpgrades) {
