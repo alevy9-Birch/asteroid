@@ -1,0 +1,7 @@
+id,label,category,size_w,size_h,hp,cost_C,supply_cost,range,fire_rate,damage,power_drain_per_sec,shield_radius,notes
+shield_generator_m,Shield Generator (M),energy,3,3,1100,600,10,0,0,0,5.5,8,Maintains medium shield field; shield has separate HP and recharge
+shield_generator_l,Shield Generator (L),energy,5,5,1900,1300,18,0,0,0,10.5,16,Maintains large shield field; shield has separate HP and recharge
+tesla_tower,Tesla Tower,energy,2,2,760,520,9,8,20,95,7.2,0,Zaps all enemies in range from top emitter; constant power draw
+plasma_laser_s,Plasma Laser (S),energy,1,1,380,260,5,32,14,70,4.2,0,Long-range beam with sustained DoT
+plasma_laser_m,Plasma Laser (M),energy,2,2,760,620,10,40,16,105,7.4,0,Stronger sustained beam pressure
+plasma_laser_l,Plasma Laser (L),energy,3,3,1200,1050,16,48,18,150,11.5,0,Highest sustained energy-beam throughput

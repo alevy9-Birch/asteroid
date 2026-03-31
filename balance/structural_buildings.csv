@@ -1,0 +1,7 @@
+id,label,category,size_w,size_h,hp,cost_C,supply_cost,supply_add,power_gen_per_sec,credits_per_sec,notes
+command_center,Command Center,structural,5,5,1000,1000,0,20,1.6,18,Loss condition if all destroyed
+supply_depot_s,Supply Depo (S),structural,2,2,300,200,0,18,0,0,
+supply_depot_l,Supply Depo (L),structural,3,3,500,300,0,30,0,0,
+repair_bay,Repair Bay,structural,3,3,800,550,0,0,0,0,2 drones total 25 HP/s heal cost 1P per 10 heal
+support_node,Support Node,structural,1,1,200,200,0,0,0,0,Pulse range 8 every 5s heal 10 each hit cost 10P
+reconstruction_yard,Reconstruction Yard,structural,3,3,900,700,0,0,0,0,Rebuild within range 10 at 50 percent cost

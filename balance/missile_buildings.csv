@@ -1,0 +1,7 @@
+id,label,category,size_w,size_h,hp,cost_C,supply_cost,range,fire_rate,damage,power_drain_per_sec,aoe_radius,projectile_speed,burst,retarget_behavior,notes
+missile_launcher_s,Missile Launcher (S),missile,2,2,520,260,6,46,1.10,95,0.70,3.6,18,1,death_location,Low power average launcher with steady stream
+missile_launcher_m,Missile Launcher (M),missile,3,3,780,520,10,52,1.00,130,1.00,4.2,17,1,death_location,Stronger stream launcher variant
+portable_silo,Portable Silo,missile,1,1,420,280,5,58,0.22,220,0.80,5.2,20,1,retarget,Slow heavy shot in compact footprint
+missile_silo,Missile Silo,missile,3,3,1100,700,12,66,0.14,420,1.20,7.8,19,1,retarget,Long reload with large blast
+nuclear_silo,Nuclear Silo,missile,5,5,1900,1700,20,78,0.08,1000,1.80,12.0,18,1,retarget,Massive retargeting strike platform
+hydra_launcher,Hydra Launcher,missile,3,3,960,880,14,60,0.20,70,1.10,0.0,30,8,retarget,8-round volley at 0.1s spacing with stacking target damage

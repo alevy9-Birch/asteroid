@@ -36,16 +36,28 @@ const INITIAL_STATE: State = {
   asteroidsRemaining: 0,
   unlockedBuildingIds: [
     'command_center',
-    'supply_depot',
+    'supply_depot_s',
+    'supply_depot_l',
+    'repair_bay',
+    'support_node',
+    'reconstruction_yard',
     'factory_business',
+    'refinery',
+    'mega_refinery',
     'generator_small',
     'generator_large',
-    'battery',
+    'battery_small',
+    'battery_large',
+    'pylon',
+    'nuclear_plant',
     'auto_turret',
+    'auto_turret_large',
     'siege_cannon',
-    'missile_launcher',
-    'silo',
-    'shield_generator',
+    'heavy_siege_gun',
+    'aa_gun',
+    'railgun',
+    'missile_launcher_s',
+    // The real unlock state comes from the game instance; this is just a UI placeholder.
   ],
   purchasedUpgradeIds: ['core_protocol'],
   refundableUpgradeIds: [],
@@ -73,13 +85,17 @@ function App() {
   const [sessionId, setSessionId] = useState(0)
   const [lastWave, setLastWave] = useState(0)
   const [virtualCursor, setVirtualCursor] = useState({ x: 0, y: -118 })
+  const virtualCursorLiveRef = useRef(virtualCursor)
   const categorySelectionRef = useRef<Partial<Record<BuildingCategory, BuildingId>>>({})
+  const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox' }>({
+    mode: 'normal',
+  })
 
   useEffect(() => {
     if (phase !== 'playing') return
     const canvas = canvasRef.current
     if (!canvas) return
-    const game = new BaseDefenseGame(canvas)
+    const game = new BaseDefenseGame(canvas, runConfigRef.current)
     game.onStateChange = (s) => {
       setState(s)
       if (s.gameOver) {
@@ -95,14 +111,14 @@ function App() {
     }
   }, [phase, sessionId])
 
-  const categoryOrder: BuildingCategory[] = ['structural', 'economy', 'electrical', 'turrets', 'missile', 'utility']
+  const categoryOrder: BuildingCategory[] = ['structural', 'economy', 'electrical', 'turrets', 'missile', 'energy']
   const categoryLabel: Record<BuildingCategory, string> = {
     structural: 'Structural',
     economy: 'Economy',
     electrical: 'Electrical',
     turrets: 'Turrets',
     missile: 'Missile',
-    utility: 'Utility',
+    energy: 'Energy',
   }
   const categoryColor: Record<BuildingCategory, string> = {
     structural: '#60a5fa',
@@ -110,7 +126,7 @@ function App() {
     electrical: '#eab308',
     turrets: '#f97316',
     missile: '#ef4444',
-    utility: '#22d3ee',
+    energy: '#22d3ee',
   }
 
   const buildingDefs = useMemo(() => {
@@ -179,21 +195,110 @@ function App() {
     () =>
       [
         { id: 'core_protocol', x: 0, y: 0 },
-        { id: 'unlock_factory', x: -180, y: -40 },
-        { id: 'unlock_megacomplex', x: -300, y: -120 },
-        { id: 'turret_targeting', x: 180, y: -40 },
-        { id: 'generator_efficiency', x: 40, y: 170 },
+        // Economy
+        { id: 'unlock_factory', x: -220, y: -40 },
+        { id: 'unlock_megacomplex', x: -360, y: -120 },
+        { id: 'economy_optimization_1', x: -520, y: -40 },
+        { id: 'economy_optimization_2', x: -680, y: -80 },
+        { id: 'unlock_refinery', x: -360, y: 40 },
+        { id: 'unlock_mega_refinery', x: -520, y: 80 },
+
+        // Electrical
+        { id: 'generator_efficiency', x: -40, y: 170 },
+        { id: 'battery_capacity_1', x: -180, y: 260 },
+        { id: 'battery_capacity_2', x: -300, y: 330 },
+        { id: 'power_distribution_1', x: -40, y: 310 },
+        { id: 'power_distribution_2', x: -40, y: 430 },
+        { id: 'nuclear_overclock_1', x: -220, y: 420 },
+
+        // Turrets
+        { id: 'turret_targeting', x: 220, y: -40 },
+        { id: 'unlock_turret_t2', x: 360, y: -120 },
+        { id: 'unlock_railgun', x: 520, y: -180 },
+        { id: 'turret_range_1', x: 180, y: 90 },
+        { id: 'turret_range_2', x: 300, y: 150 },
+        { id: 'turret_damage_1', x: 300, y: 40 },
+        { id: 'turret_damage_2', x: 440, y: 80 },
+
+        // Missiles
+        { id: 'unlock_missile_silos', x: 0, y: -210 },
+        { id: 'unlock_nuclear_silo', x: 120, y: -320 },
+        { id: 'unlock_hydra_launcher', x: -120, y: -320 },
+        { id: 'missile_payload_1', x: 0, y: -360 },
+        { id: 'missile_payload_2', x: 0, y: -480 },
+
+        // Support
+        { id: 'logistics_1', x: -220, y: 80 },
+        { id: 'logistics_2', x: -360, y: 80 },
+        { id: 'command_autonomy_1', x: -220, y: 10 },
+        { id: 'structural_fortification_1', x: -360, y: 10 },
+        { id: 'structural_fortification_2', x: -520, y: 10 },
+
+        // Energy
+        { id: 'unlock_shields', x: 220, y: 240 },
+        { id: 'unlock_shield_large', x: 360, y: 320 },
+        { id: 'shield_capacity_1', x: 120, y: 320 },
+        { id: 'shield_capacity_2', x: 40, y: 420 },
+        { id: 'shield_recharge_1', x: 240, y: 420 },
+        { id: 'plasma_focus_1', x: 520, y: 210 },
+        { id: 'plasma_focus_2', x: 680, y: 260 },
+        { id: 'tesla_coils_1', x: 520, y: 340 },
       ] as Array<{ id: UpgradeId; x: number; y: number }>,
     [],
   )
   const skillAdj = useMemo(
     () =>
       ({
-        core_protocol: ['unlock_factory', 'turret_targeting', 'generator_efficiency'],
-        unlock_factory: ['core_protocol', 'unlock_megacomplex'],
+        core_protocol: ['unlock_factory', 'turret_targeting', 'generator_efficiency', 'unlock_missile_silos', 'unlock_shields', 'logistics_1'],
+
+        // Economy
+        unlock_factory: ['core_protocol', 'unlock_megacomplex', 'economy_optimization_1', 'unlock_refinery'],
         unlock_megacomplex: ['unlock_factory'],
-        turret_targeting: ['core_protocol'],
-        generator_efficiency: ['core_protocol'],
+        economy_optimization_1: ['unlock_factory', 'economy_optimization_2'],
+        economy_optimization_2: ['economy_optimization_1'],
+        unlock_refinery: ['unlock_factory', 'unlock_mega_refinery'],
+        unlock_mega_refinery: ['unlock_refinery'],
+
+        // Electrical
+        generator_efficiency: ['core_protocol', 'battery_capacity_1', 'power_distribution_1'],
+        battery_capacity_1: ['generator_efficiency', 'battery_capacity_2'],
+        battery_capacity_2: ['battery_capacity_1'],
+        power_distribution_1: ['generator_efficiency', 'power_distribution_2', 'nuclear_overclock_1'],
+        power_distribution_2: ['power_distribution_1'],
+        nuclear_overclock_1: ['power_distribution_1'],
+
+        // Turrets
+        turret_targeting: ['core_protocol', 'unlock_turret_t2', 'turret_range_1', 'turret_damage_1'],
+        unlock_turret_t2: ['turret_targeting', 'unlock_railgun'],
+        unlock_railgun: ['unlock_turret_t2'],
+        turret_range_1: ['turret_targeting', 'turret_range_2'],
+        turret_range_2: ['turret_range_1'],
+        turret_damage_1: ['turret_targeting', 'turret_damage_2'],
+        turret_damage_2: ['turret_damage_1'],
+
+        // Missiles
+        unlock_missile_silos: ['core_protocol', 'unlock_nuclear_silo', 'unlock_hydra_launcher', 'missile_payload_1'],
+        unlock_nuclear_silo: ['unlock_missile_silos'],
+        unlock_hydra_launcher: ['unlock_missile_silos'],
+        missile_payload_1: ['unlock_missile_silos', 'missile_payload_2'],
+        missile_payload_2: ['missile_payload_1'],
+
+        // Structural
+        logistics_1: ['core_protocol', 'logistics_2', 'command_autonomy_1'],
+        logistics_2: ['logistics_1'],
+        command_autonomy_1: ['logistics_1', 'structural_fortification_1'],
+        structural_fortification_1: ['command_autonomy_1', 'structural_fortification_2'],
+        structural_fortification_2: ['structural_fortification_1'],
+
+        // Energy
+        unlock_shields: ['core_protocol', 'unlock_shield_large', 'shield_capacity_1', 'shield_recharge_1', 'plasma_focus_1', 'tesla_coils_1'],
+        unlock_shield_large: ['unlock_shields'],
+        shield_capacity_1: ['unlock_shields', 'shield_capacity_2'],
+        shield_capacity_2: ['shield_capacity_1'],
+        shield_recharge_1: ['unlock_shields'],
+        plasma_focus_1: ['unlock_shields', 'plasma_focus_2'],
+        plasma_focus_2: ['plasma_focus_1'],
+        tesla_coils_1: ['unlock_shields'],
       }) as Record<UpgradeId, UpgradeId[]>,
     [],
   )
@@ -227,18 +332,41 @@ function App() {
     const id = selectedDef?.id
     if (!id) return ''
     if (id === 'command_center') return 'Primary bunker. If all command centers are destroyed, the run ends.'
-    if (id === 'supply_depot') return 'Expands max Supply so you can field more structures.'
+    if (id === 'supply_depot_s') return 'Compact supply depot that raises your max Supply.'
+    if (id === 'supply_depot_l') return 'Larger supply depot with better Supply capacity.'
+    if (id === 'repair_bay') return 'Launches two drones that heal damaged structures over time.'
+    if (id === 'support_node') return 'Pulses periodic area healing to nearby structures.'
+    if (id === 'reconstruction_yard') return 'Auto-rebuilds nearby destroyed buildings at 50% cost.'
     if (id === 'factory_business') return 'Small economy node: low credits, very frequent payouts.'
-    if (id === 'factory_factory') return 'Balanced industry: medium periodic credit payouts.'
-    if (id === 'factory_megacomplex') return 'Heavy economy core: huge payouts on long intervals.'
+    if (id === 'factory_factory') return 'Larger factory with stronger output and low power demand.'
+    if (id === 'factory_megacomplex') return 'Mega factory: expensive, large footprint, very high efficient output.'
+    if (id === 'refinery') return 'Compact refinery: rapid cash pulses with high power cost.'
+    if (id === 'mega_refinery') return 'Mega refinery: very rapid cash generation, very high power draw.'
+    if (id === 'chemical_installation') return 'High-tech dome economy building that damages nearby structures.'
     if (id === 'generator_small') return 'Compact power source for early infrastructure.'
-    if (id === 'generator_large') return 'High-output power plant for large defensive grids.'
-    if (id === 'battery') return 'Increases max Power storage for sustained operations.'
+    if (id === 'generator_large') return 'Large-area generator with strong sustained power output.'
+    if (id === 'battery_small') return 'Small battery bank that increases maximum power storage.'
+    if (id === 'battery_large') return 'Large battery bank with major max-power capacity boost.'
+    if (id === 'pylon') return 'Networked pylon: gains power from nearby pylons, chain-reacts on destruction.'
+    if (id === 'nuclear_plant') return 'Massive power output but drains credits each tick; halts when broke.'
     if (id === 'auto_turret') return 'Cheap short-range machine-gun turret with high fire rate.'
-    if (id === 'siege_cannon') return 'Long-range artillery with high single-target damage.'
-    if (id === 'missile_launcher') return 'Burst launcher firing tracking missiles with medium AOE.'
-    if (id === 'silo') return 'Very slow ballistic launcher with massive AOE impact.'
-    if (id === 'shield_generator') return 'Large forcefield that intercepts impacts while draining power.'
+    if (id === 'auto_turret_large') return '2x2 auto-turret with higher sustained damage and power draw.'
+    if (id === 'siege_cannon') return 'Low-profile long-range artillery with slow heavy shots.'
+    if (id === 'heavy_siege_gun') return 'Heavier siege platform with stronger single-target hits.'
+    if (id === 'aa_gun') return 'Low-profile 4-barrel gun with explosive shots and very long range.'
+    if (id === 'railgun') return 'Charges from power, then fires high-damage piercing beam shots.'
+    if (id === 'missile_launcher_s') return '2x2 launcher with lower power cost and reliable death-location missile blasts.'
+    if (id === 'missile_launcher_m') return '3x3 launcher variant with stronger constant missile pressure and better AOE.'
+    if (id === 'portable_silo') return '1x1 slow silo: retargeting missiles with bigger blasts and higher per-shot damage.'
+    if (id === 'missile_silo') return '3x3 heavy silo with long reload, retargeting missiles, and large AOE strikes.'
+    if (id === 'nuclear_silo') return '5x5 extreme silo with huge retargeting missile damage and massive splash radius.'
+    if (id === 'hydra_launcher') return '8-round burst launcher (0.1s spacing), fastest missiles, no splash, stacking volley damage.'
+    if (id === 'shield_generator_m') return '3x3 medium dome generator creating an 8-radius shield field.'
+    if (id === 'shield_generator_l') return '5x5 large dome generator creating a 16-radius shield field.'
+    if (id === 'tesla_tower') return '2x2 tower with top emitter that zaps all enemies in range with rapid lightning DoT.'
+    if (id === 'plasma_laser_s') return 'Small long-range beam turret with high sustained power cost.'
+    if (id === 'plasma_laser_m') return 'Medium long-range plasma beam with stronger sustained damage.'
+    if (id === 'plasma_laser_l') return 'Large long-range plasma beam platform with highest energy-beam output.'
     return ''
   }, [selectedDef])
   const selectedCatIndex = categoryOrder.indexOf(selectedCategory)
@@ -323,6 +451,7 @@ function App() {
     if (!wheelOpen) return
     const selected = itemLayout.find((e) => e.b.id === state.selected)
     if (selected) setVirtualCursor({ x: selected.x, y: selected.y })
+    if (selected) virtualCursorLiveRef.current = { x: selected.x, y: selected.y }
   }, [wheelOpen, itemLayout])
 
   useEffect(() => {
@@ -359,7 +488,8 @@ function App() {
       const dy = e.movementY ?? 0
       if (dx === 0 && dy === 0) return
       if (upgradeOpenRef.current) {
-        setSkillCam((prev) => ({ ...prev, x: prev.x - dx / prev.zoom, y: prev.y - dy / prev.zoom }))
+        // Pan direction should feel like "dragging the canvas".
+        setSkillCam((prev) => ({ ...prev, x: prev.x + dx / prev.zoom, y: prev.y + dy / prev.zoom }))
         return
       }
       if (wheelOpenStateRef.current) {
@@ -372,6 +502,7 @@ function App() {
             x *= s
             y *= s
           }
+          virtualCursorLiveRef.current = { x, y }
           return { x, y }
         })
       }
@@ -391,6 +522,52 @@ function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase])
 
+  const tryPurchasePathTo = (targetId: UpgradeId) => {
+    const targetDef = UPGRADES.find((u) => u.id === targetId)
+    if (!targetDef) return
+
+    // BFS from "any purchased node" to the target over the adjacency graph.
+    const starts = [...purchasedUpgrades]
+    if (starts.length === 0) starts.push('core_protocol')
+    const q: UpgradeId[] = []
+    const prev = new Map<UpgradeId, UpgradeId | null>()
+    for (const s of starts) {
+      q.push(s)
+      prev.set(s, null)
+    }
+    while (q.length) {
+      const cur = q.shift()!
+      if (cur === targetId) break
+      for (const nxt of skillAdj[cur] ?? []) {
+        if (prev.has(nxt)) continue
+        prev.set(nxt, cur)
+        q.push(nxt)
+      }
+    }
+    if (!prev.has(targetId)) return
+
+    const path: UpgradeId[] = []
+    let cur: UpgradeId | null = targetId
+    while (cur) {
+      path.push(cur)
+      cur = prev.get(cur) ?? null
+    }
+    path.reverse()
+
+    // Try to purchase along the path in order, stopping if we can't afford the next node.
+    let creditsLeft = state.credits
+    const purchasedLocal = new Set(purchasedUpgrades)
+    for (const id of path) {
+      if (purchasedLocal.has(id)) continue
+      const def = UPGRADES.find((u) => u.id === id)
+      if (!def) return
+      if (creditsLeft < def.creditCost) return
+      creditsLeft -= def.creditCost
+      purchasedLocal.add(id)
+      gameRef.current?.purchaseUpgrade(id)
+    }
+  }
+
   useEffect(() => {
     if (phase !== 'playing' || !upgradeOpen) return
     const onMouseDown = (e: MouseEvent) => {
@@ -402,11 +579,16 @@ function App() {
         gameRef.current?.refundUpgrade(id)
         return
       }
-      if (hoveredUpgradeCanBuyRef.current) gameRef.current?.purchaseUpgrade(id)
+      if (hoveredUpgradeCanBuyRef.current) {
+        gameRef.current?.purchaseUpgrade(id)
+        return
+      }
+      // If it's locked, attempt to buy a chain leading to it.
+      if (!purchasedUpgrades.has(id)) tryPurchasePathTo(id)
     }
     window.addEventListener('mousedown', onMouseDown)
     return () => window.removeEventListener('mousedown', onMouseDown)
-  }, [phase, upgradeOpen, refundableUpgrades])
+  }, [phase, upgradeOpen, refundableUpgrades, purchasedUpgrades, skillAdj, state.credits])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -414,6 +596,20 @@ function App() {
   }, [wheelOpen, upgradeOpen, phase])
 
   const startNewRun = () => {
+    runConfigRef.current = { mode: 'normal' }
+    wheelOpenRef.current = false
+    upgradeOpenRef.current = false
+    setWheelOpen(false)
+    setUpgradeOpen(false)
+    setState(INITIAL_STATE)
+    setLastWave(0)
+    categorySelectionRef.current = {}
+    setSessionId((v) => v + 1)
+    setPhase('playing')
+  }
+
+  const startSandbox = () => {
+    runConfigRef.current = { mode: 'sandbox' }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
     setWheelOpen(false)
@@ -453,6 +649,8 @@ function App() {
       })),
     [skillNodes, skillCam],
   )
+  // Slightly smaller nodes (the new tree got busy).
+  const nodeScale = Math.max(0.6, Math.min(1.25, skillCam.zoom * 0.95))
   const hoveredUpgradeId = useMemo(() => {
     let best: UpgradeId | undefined
     let bestDist = Infinity
@@ -463,8 +661,8 @@ function App() {
         best = n.id
       }
     }
-    return bestDist <= 34 ? best : undefined
-  }, [renderedSkillNodes, treeCx, treeCy])
+    return bestDist <= 34 * nodeScale ? best : undefined
+  }, [renderedSkillNodes, treeCx, treeCy, nodeScale])
   const hoveredUpgradeDef = UPGRADES.find((u) => u.id === hoveredUpgradeId)
   const hoveredNodeCanBuy = hoveredUpgradeDef ? canBuyUpgrade(hoveredUpgradeDef.id, hoveredUpgradeDef.creditCost) : false
 
@@ -612,6 +810,7 @@ function App() {
                     style={{
                       left: `${n.sx}px`,
                       top: `${n.sy}px`,
+                      transform: `translate(-50%, -50%) scale(${nodeScale})`,
                       ['--node-color' as string]: categoryColor[up.category],
                     }}
                   >
@@ -658,7 +857,22 @@ function App() {
           onMouseDown={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            if (e.button === 0 && hoveredItem) gameRef.current?.setSelected(hoveredItem.id)
+            if (e.button !== 0) return
+            // Click selection should use the latest cursor position (not the previous React render).
+            if (itemLayout.length === 0) return
+            const cur = virtualCursorLiveRef.current
+            let best = itemLayout[0]
+            let bestD = Infinity
+            for (const entry of itemLayout) {
+              const dx = entry.x - cur.x
+              const dy = entry.y - cur.y
+              const d = dx * dx + dy * dy
+              if (d < bestD) {
+                bestD = d
+                best = entry
+              }
+            }
+            if (best?.b) gameRef.current?.setSelected(best.b.id)
           }}
           onContextMenu={(e) => {
             e.preventDefault()
@@ -758,6 +972,11 @@ function App() {
             <button type="button" className="primary-btn" onClick={startNewRun}>
               Start Game
             </button>
+            <div className="screen-actions" style={{ marginTop: 10 }}>
+              <button type="button" className="secondary-btn" onClick={startSandbox}>
+                Sandbox (Debug)
+              </button>
+            </div>
           </div>
         </div>
       )}

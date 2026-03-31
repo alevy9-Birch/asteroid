@@ -1,0 +1,7 @@
+id,label,category,size_w,size_h,hp,cost_C,supply_cost,power_gen_per_sec,power_drain_per_sec,credits_per_sec,tech_requirement,notes
+factory_business,Business,economy,2,2,650,160,4,0,0.25,8,none,Basic low-power economy
+factory_factory,Factory,economy,3,3,1250,480,10,0,0.9,15,unlock_factory,Larger low-power economy
+factory_megacomplex,Mega Factory,economy,5,5,3600,1700,28,0,2.4,40,unlock_megacomplex,Massive economy hub, more credits
+refinery,Refinery,economy,2,2,560,260,4,0,2.2,20,none,Small fast cash high power
+mega_refinery,Mega Refinery,economy,3,3,1300,750,10,0,5.4,70,none,Bigger payout, higher upkeep
+chemical_installation,Chemical Installation,economy,3,3,900,1300,10,0,1.1,37.5,unlock_megacomplex,Domed high-tech economy with 12 range corrosive aura

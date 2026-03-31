@@ -2,20 +2,43 @@ import * as THREE from 'three'
 
 export type BuildingId =
   | 'command_center'
-  | 'supply_depot'
+  | 'supply_depot_s'
+  | 'supply_depot_l'
+  | 'repair_bay'
+  | 'support_node'
+  | 'reconstruction_yard'
   | 'factory_business'
   | 'factory_factory'
   | 'factory_megacomplex'
+  | 'refinery'
+  | 'mega_refinery'
+  | 'chemical_installation'
   | 'generator_small'
   | 'generator_large'
-  | 'battery'
+  | 'battery_small'
+  | 'battery_large'
+  | 'pylon'
+  | 'nuclear_plant'
   | 'auto_turret'
+  | 'auto_turret_large'
   | 'siege_cannon'
-  | 'missile_launcher'
-  | 'silo'
-  | 'shield_generator'
+  | 'heavy_siege_gun'
+  | 'aa_gun'
+  | 'railgun'
+  | 'missile_launcher_s'
+  | 'missile_launcher_m'
+  | 'portable_silo'
+  | 'missile_silo'
+  | 'nuclear_silo'
+  | 'hydra_launcher'
+  | 'shield_generator_m'
+  | 'shield_generator_l'
+  | 'tesla_tower'
+  | 'plasma_laser_s'
+  | 'plasma_laser_m'
+  | 'plasma_laser_l'
 
-export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'utility'
+export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'energy'
 
 type BuildingDef = {
   id: BuildingId
@@ -34,6 +57,10 @@ type BuildingDef = {
   powerGenPerSec?: number
   powerDrainPerSec?: number
 
+  // Shield-specific tuning (for shield generator upgrades).
+  shieldCapacityMul?: number
+  shieldRechargeMul?: number
+
   // Economy
   creditPayout?: number
   creditIntervalSec?: number
@@ -45,7 +72,8 @@ type BuildingDef = {
   aoeRadius?: number
   burst?: number
   projectileSpeed?: number
-  kind?: 'hitscan' | 'missiles' | 'ballistic' | 'shield'
+  kind?: 'hitscan' | 'missiles' | 'ballistic' | 'shield' | 'railgun'
+  auraDamagePerSec?: number
 
   wheelDetails: () => [string, string]
 }
@@ -63,6 +91,7 @@ type PlacedBuilding = {
   healthBar: HealthBar
   refundSprite?: THREE.Sprite
   cooldown: number
+  charge: number
   econTimer: number
 }
 
@@ -73,11 +102,15 @@ type WeaponAim = {
 }
 
 type Asteroid = {
+  id: string
   mesh: THREE.Mesh
   healthBar: HealthBar
   hp: number
   maxHp: number
   alive: boolean
+  variant: 'normal' | 'splitter' | 'explosive' | 'meteor' | 'seeker' | 'planet'
+  splitLevel: number // 0..2 only relevant for variant==='splitter'
+  speed: number // magnitude of velocity (for seeker steering)
   target: THREE.Vector3
   velocity: THREE.Vector3
   impactRadius: number
@@ -87,10 +120,38 @@ type Asteroid = {
 type Missile = {
   mesh: THREE.Mesh
   target: Asteroid | null
+  targetId: string | null
+  mode: 'death_location' | 'retarget'
+  noSplash: boolean
+  volleyId: string | null
+  lastKnownTargetPos: THREE.Vector3
+  launchUpTime: number
+  launchUpSpeed: number
   speed: number
   ttl: number
   damage: number
   aoeRadius: number
+}
+
+type PendingMissileBurst = {
+  origin: THREE.Vector3
+  target: Asteroid | null
+  def: BuildingDef
+  remaining: number
+  interval: number
+  timer: number
+  mode: 'death_location' | 'retarget'
+  noSplash: boolean
+  volleyId: string | null
+}
+
+type ShieldField = {
+  generatorId: string
+  hp: number
+  maxHp: number
+  radius: number
+  bubble: THREE.Mesh
+  disabled: boolean
 }
 
 type Ballistic = {
@@ -103,12 +164,51 @@ type Ballistic = {
   aoeRadius: number
 }
 
+type RepairDrone = {
+  mesh: THREE.Mesh
+  bayId: string
+  targetId: string | null
+}
+
 export type UpgradeId =
   | 'core_protocol'
   | 'unlock_factory'
   | 'unlock_megacomplex'
   | 'turret_targeting'
   | 'generator_efficiency'
+  | 'unlock_turret_t2'
+  | 'unlock_railgun'
+  | 'turret_range_1'
+  | 'turret_range_2'
+  | 'turret_damage_1'
+  | 'turret_damage_2'
+  | 'unlock_missile_silos'
+  | 'unlock_nuclear_silo'
+  | 'unlock_hydra_launcher'
+  | 'missile_payload_1'
+  | 'missile_payload_2'
+  | 'unlock_shields'
+  | 'unlock_shield_large'
+  | 'shield_capacity_1'
+  | 'shield_capacity_2'
+  | 'shield_recharge_1'
+  | 'plasma_focus_1'
+  | 'plasma_focus_2'
+  | 'tesla_coils_1'
+  | 'logistics_1'
+  | 'logistics_2'
+  | 'command_autonomy_1'
+  | 'structural_fortification_1'
+  | 'structural_fortification_2'
+  | 'battery_capacity_1'
+  | 'battery_capacity_2'
+  | 'power_distribution_1'
+  | 'power_distribution_2'
+  | 'nuclear_overclock_1'
+  | 'economy_optimization_1'
+  | 'economy_optimization_2'
+  | 'unlock_refinery'
+  | 'unlock_mega_refinery'
 
 type BuildingModifier = {
   rangeAdd?: number
@@ -116,6 +216,15 @@ type BuildingModifier = {
   fireRateMul?: number
   creditPayoutMul?: number
   powerGenMul?: number
+
+  powerDrainMul?: number
+  aoeRadiusMul?: number
+
+  shieldCapacityMul?: number
+  shieldRechargeMul?: number
+
+  supplyCapAddMul?: number
+  powerCapAddMul?: number
 }
 
 export type UpgradeDef = {
@@ -135,33 +244,94 @@ const HALF = Math.floor(BOARD_SIZE / 2) // 50
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 const key = (x: number, z: number) => `${x}:${z}`
 
+// Balance variables: edit these to globally tune pacing.
+const VARS = {
+  C: 1, // credit costs scale
+  P: 1, // power rates scale
+  S: 1, // supply scale
+  E: 1, // economy outputs scale
+}
+
+// Global multiplier to tighten power budgeting.
+// Increase if power feels "too generous" during active waves.
+const POWER_DRAIN_GLOBAL_MUL = 1.5
+
 export const BUILDINGS: BuildingDef[] = [
   {
     id: 'command_center',
     label: 'Command Center',
     category: 'structural',
     color: 0x60a5fa,
-    size: { w: 3, h: 3 },
-    maxHp: 2600,
-    creditCost: 450,
+    size: { w: 5, h: 5 },
+    maxHp: 1000,
+    creditCost: Math.round(1000 * VARS.C),
     supplyCost: 0,
-    supplyCapAdd: 40,
-    creditPayout: 18,
-    creditIntervalSec: 3,
-    powerGenPerSec: 2.2,
-    wheelDetails: () => ['Cost: 450c', '+Supply Cap: 40'],
+    supplyCapAdd: Math.round(20 * VARS.S),
+    creditPayout: Math.round(18 * VARS.E),
+    creditIntervalSec: 1,
+    powerGenPerSec: 1.6 * VARS.P,
+    wheelDetails: () => ['Cost: 1000c', '+20 Supply, +1.6P/s, +18c/s'],
   },
   {
-    id: 'supply_depot',
-    label: 'Supply Depo',
+    id: 'supply_depot_s',
+    label: 'Supply Depo (S)',
     category: 'structural',
     color: 0x60a5fa,
     size: { w: 2, h: 2 },
-    maxHp: 700,
-    creditCost: 120,
-    supplyCost: 2,
-    supplyCapAdd: 20,
-    wheelDetails: () => ['Cost: 120c', '+Supply Cap: 20'],
+    maxHp: 300,
+    creditCost: Math.round(200 * VARS.C),
+    supplyCost: 0,
+    supplyCapAdd: Math.round(18 * VARS.S),
+    wheelDetails: () => ['Cost: 200c', '+18 Supply'],
+  },
+  {
+    id: 'supply_depot_l',
+    label: 'Supply Depo (L)',
+    category: 'structural',
+    color: 0x60a5fa,
+    size: { w: 3, h: 3 },
+    maxHp: 500,
+    creditCost: Math.round(300 * VARS.C),
+    supplyCost: 0,
+    supplyCapAdd: Math.round(30 * VARS.S),
+    wheelDetails: () => ['Cost: 300c', '+30 Supply'],
+  },
+  {
+    id: 'repair_bay',
+    label: 'Repair Bay',
+    category: 'structural',
+    color: 0x60a5fa,
+    size: { w: 3, h: 3 },
+    maxHp: 800,
+    creditCost: Math.round(550 * VARS.C),
+    supplyCost: 0,
+    powerDrainPerSec: 0,
+    wheelDetails: () => ['2 drones heal 25 HP/s total', 'Consumes 1P per 10 healing'],
+  },
+  {
+    id: 'support_node',
+    label: 'Support Node',
+    category: 'structural',
+    color: 0x60a5fa,
+    size: { w: 1, h: 1 },
+    maxHp: 200,
+    creditCost: Math.round(200 * VARS.C),
+    supplyCost: 0,
+    range: 8,
+    fireRate: 0.2, // pulse every 5s
+    wheelDetails: () => ['Pulse: 8 range / 5s', 'Heals 10 HP each, costs 10P'],
+  },
+  {
+    id: 'reconstruction_yard',
+    label: 'Reconstruction Yard',
+    category: 'structural',
+    color: 0x60a5fa,
+    size: { w: 3, h: 3 },
+    maxHp: 900,
+    creditCost: Math.round(700 * VARS.C),
+    supplyCost: 0,
+    range: 10,
+    wheelDetails: () => ['Auto rebuilds within 10 range', 'Rebuild cost: 50%'],
   },
   {
     id: 'factory_business',
@@ -172,10 +342,10 @@ export const BUILDINGS: BuildingDef[] = [
     maxHp: 650,
     creditCost: 160,
     supplyCost: 4,
-    creditPayout: 6,
+    creditPayout: Math.round(8 * VARS.E),
     creditIntervalSec: 1,
-    powerDrainPerSec: 0.6,
-    wheelDetails: () => ['Cost: 160c', '+6c / 1s'],
+    powerDrainPerSec: 0.25 * VARS.P,
+    wheelDetails: () => ['Basic economy', 'Low power, steady credits'],
   },
   {
     id: 'factory_factory',
@@ -186,24 +356,67 @@ export const BUILDINGS: BuildingDef[] = [
     maxHp: 1250,
     creditCost: 480,
     supplyCost: 10,
-    creditPayout: 80,
-    creditIntervalSec: 10,
-    powerDrainPerSec: 2.2,
-    wheelDetails: () => ['Cost: 480c', '+80c / 10s'],
+    creditPayout: Math.round(45 * VARS.E),
+    creditIntervalSec: 3,
+    powerDrainPerSec: 0.9 * VARS.P,
+    wheelDetails: () => ['Larger economy core', 'Better output, low power'],
   },
   {
     id: 'factory_megacomplex',
-    label: 'Mega-Complex',
+    label: 'Mega Factory',
     category: 'economy',
     color: 0x22c55e,
-    size: { w: 4, h: 4 },
-    maxHp: 2600,
-    creditCost: 1400,
-    supplyCost: 22,
-    creditPayout: 450,
-    creditIntervalSec: 60,
-    powerDrainPerSec: 4.5,
-    wheelDetails: () => ['Cost: 1400c', '+450c / 60s'],
+    size: { w: 5, h: 5 },
+    maxHp: 3600,
+    creditCost: Math.round(1700 * VARS.C),
+    supplyCost: 28,
+    creditPayout: Math.round(240 * VARS.E),
+    creditIntervalSec: 6,
+    powerDrainPerSec: 2.4 * VARS.P,
+    wheelDetails: () => ['Massive economy hub', 'More credits, heavier power drain'],
+  },
+  {
+    id: 'refinery',
+    label: 'Refinery',
+    category: 'economy',
+    color: 0x22c55e,
+    size: { w: 2, h: 2 },
+    maxHp: 560,
+    creditCost: Math.round(260 * VARS.C),
+    supplyCost: 4,
+    creditPayout: Math.round(20 * VARS.E),
+    creditIntervalSec: 1,
+    powerDrainPerSec: 2.2 * VARS.P,
+    wheelDetails: () => ['Fast cash pulses', 'Small footprint, high power'],
+  },
+  {
+    id: 'mega_refinery',
+    label: 'Mega Refinery',
+    category: 'economy',
+    color: 0x22c55e,
+    size: { w: 3, h: 3 },
+    maxHp: 1300,
+    creditCost: Math.round(750 * VARS.C),
+    supplyCost: 10,
+    creditPayout: Math.round(70 * VARS.E),
+    creditIntervalSec: 1,
+    powerDrainPerSec: 5.4 * VARS.P,
+    wheelDetails: () => ['High-throughput mega refinery', 'Bigger payout, higher upkeep'],
+  },
+  {
+    id: 'chemical_installation',
+    label: 'Chemical Installation',
+    category: 'economy',
+    color: 0x22c55e,
+    size: { w: 3, h: 3 },
+    maxHp: 900,
+    creditCost: Math.round(1300 * VARS.C),
+    supplyCost: 10,
+    creditPayout: Math.round(150 * VARS.E),
+    creditIntervalSec: 4,
+    powerDrainPerSec: 1.1 * VARS.P,
+    auraDamagePerSec: 3.2,
+    wheelDetails: () => ['High-tech dome economy', 'Damages buildings within 12 range'],
   },
   {
     id: 'generator_small',
@@ -211,35 +424,73 @@ export const BUILDINGS: BuildingDef[] = [
     category: 'electrical',
     color: 0xeab308,
     size: { w: 2, h: 2 },
-    maxHp: 520,
-    creditCost: 120,
+    maxHp: 500,
+    creditCost: Math.round(150 * VARS.C),
     supplyCost: 3,
-    powerGenPerSec: 4.5,
-    wheelDetails: () => ['Cost: 120c', '+4.5 Power/s'],
+    powerGenPerSec: 5.5 * VARS.P,
+    wheelDetails: () => ['Default small generator', '+Power over time'],
   },
   {
     id: 'generator_large',
     label: 'Generator (L)',
     category: 'electrical',
     color: 0xeab308,
-    size: { w: 3, h: 3 },
-    maxHp: 1050,
-    creditCost: 360,
-    supplyCost: 7,
-    powerGenPerSec: 12,
-    wheelDetails: () => ['Cost: 360c', '+12 Power/s'],
+    size: { w: 4, h: 4 },
+    maxHp: 1100,
+    creditCost: Math.round(520 * VARS.C),
+    supplyCost: 10,
+    powerGenPerSec: 16 * VARS.P,
+    wheelDetails: () => ['Default large generator', '+High power over time'],
   },
   {
-    id: 'battery',
-    label: 'Battery',
+    id: 'battery_small',
+    label: 'Battery (S)',
     category: 'electrical',
     color: 0xeab308,
     size: { w: 2, h: 2 },
-    maxHp: 600,
-    creditCost: 140,
-    supplyCost: 3,
-    powerCapAdd: 40,
-    wheelDetails: () => ['Cost: 140c', '+Max Power: 40'],
+    maxHp: 420,
+    creditCost: Math.round(180 * VARS.C),
+    supplyCost: 0,
+    powerCapAdd: Math.round(55 * VARS.P),
+    wheelDetails: () => ['Horizontal rooftop cells', '+Max Power'],
+  },
+  {
+    id: 'battery_large',
+    label: 'Battery (L)',
+    category: 'electrical',
+    color: 0xeab308,
+    size: { w: 3, h: 3 },
+    maxHp: 700,
+    creditCost: Math.round(340 * VARS.C),
+    supplyCost: 0,
+    powerCapAdd: Math.round(110 * VARS.P),
+    wheelDetails: () => ['Large battery bank', 'Bigger max power increase'],
+  },
+  {
+    id: 'pylon',
+    label: 'Pylon',
+    category: 'electrical',
+    color: 0xeab308,
+    size: { w: 1, h: 1 },
+    maxHp: 180,
+    creditCost: Math.round(120 * VARS.C),
+    supplyCost: 0,
+    powerGenPerSec: 0,
+    wheelDetails: () => ['Generates with nearby pylons', 'Destroyed pylon shocks nearby pylons'],
+  },
+  {
+    id: 'nuclear_plant',
+    label: 'Nuclear Plant',
+    category: 'electrical',
+    color: 0xeab308,
+    size: { w: 4, h: 4 },
+    maxHp: 1400,
+    creditCost: Math.round(1200 * VARS.C),
+    supplyCost: 0,
+    powerGenPerSec: 34 * VARS.P,
+    creditPayout: -Math.round(20 * VARS.E),
+    creditIntervalSec: 1,
+    wheelDetails: () => ['Highest power output', 'Drains credits continuously'],
   },
   {
     id: 'auto_turret',
@@ -248,14 +499,30 @@ export const BUILDINGS: BuildingDef[] = [
     color: 0xf97316,
     size: { w: 1, h: 1 },
     maxHp: 260,
-    creditCost: 60,
+    creditCost: Math.round(90 * VARS.C),
     supplyCost: 2,
-    powerDrainPerSec: 0.25,
+    powerDrainPerSec: 1.6 * VARS.P,
     kind: 'hitscan',
-    range: 14,
-    fireRate: 9.5,
-    damage: 6,
-    wheelDetails: () => ['Cost: 60c', 'Dmg: Low • ROF: High'],
+    range: 15,
+    fireRate: 8.5,
+    damage: 11,
+    wheelDetails: () => ['Fast, normal-damage turret', 'High power draw'],
+  },
+  {
+    id: 'auto_turret_large',
+    label: 'Auto-Turret (L)',
+    category: 'turrets',
+    color: 0xf97316,
+    size: { w: 2, h: 2 },
+    maxHp: 680,
+    creditCost: Math.round(320 * VARS.C),
+    supplyCost: 5,
+    powerDrainPerSec: 2.6 * VARS.P,
+    kind: 'hitscan',
+    range: 18,
+    fireRate: 9.2,
+    damage: 16,
+    wheelDetails: () => ['Large rapid-fire turret', 'Higher power, higher DPS'],
   },
   {
     id: 'siege_cannon',
@@ -264,64 +531,273 @@ export const BUILDINGS: BuildingDef[] = [
     color: 0xf97316,
     size: { w: 2, h: 2 },
     maxHp: 520,
-    creditCost: 220,
+    creditCost: Math.round(260 * VARS.C),
     supplyCost: 6,
-    powerDrainPerSec: 0.55,
+    powerDrainPerSec: 0.9 * VARS.P,
     kind: 'hitscan',
-    range: 48,
-    fireRate: 0.45,
-    damage: 170,
-    wheelDetails: () => ['Cost: 220c', 'Range: Long • Dmg: High'],
+    range: 40,
+    fireRate: 0.28,
+    damage: 260,
+    wheelDetails: () => ['Long-range slow artillery', 'High single-target damage'],
   },
   {
-    id: 'missile_launcher',
-    label: 'Missile Launcher',
+    id: 'heavy_siege_gun',
+    label: 'Heavy Siege Gun',
+    category: 'turrets',
+    color: 0xf97316,
+    size: { w: 3, h: 3 },
+    maxHp: 980,
+    creditCost: Math.round(620 * VARS.C),
+    supplyCost: 10,
+    powerDrainPerSec: 1.4 * VARS.P,
+    kind: 'hitscan',
+    range: 44,
+    fireRate: 0.2,
+    damage: 420,
+    wheelDetails: () => ['Heavier siege platform', 'Very high single-shot damage'],
+  },
+  {
+    id: 'aa_gun',
+    label: 'AA Gun',
+    category: 'turrets',
+    color: 0xf97316,
+    size: { w: 2, h: 2 },
+    maxHp: 620,
+    creditCost: Math.round(420 * VARS.C),
+    supplyCost: 7,
+    powerDrainPerSec: 1.1 * VARS.P,
+    kind: 'hitscan',
+    range: 65,
+    fireRate: 2.1,
+    damage: 56,
+    aoeRadius: 2.4,
+    wheelDetails: () => ['4-barrel explosive AA fire', 'Very long range'],
+  },
+  {
+    id: 'railgun',
+    label: 'Railgun',
+    category: 'turrets',
+    color: 0xf97316,
+    size: { w: 3, h: 3 },
+    maxHp: 900,
+    creditCost: Math.round(900 * VARS.C),
+    supplyCost: 12,
+    powerDrainPerSec: 0,
+    kind: 'railgun',
+    range: 70,
+    fireRate: 0.25,
+    damage: 700,
+    wheelDetails: () => ['Charges from power and pierces', 'Fire speed scales with supplied power'],
+  },
+  {
+    id: 'missile_launcher_s',
+    label: 'Missile Launcher (S)',
     category: 'missile',
     color: 0xef4444,
     size: { w: 2, h: 2 },
     maxHp: 520,
-    creditCost: 280,
-    supplyCost: 7,
-    powerDrainPerSec: 0.8,
+    creditCost: Math.round(260 * VARS.C),
+    supplyCost: 6,
+    powerDrainPerSec: 0.7 * VARS.P,
     kind: 'missiles',
-    range: 42,
-    fireRate: 0.35,
-    damage: 32,
-    aoeRadius: 3.2,
-    burst: 5,
-    projectileSpeed: 26,
-    wheelDetails: () => ['Cost: 280c', 'AOE: Med • Burst Missiles'],
+    range: 46,
+    fireRate: 1.1,
+    damage: 95,
+    aoeRadius: 3.6,
+    burst: 1,
+    projectileSpeed: 46,
+    wheelDetails: () => ['Average missile launcher', 'Tracks death location, good AOE'],
   },
   {
-    id: 'silo',
-    label: 'Silo',
+    id: 'missile_launcher_m',
+    label: 'Missile Launcher (M)',
     category: 'missile',
     color: 0xef4444,
     size: { w: 3, h: 3 },
-    maxHp: 1200,
-    creditCost: 650,
-    supplyCost: 14,
-    powerDrainPerSec: 1.1,
-    kind: 'ballistic',
-    range: 70,
-    fireRate: 0.08,
-    damage: 900,
-    aoeRadius: 9.5,
-    wheelDetails: () => ['Cost: 650c', 'AOE: Massive • Slow'],
+    maxHp: 780,
+    creditCost: Math.round(520 * VARS.C),
+    supplyCost: 10,
+    powerDrainPerSec: 1.0 * VARS.P,
+    kind: 'missiles',
+    range: 52,
+    fireRate: 1.0,
+    damage: 130,
+    aoeRadius: 4.2,
+    burst: 1,
+    projectileSpeed: 44,
+    wheelDetails: () => ['Medium launcher stream', 'Higher per-shot impact'],
   },
   {
-    id: 'shield_generator',
-    label: 'Shield Generator',
-    category: 'utility',
-    color: 0x38bdf8,
+    id: 'portable_silo',
+    label: 'Portable Silo',
+    category: 'missile',
+    color: 0xef4444,
+    size: { w: 1, h: 1 },
+    maxHp: 420,
+    creditCost: Math.round(280 * VARS.C),
+    supplyCost: 5,
+    powerDrainPerSec: 0.8 * VARS.P,
+    kind: 'missiles',
+    range: 58,
+    fireRate: 0.22,
+    damage: 220,
+    aoeRadius: 5.2,
+    burst: 1,
+    projectileSpeed: 48,
+    wheelDetails: () => ['Small retargeting silo', 'Slow fire, bigger blasts'],
+  },
+  {
+    id: 'missile_silo',
+    label: 'Missile Silo',
+    category: 'missile',
+    color: 0xef4444,
     size: { w: 3, h: 3 },
     maxHp: 1100,
-    creditCost: 520,
+    creditCost: Math.round(700 * VARS.C),
+    supplyCost: 12,
+    powerDrainPerSec: 1.2 * VARS.P,
+    kind: 'missiles',
+    range: 66,
+    fireRate: 0.14,
+    damage: 420,
+    aoeRadius: 7.8,
+    burst: 1,
+    projectileSpeed: 46,
+    wheelDetails: () => ['Retargeting heavy silo', 'Large AOE, long reload'],
+  },
+  {
+    id: 'nuclear_silo',
+    label: 'Nuclear Silo',
+    category: 'missile',
+    color: 0xef4444,
+    size: { w: 5, h: 5 },
+    maxHp: 1900,
+    creditCost: Math.round(1700 * VARS.C),
+    supplyCost: 20,
+    powerDrainPerSec: 1.8 * VARS.P,
+    kind: 'missiles',
+    range: 78,
+    fireRate: 0.08,
+    damage: 1000,
+    aoeRadius: 12,
+    burst: 1,
+    projectileSpeed: 44,
+    wheelDetails: () => ['Massive retargeting nuke', 'Huge AOE and damage'],
+  },
+  {
+    id: 'hydra_launcher',
+    label: 'Hydra Launcher',
+    category: 'missile',
+    color: 0xef4444,
+    size: { w: 3, h: 3 },
+    maxHp: 960,
+    creditCost: Math.round(880 * VARS.C),
+    supplyCost: 14,
+    powerDrainPerSec: 1.1 * VARS.P,
+    kind: 'missiles',
+    range: 60,
+    fireRate: 0.2,
+    damage: 70,
+    aoeRadius: 0,
+    burst: 8,
+    projectileSpeed: 68,
+    wheelDetails: () => ['8-missile volley (0.1s)', 'Fast missiles, stacking volley damage'],
+  },
+  {
+    id: 'shield_generator_m',
+    label: 'Shield Generator (M)',
+    category: 'energy',
+    color: 0x22d3ee,
+    size: { w: 3, h: 3 },
+    maxHp: 1100,
+    creditCost: Math.round(600 * VARS.C),
     supplyCost: 10,
     kind: 'shield',
-    range: 12, // shield radius
-    powerDrainPerSec: 6.5,
-    wheelDetails: () => ['Cost: 520c', 'Power Drain • Blocks Impacts'],
+    range: 8,
+    powerDrainPerSec: 5.5 * VARS.P,
+    shieldCapacityMul: 1,
+    shieldRechargeMul: 1,
+    wheelDetails: () => ['Medium shield dome', 'Constant power + recharge draw'],
+  },
+  {
+    id: 'shield_generator_l',
+    label: 'Shield Generator (L)',
+    category: 'energy',
+    color: 0x22d3ee,
+    size: { w: 5, h: 5 },
+    maxHp: 1900,
+    creditCost: Math.round(1300 * VARS.C),
+    supplyCost: 18,
+    kind: 'shield',
+    range: 16,
+    powerDrainPerSec: 10.5 * VARS.P,
+    shieldCapacityMul: 1,
+    shieldRechargeMul: 1,
+    wheelDetails: () => ['Large shield dome', 'Higher upkeep and shield capacity'],
+  },
+  {
+    id: 'tesla_tower',
+    label: 'Tesla Tower',
+    category: 'energy',
+    color: 0x22d3ee,
+    size: { w: 2, h: 2 },
+    maxHp: 760,
+    creditCost: Math.round(520 * VARS.C),
+    supplyCost: 9,
+    powerDrainPerSec: 7.2 * VARS.P,
+    kind: 'hitscan',
+    range: 8,
+    fireRate: 20,
+    damage: 95,
+    wheelDetails: () => ['Top-emitter chain zaps in range', 'Fastest DoT, constant power drain'],
+  },
+  {
+    id: 'plasma_laser_s',
+    label: 'Plasma Laser (S)',
+    category: 'energy',
+    color: 0x22d3ee,
+    size: { w: 1, h: 1 },
+    maxHp: 380,
+    creditCost: Math.round(260 * VARS.C),
+    supplyCost: 5,
+    powerDrainPerSec: 4.2 * VARS.P,
+    kind: 'hitscan',
+    range: 32,
+    fireRate: 14,
+    damage: 70,
+    wheelDetails: () => ['Small beam platform', 'Long-range damage-over-time beam'],
+  },
+  {
+    id: 'plasma_laser_m',
+    label: 'Plasma Laser (M)',
+    category: 'energy',
+    color: 0x22d3ee,
+    size: { w: 2, h: 2 },
+    maxHp: 760,
+    creditCost: Math.round(620 * VARS.C),
+    supplyCost: 10,
+    powerDrainPerSec: 7.4 * VARS.P,
+    kind: 'hitscan',
+    range: 40,
+    fireRate: 16,
+    damage: 105,
+    wheelDetails: () => ['Medium beam platform', 'Sustained long-range plasma pressure'],
+  },
+  {
+    id: 'plasma_laser_l',
+    label: 'Plasma Laser (L)',
+    category: 'energy',
+    color: 0x22d3ee,
+    size: { w: 3, h: 3 },
+    maxHp: 1200,
+    creditCost: Math.round(1050 * VARS.C),
+    supplyCost: 16,
+    powerDrainPerSec: 11.5 * VARS.P,
+    kind: 'hitscan',
+    range: 48,
+    fireRate: 18,
+    damage: 150,
+    wheelDetails: () => ['Large beam platform', 'Highest energy-beam throughput'],
   },
 ]
 
@@ -348,7 +824,7 @@ export const UPGRADES: UpgradeDef[] = [
     creditCost: 1200,
     description: 'Unlocks the Mega-Complex building.',
     prereqIds: ['unlock_factory'],
-    unlockBuildingIds: ['factory_megacomplex'],
+    unlockBuildingIds: ['factory_megacomplex', 'chemical_installation'],
   },
   {
     id: 'turret_targeting',
@@ -358,7 +834,11 @@ export const UPGRADES: UpgradeDef[] = [
     description: 'Auto-Turret and Siege Cannon gain range and damage.',
     modifiers: {
       auto_turret: { rangeAdd: 5, damageAdd: 2 },
+      auto_turret_large: { rangeAdd: 5, damageAdd: 3 },
       siege_cannon: { rangeAdd: 10, damageAdd: 30 },
+      heavy_siege_gun: { rangeAdd: 10, damageAdd: 50 },
+      aa_gun: { rangeAdd: 6, damageAdd: 8 },
+      railgun: { rangeAdd: 8, damageAdd: 80 },
     },
   },
   {
@@ -370,12 +850,430 @@ export const UPGRADES: UpgradeDef[] = [
     modifiers: {
       generator_small: { powerGenMul: 1.25 },
       generator_large: { powerGenMul: 1.25 },
+      pylon: { powerGenMul: 1.25 },
+      nuclear_plant: { powerGenMul: 1.15 },
     },
+  },
+  {
+    id: 'unlock_turret_t2',
+    label: 'Unlock Heavy Turrets',
+    category: 'turrets',
+    creditCost: 650,
+    description: 'Unlocks larger and specialized turret platforms.',
+    unlockBuildingIds: ['auto_turret_large', 'heavy_siege_gun', 'aa_gun'],
+  },
+  {
+    id: 'unlock_railgun',
+    label: 'Unlock Railgun',
+    category: 'turrets',
+    creditCost: 950,
+    description: 'Unlocks the Railgun defense platform.',
+    prereqIds: ['unlock_turret_t2'],
+    unlockBuildingIds: ['railgun'],
+  },
+  {
+    id: 'turret_range_1',
+    label: 'Turret Range I',
+    category: 'turrets',
+    creditCost: 500,
+    description: 'All turrets gain a moderate range increase.',
+    modifiers: {
+      auto_turret: { rangeAdd: 2 },
+      auto_turret_large: { rangeAdd: 2 },
+      siege_cannon: { rangeAdd: 4 },
+      heavy_siege_gun: { rangeAdd: 4 },
+      aa_gun: { rangeAdd: 5 },
+      railgun: { rangeAdd: 6 },
+    },
+  },
+  {
+    id: 'turret_range_2',
+    label: 'Turret Range II',
+    category: 'turrets',
+    creditCost: 900,
+    description: 'All turrets gain a large range increase.',
+    prereqIds: ['turret_range_1'],
+    modifiers: {
+      auto_turret: { rangeAdd: 3 },
+      auto_turret_large: { rangeAdd: 3 },
+      siege_cannon: { rangeAdd: 6 },
+      heavy_siege_gun: { rangeAdd: 6 },
+      aa_gun: { rangeAdd: 7 },
+      railgun: { rangeAdd: 8 },
+    },
+  },
+  {
+    id: 'turret_damage_1',
+    label: 'Turret Damage I',
+    category: 'turrets',
+    creditCost: 550,
+    description: 'All turrets gain a moderate damage increase.',
+    modifiers: {
+      auto_turret: { damageAdd: 2 },
+      auto_turret_large: { damageAdd: 3 },
+      siege_cannon: { damageAdd: 40 },
+      heavy_siege_gun: { damageAdd: 60 },
+      aa_gun: { damageAdd: 10 },
+      railgun: { damageAdd: 120 },
+    },
+  },
+  {
+    id: 'turret_damage_2',
+    label: 'Turret Damage II',
+    category: 'turrets',
+    creditCost: 980,
+    description: 'All turrets gain a large damage increase.',
+    prereqIds: ['turret_damage_1'],
+    modifiers: {
+      auto_turret: { damageAdd: 3 },
+      auto_turret_large: { damageAdd: 4 },
+      siege_cannon: { damageAdd: 70 },
+      heavy_siege_gun: { damageAdd: 110 },
+      aa_gun: { damageAdd: 14 },
+      railgun: { damageAdd: 200 },
+    },
+  },
+  {
+    id: 'unlock_missile_silos',
+    label: 'Unlock Silo Tech',
+    category: 'missile',
+    creditCost: 700,
+    description: 'Unlocks retargeting silo platforms.',
+    unlockBuildingIds: ['portable_silo', 'missile_silo', 'missile_launcher_m'],
+  },
+  {
+    id: 'unlock_nuclear_silo',
+    label: 'Unlock Nuclear Silo',
+    category: 'missile',
+    creditCost: 1600,
+    description: 'Unlocks the Nuclear Silo platform.',
+    prereqIds: ['unlock_missile_silos'],
+    unlockBuildingIds: ['nuclear_silo'],
+  },
+  {
+    id: 'unlock_hydra_launcher',
+    label: 'Unlock Hydra Launcher',
+    category: 'missile',
+    creditCost: 1100,
+    description: 'Unlocks the Hydra burst launcher.',
+    prereqIds: ['unlock_missile_silos'],
+    unlockBuildingIds: ['hydra_launcher'],
+  },
+  {
+    id: 'missile_payload_1',
+    label: 'Missile Payload I',
+    category: 'missile',
+    creditCost: 650,
+    description: 'Improves explosive payload radius for non-Hydra missiles.',
+    modifiers: {
+      missile_launcher_s: { aoeRadiusMul: 1.15 },
+      missile_launcher_m: { aoeRadiusMul: 1.15 },
+      portable_silo: { aoeRadiusMul: 1.12 },
+      missile_silo: { aoeRadiusMul: 1.12 },
+      nuclear_silo: { aoeRadiusMul: 1.1 },
+    },
+  },
+  {
+    id: 'missile_payload_2',
+    label: 'Missile Payload II',
+    category: 'missile',
+    creditCost: 1100,
+    description: 'Further improves explosive payload radius and damage.',
+    prereqIds: ['missile_payload_1'],
+    modifiers: {
+      missile_launcher_s: { aoeRadiusMul: 1.18, damageAdd: 15 },
+      missile_launcher_m: { aoeRadiusMul: 1.18, damageAdd: 20 },
+      portable_silo: { aoeRadiusMul: 1.15, damageAdd: 35 },
+      missile_silo: { aoeRadiusMul: 1.15, damageAdd: 55 },
+      nuclear_silo: { aoeRadiusMul: 1.12, damageAdd: 120 },
+    },
+  },
+  {
+    id: 'unlock_shields',
+    label: 'Unlock Shield Generator',
+    category: 'energy',
+    creditCost: 900,
+    description: 'Unlocks the Medium Shield Generator.',
+    unlockBuildingIds: ['shield_generator_m'],
+  },
+  {
+    id: 'unlock_shield_large',
+    label: 'Unlock Large Shield',
+    category: 'energy',
+    creditCost: 1500,
+    description: 'Unlocks the Large Shield Generator.',
+    prereqIds: ['unlock_shields'],
+    unlockBuildingIds: ['shield_generator_l'],
+  },
+  {
+    id: 'shield_capacity_1',
+    label: 'Shield Capacity I',
+    category: 'energy',
+    creditCost: 750,
+    description: 'Increases shield field maximum health.',
+    prereqIds: ['unlock_shields'],
+    modifiers: {
+      shield_generator_m: { shieldCapacityMul: 1.25 },
+      shield_generator_l: { shieldCapacityMul: 1.2 },
+    },
+  },
+  {
+    id: 'shield_capacity_2',
+    label: 'Shield Capacity II',
+    category: 'energy',
+    creditCost: 1200,
+    description: 'Greatly increases shield field maximum health.',
+    prereqIds: ['shield_capacity_1'],
+    modifiers: {
+      shield_generator_m: { shieldCapacityMul: 1.25 },
+      shield_generator_l: { shieldCapacityMul: 1.25 },
+    },
+  },
+  {
+    id: 'shield_recharge_1',
+    label: 'Shield Recharge I',
+    category: 'energy',
+    creditCost: 850,
+    description: 'Increases shield recharge rate (still costs power to recharge).',
+    prereqIds: ['unlock_shields'],
+    modifiers: {
+      shield_generator_m: { shieldRechargeMul: 1.35 },
+      shield_generator_l: { shieldRechargeMul: 1.3 },
+    },
+  },
+  {
+    id: 'plasma_focus_1',
+    label: 'Plasma Focus I',
+    category: 'energy',
+    creditCost: 650,
+    description: 'Plasma lasers gain damage and range.',
+    unlockBuildingIds: ['plasma_laser_s', 'plasma_laser_m'],
+    modifiers: {
+      plasma_laser_s: { damageAdd: 18, rangeAdd: 4 },
+      plasma_laser_m: { damageAdd: 26, rangeAdd: 5 },
+      plasma_laser_l: { damageAdd: 34, rangeAdd: 6 },
+    },
+  },
+  {
+    id: 'plasma_focus_2',
+    label: 'Plasma Focus II',
+    category: 'energy',
+    creditCost: 1150,
+    description: 'Plasma lasers gain more damage and become slightly more power efficient.',
+    prereqIds: ['plasma_focus_1'],
+    unlockBuildingIds: ['plasma_laser_l'],
+    modifiers: {
+      plasma_laser_s: { damageAdd: 22, rangeAdd: 4, powerDrainMul: 0.92 },
+      plasma_laser_m: { damageAdd: 30, rangeAdd: 5, powerDrainMul: 0.92 },
+      plasma_laser_l: { damageAdd: 40, rangeAdd: 6, powerDrainMul: 0.92 },
+    },
+  },
+  {
+    id: 'tesla_coils_1',
+    label: 'Tesla Coils I',
+    category: 'energy',
+    creditCost: 700,
+    description: 'Tesla tower zaps farther and hits harder.',
+    unlockBuildingIds: ['tesla_tower'],
+    modifiers: {
+      tesla_tower: { rangeAdd: 2, damageAdd: 25 },
+    },
+  },
+  {
+    id: 'logistics_1',
+    label: 'Logistics I',
+    category: 'structural',
+    creditCost: 450,
+    description: 'Supply structures provide more maximum supply.',
+    modifiers: {
+      command_center: { supplyCapAddMul: 1.15 },
+      supply_depot_s: { supplyCapAddMul: 1.15 },
+      supply_depot_l: { supplyCapAddMul: 1.15 },
+    },
+  },
+  {
+    id: 'logistics_2',
+    label: 'Logistics II',
+    category: 'structural',
+    creditCost: 850,
+    description: 'Supply structures provide significantly more maximum supply.',
+    prereqIds: ['logistics_1'],
+    modifiers: {
+      command_center: { supplyCapAddMul: 1.2 },
+      supply_depot_s: { supplyCapAddMul: 1.2 },
+      supply_depot_l: { supplyCapAddMul: 1.2 },
+    },
+  },
+  {
+    id: 'command_autonomy_1',
+    label: 'Command Autonomy I',
+    category: 'structural',
+    creditCost: 700,
+    description: 'Command Centers generate more credits and power.',
+    modifiers: {
+      command_center: { creditPayoutMul: 1.25, powerGenMul: 1.25 },
+    },
+  },
+  {
+    id: 'structural_fortification_1',
+    label: 'Structural Fortification I',
+    category: 'structural',
+    creditCost: 550,
+    description: 'All structural buildings gain health.',
+    modifiers: {
+      command_center: { damageAdd: 0 },
+      supply_depot_s: { damageAdd: 0 },
+      supply_depot_l: { damageAdd: 0 },
+      repair_bay: { damageAdd: 0 },
+      support_node: { damageAdd: 0 },
+      reconstruction_yard: { damageAdd: 0 },
+    },
+  },
+  {
+    id: 'structural_fortification_2',
+    label: 'Structural Fortification II',
+    category: 'structural',
+    creditCost: 950,
+    description: 'Further improves structural durability.',
+    prereqIds: ['structural_fortification_1'],
+    modifiers: {
+      command_center: { damageAdd: 0 },
+      supply_depot_s: { damageAdd: 0 },
+      supply_depot_l: { damageAdd: 0 },
+      repair_bay: { damageAdd: 0 },
+      support_node: { damageAdd: 0 },
+      reconstruction_yard: { damageAdd: 0 },
+    },
+  },
+  {
+    id: 'battery_capacity_1',
+    label: 'Battery Capacity I',
+    category: 'electrical',
+    creditCost: 500,
+    description: 'Batteries increase max power storage more.',
+    modifiers: {
+      battery_small: { powerCapAddMul: 1.25 },
+      battery_large: { powerCapAddMul: 1.25 },
+    },
+  },
+  {
+    id: 'battery_capacity_2',
+    label: 'Battery Capacity II',
+    category: 'electrical',
+    creditCost: 900,
+    description: 'Batteries greatly increase max power storage.',
+    prereqIds: ['battery_capacity_1'],
+    modifiers: {
+      battery_small: { powerCapAddMul: 1.3 },
+      battery_large: { powerCapAddMul: 1.3 },
+    },
+  },
+  {
+    id: 'power_distribution_1',
+    label: 'Power Distribution I',
+    category: 'electrical',
+    creditCost: 600,
+    description: 'Energy weapons and missiles consume less power.',
+    modifiers: {
+      shield_generator_m: { powerDrainMul: 0.92 },
+      shield_generator_l: { powerDrainMul: 0.92 },
+      tesla_tower: { powerDrainMul: 0.92 },
+      plasma_laser_s: { powerDrainMul: 0.92 },
+      plasma_laser_m: { powerDrainMul: 0.92 },
+      plasma_laser_l: { powerDrainMul: 0.92 },
+      missile_launcher_s: { powerDrainMul: 0.92 },
+      missile_launcher_m: { powerDrainMul: 0.92 },
+      portable_silo: { powerDrainMul: 0.92 },
+      missile_silo: { powerDrainMul: 0.92 },
+      nuclear_silo: { powerDrainMul: 0.92 },
+      hydra_launcher: { powerDrainMul: 0.92 },
+    },
+  },
+  {
+    id: 'power_distribution_2',
+    label: 'Power Distribution II',
+    category: 'electrical',
+    creditCost: 1100,
+    description: 'Further reduces power usage for high-tech systems.',
+    prereqIds: ['power_distribution_1'],
+    modifiers: {
+      shield_generator_m: { powerDrainMul: 0.9 },
+      shield_generator_l: { powerDrainMul: 0.9 },
+      tesla_tower: { powerDrainMul: 0.9 },
+      plasma_laser_s: { powerDrainMul: 0.9 },
+      plasma_laser_m: { powerDrainMul: 0.9 },
+      plasma_laser_l: { powerDrainMul: 0.9 },
+      missile_launcher_s: { powerDrainMul: 0.9 },
+      missile_launcher_m: { powerDrainMul: 0.9 },
+      portable_silo: { powerDrainMul: 0.9 },
+      missile_silo: { powerDrainMul: 0.9 },
+      nuclear_silo: { powerDrainMul: 0.9 },
+      hydra_launcher: { powerDrainMul: 0.9 },
+    },
+  },
+  {
+    id: 'nuclear_overclock_1',
+    label: 'Nuclear Overclock I',
+    category: 'electrical',
+    creditCost: 950,
+    description: 'Nuclear plants generate more power (still require credits to run).',
+    modifiers: {
+      nuclear_plant: { powerGenMul: 1.25 },
+    },
+  },
+  {
+    id: 'economy_optimization_1',
+    label: 'Economy Optimization I',
+    category: 'economy',
+    creditCost: 650,
+    description: 'Economy buildings produce more credits.',
+    modifiers: {
+      factory_business: { creditPayoutMul: 1.15 },
+      factory_factory: { creditPayoutMul: 1.15 },
+      factory_megacomplex: { creditPayoutMul: 1.12 },
+      refinery: { creditPayoutMul: 1.12 },
+      mega_refinery: { creditPayoutMul: 1.12 },
+      chemical_installation: { creditPayoutMul: 1.1 },
+    },
+  },
+  {
+    id: 'economy_optimization_2',
+    label: 'Economy Optimization II',
+    category: 'economy',
+    creditCost: 1200,
+    description: 'Further improves economy building output.',
+    prereqIds: ['economy_optimization_1'],
+    modifiers: {
+      factory_business: { creditPayoutMul: 1.2 },
+      factory_factory: { creditPayoutMul: 1.2 },
+      factory_megacomplex: { creditPayoutMul: 1.18 },
+      refinery: { creditPayoutMul: 1.15 },
+      mega_refinery: { creditPayoutMul: 1.15 },
+      chemical_installation: { creditPayoutMul: 1.12 },
+    },
+  },
+  {
+    id: 'unlock_refinery',
+    label: 'Unlock Refinery',
+    category: 'economy',
+    creditCost: 450,
+    description: 'Unlocks the Refinery building.',
+    unlockBuildingIds: ['refinery'],
+  },
+  {
+    id: 'unlock_mega_refinery',
+    label: 'Unlock Mega Refinery',
+    category: 'economy',
+    creditCost: 900,
+    description: 'Unlocks the Mega Refinery building.',
+    prereqIds: ['unlock_refinery'],
+    unlockBuildingIds: ['mega_refinery'],
   },
 ]
 
 export class BaseDefenseGame {
   private readonly canvas: HTMLCanvasElement
+  private readonly mode: 'normal' | 'sandbox'
   private renderer!: THREE.WebGLRenderer
   private scene!: THREE.Scene
   private camera!: THREE.PerspectiveCamera
@@ -436,27 +1334,40 @@ export class BaseDefenseGame {
   private readonly purchasedUpgradePhase = new Map<UpgradeId, number>()
   private readonly unlockedBuildingIds = new Set<BuildingId>([
     'command_center',
-    'supply_depot',
+    'supply_depot_s',
+    'supply_depot_l',
+    'repair_bay',
+    'support_node',
+    'reconstruction_yard',
     'factory_business',
     'generator_small',
     'generator_large',
-    'battery',
+    'battery_small',
+    'battery_large',
+    'pylon',
+    'nuclear_plant',
     'auto_turret',
     'siege_cannon',
-    'missile_launcher',
-    'silo',
-    'shield_generator',
+    'missile_launcher_s',
   ])
 
   // World state
   private readonly buildings: PlacedBuilding[] = []
   private readonly asteroids: Asteroid[] = []
   private readonly missiles: Missile[] = []
+  private readonly pendingMissileBursts: PendingMissileBurst[] = []
+  private readonly hydraHitStack = new Map<string, number>()
+  private readonly shieldFields = new Map<string, ShieldField>()
   private readonly ballistics: Ballistic[] = []
+  private readonly repairDrones: RepairDrone[] = []
   private readonly occupied = new Map<string, string>() // cell -> placedBuilding.id
 
   private isLost = false
   private wheelOpen = false
+  private asteroidIdSeed = 0
+  private volleyIdSeed = 0
+  private autoWavesEnabled = true
+  private resourceBonus = { supplyCap: 0, powerCap: 0, powerStored: 0 }
 
   // Scene objects
   private readonly world = new THREE.Group()
@@ -487,8 +1398,9 @@ export class BaseDefenseGame {
     gameOver: boolean
   }) => void
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox' }) {
     this.canvas = canvas
+    this.mode = opts?.mode ?? 'normal'
   }
 
   start() {
@@ -523,6 +1435,7 @@ export class BaseDefenseGame {
     if (!up) return
     if (this.purchasedUpgradeIds.has(id)) return
     if (this.credits < up.creditCost) return
+    if (up.prereqIds?.some((p) => !this.purchasedUpgradeIds.has(p))) return
 
     this.credits -= up.creditCost
     this.purchasedUpgradeIds.add(id)
@@ -587,7 +1500,11 @@ export class BaseDefenseGame {
 
     this.spawnWindowEnded = false
     this.spawnWindowElapsedSec = 0
-    this.toSpawn = 18 + this.wave * 10
+    // Earlier waves should be calmer; difficulty ramps via:
+    // - more total asteroids
+    // - higher speed/HP baked into spawn stats
+    // - special variants become more common as waves progress
+    this.toSpawn = Math.round(12 + this.wave * 4.3 + this.wave * this.wave * 0.06)
     this.spawnTimer = 0
 
     // Approximate how long spawning will last so the UI circle matches the spawn window.
@@ -603,17 +1520,24 @@ export class BaseDefenseGame {
     for (const b of this.buildings) this.world.remove(b.mesh), this.world.remove(b.healthBar.group)
     for (const a of this.asteroids) this.world.remove(a.mesh), this.world.remove(a.healthBar.group)
     for (const m of this.missiles) this.projectiles.remove(m.mesh)
+    this.pendingMissileBursts.length = 0
+    this.hydraHitStack.clear()
+    for (const sf of this.shieldFields.values()) sf.bubble.removeFromParent()
+    this.shieldFields.clear()
     for (const b of this.ballistics) this.projectiles.remove(b.mesh)
+    for (const d of this.repairDrones) this.world.remove(d.mesh)
     this.buildings.length = 0
     this.asteroids.length = 0
     this.missiles.length = 0
     this.ballistics.length = 0
+    this.repairDrones.length = 0
     this.occupied.clear()
 
     this.isLost = false
-    this.credits = 650
-    this.powerCap = 20
-    this.powerStored = 20
+    // Early game starts faster: more money, more power, more supply from the Command Center.
+    this.credits = 1200
+    this.powerCap = 45
+    this.powerStored = 45
     this.supplyCap = 0
     this.supplyUsed = 0
     this.wave = 0
@@ -632,6 +1556,19 @@ export class BaseDefenseGame {
     this.purchasedUpgradePhase.clear()
     this.purchasedUpgradePhase.set('core_protocol', -1)
     this.recomputeUnlockedBuildingIds()
+    this.asteroidIdSeed = 0
+    this.volleyIdSeed = 0
+
+    // Mode setup
+    if (this.mode === 'sandbox') {
+      this.credits = 50000
+      this.resourceBonus = { supplyCap: 999, powerCap: 999, powerStored: 999 }
+      this.autoWavesEnabled = false
+    } else {
+      this.resourceBonus = { supplyCap: 0, powerCap: 0, powerStored: 0 }
+      this.autoWavesEnabled = true
+    }
+    this.powerStored = Math.min(this.powerCap + this.resourceBonus.powerCap, this.powerStored + this.resourceBonus.powerStored)
 
     // Place initial command center at grid center.
     const cc = BUILDINGS.find((d) => d.id === 'command_center')!
@@ -813,6 +1750,7 @@ export class BaseDefenseGame {
     this.updateWave(dt)
     this.updateAsteroids(dt)
     this.updateDefenses(dt)
+    this.updateSupportSystems(dt)
     this.updateProjectiles(dt)
     this.updateHealthBars()
     this.updateRefundSprites()
@@ -869,6 +1807,12 @@ export class BaseDefenseGame {
       if (mod.fireRateMul) out.fireRate = (out.fireRate ?? 0) * mod.fireRateMul
       if (mod.creditPayoutMul) out.creditPayout = (out.creditPayout ?? 0) * mod.creditPayoutMul
       if (mod.powerGenMul) out.powerGenPerSec = (out.powerGenPerSec ?? 0) * mod.powerGenMul
+      if (mod.powerDrainMul) out.powerDrainPerSec = (out.powerDrainPerSec ?? 0) * mod.powerDrainMul
+      if (mod.aoeRadiusMul) out.aoeRadius = (out.aoeRadius ?? 0) * mod.aoeRadiusMul
+      if (mod.shieldCapacityMul) out.shieldCapacityMul = (out.shieldCapacityMul ?? 1) * mod.shieldCapacityMul
+      if (mod.shieldRechargeMul) out.shieldRechargeMul = (out.shieldRechargeMul ?? 1) * mod.shieldRechargeMul
+      if (mod.supplyCapAddMul) out.supplyCapAdd = (out.supplyCapAdd ?? 0) * mod.supplyCapAddMul
+      if (mod.powerCapAddMul) out.powerCapAdd = (out.powerCapAdd ?? 0) * mod.powerCapAddMul
     }
     return out
   }
@@ -876,18 +1820,41 @@ export class BaseDefenseGame {
   private updateResources(dt: number) {
     let gen = 0
     let drain = 0
-    let powerCap = 20
-    let supplyCap = 0
+    let powerCap = 20 + this.resourceBonus.powerCap
+    let supplyCap = 0 + this.resourceBonus.supplyCap
     let supplyUsed = 0
 
     for (const b of this.buildings) {
       if (b.hp <= 0) continue
       const d = this.getEffectiveDef(b.defId) ?? b.def
+      const isNuclear = b.defId === 'nuclear_plant'
+      if (isNuclear && this.credits <= 0) {
+        // Nuclear plants stop generating when out of credits.
+        powerCap += d.powerCapAdd ?? 0
+        supplyCap += d.supplyCapAdd ?? 0
+        supplyUsed += d.supplyCost
+        continue
+      }
       supplyCap += d.supplyCapAdd ?? 0
       supplyUsed += d.supplyCost
       powerCap += d.powerCapAdd ?? 0
       gen += d.powerGenPerSec ?? 0
-      drain += d.powerDrainPerSec ?? 0
+      drain += (d.powerDrainPerSec ?? 0) * POWER_DRAIN_GLOBAL_MUL
+    }
+
+    // Pylon network bonus: each pylon gains power per nearby pylon within radius 5.
+    const pylons = this.buildings.filter((b) => b.hp > 0 && b.defId === 'pylon')
+    for (const p of pylons) {
+      let nearby = 0
+      const px = p.origin.x
+      const pz = p.origin.z
+      for (const q of pylons) {
+        if (q.id === p.id) continue
+        const qx = q.origin.x
+        const qz = q.origin.z
+        if (Math.hypot(qx - px, qz - pz) <= 5) nearby += 1
+      }
+      gen += nearby * 0.82 * VARS.P
     }
 
     this.supplyCap = supplyCap
@@ -909,12 +1876,14 @@ export class BaseDefenseGame {
       const d = this.getEffectiveDef(b.defId) ?? b.def
       if (!d.creditPayout || !d.creditIntervalSec) continue
       if (b.hp <= 0) continue
+      if (b.defId === 'nuclear_plant' && this.credits <= 0 && (d.creditPayout ?? 0) < 0) continue
       // if out of power, pause economy buildings
       if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) continue
       b.econTimer += dt
       if (b.econTimer >= d.creditIntervalSec) {
         b.econTimer -= d.creditIntervalSec
-        this.credits += d.creditPayout
+        const nextCredits = this.credits + d.creditPayout
+        this.credits = Math.max(0, nextCredits)
       }
     }
   }
@@ -970,8 +1939,98 @@ export class BaseDefenseGame {
     if (this.inactiveTimeLeftSec <= 0) {
       this.inactiveTimeLeftSec = 0
       // Auto-start at the end of the 1-minute inactive window.
-      this.startNextWave(false)
+      if (this.autoWavesEnabled) this.startNextWave(false)
     }
+  }
+
+  private pickAsteroidVariant(): { variant: Asteroid['variant']; splitLevel: number } {
+    // Special asteroids are rare early, and become more common as waves progress.
+    const waveT = clamp(this.wave / 18, 0, 1)
+
+    const wSplitter = 0.035 + 0.11 * waveT // up to ~14.5% of spawns
+    const wExplosive = 0.02 + 0.085 * waveT
+    const wMeteor = 0.015 + 0.07 * waveT
+    const wSeeker = 0.02 + 0.06 * waveT
+    const wPlanet = 0.008 + 0.03 * waveT
+
+    const totalSpecial = wSplitter + wExplosive + wMeteor + wSeeker + wPlanet
+    // Remaining chance spawns a normal asteroid.
+    if (Math.random() > totalSpecial) return { variant: 'normal', splitLevel: 0 }
+
+    const r = Math.random() * totalSpecial
+
+    if (r < wSplitter) return { variant: 'splitter', splitLevel: 0 }
+    if (r < wSplitter + wExplosive) return { variant: 'explosive', splitLevel: 0 }
+    if (r < wSplitter + wExplosive + wMeteor) return { variant: 'meteor', splitLevel: 0 }
+    if (r < wSplitter + wExplosive + wMeteor + wSeeker) return { variant: 'seeker', splitLevel: 0 }
+    return { variant: 'planet', splitLevel: 0 }
+  }
+
+  private handleAsteroidDeath(a: Asteroid, reason: 'impact' | 'shield' | 'combat') {
+    const pos = a.mesh.position.clone()
+
+    // Splitters: each splitter can split into two smaller splitters once.
+    if (a.variant === 'splitter' && a.splitLevel < 2) {
+      for (const side of [-1, 1] as const) {
+        this.spawnSplitterChild(a, side, a.splitLevel + 1)
+      }
+    }
+
+    // Explosive asteroids: blow up on death (even midair).
+    if (a.variant === 'explosive' && reason !== 'impact') {
+      if (reason === 'combat') {
+        this.spawnExplosion(pos, 3.0, 0xff8a80)
+      }
+      this.applyAoeDamage(pos, a.impactRadius, a.impactDamage)
+    }
+  }
+
+  private spawnSplitterChild(parent: Asteroid, side: -1 | 1, splitLevel: number) {
+    const baseSize = 1.4 + Math.random() * 1.8
+    const sizeMul = splitLevel === 1 ? 0.72 : 0.45
+    const geo = new THREE.DodecahedronGeometry(baseSize * sizeMul, 0)
+    const mat = new THREE.MeshStandardMaterial({ color: 0xa21caf, emissive: 0x7f1d1d, emissiveIntensity: 0.45, roughness: 0.92 })
+    const mesh = new THREE.Mesh(geo, mat)
+
+    const offset = new THREE.Vector3(side * 0.55, 0.2, side * 0.25)
+    mesh.position.copy(parent.mesh.position).add(offset)
+    mesh.castShadow = true
+    this.world.add(mesh)
+
+    const maxHp = Math.max(30, Math.round(parent.maxHp * (splitLevel === 1 ? 0.55 : 0.32)))
+    const hp = maxHp
+
+    const speedMul = splitLevel === 1 ? 1.05 : 1.12
+    const speed = Math.max(8, parent.speed * speedMul)
+    const dir = parent.velocity.clone().normalize()
+    const yaw = Math.atan2(dir.x, dir.z)
+    const newYaw = yaw + side * 0.35 * (splitLevel === 1 ? 1.0 : 1.2)
+    const h = Math.hypot(dir.x, dir.z)
+    dir.x = Math.sin(newYaw) * h
+    dir.z = Math.cos(newYaw) * h
+    const velocity = dir.multiplyScalar(speed)
+
+    const healthBar = this.createHealthBar(Math.max(1.2, 2.2 * sizeMul), 0.22)
+    healthBar.group.position.copy(mesh.position).add(new THREE.Vector3(0, 3.1 * sizeMul, 0))
+    this.world.add(healthBar.group)
+
+    const radiusMul = splitLevel === 1 ? 0.75 : 0.5
+    const dmgMul = splitLevel === 1 ? 0.7 : 0.45
+    this.asteroids.push({
+      id: `a_${this.asteroidIdSeed++}`,
+      mesh,
+      healthBar,
+      hp,
+      maxHp,
+      alive: true,
+      variant: 'splitter',
+      splitLevel,
+      speed,
+      target: parent.target.clone(),
+      velocity,
+      impactRadius: parent.impactRadius * radiusMul,
+      impactDamage: parent.impactDamage * dmgMul,
+    })
   }
 
   private spawnAsteroid() {
@@ -979,41 +2038,164 @@ export class BaseDefenseGame {
     const spawnR = 160 + Math.random() * 60
     const start = new THREE.Vector3(Math.cos(spawnAngle) * spawnR, 90 + Math.random() * 30, Math.sin(spawnAngle) * spawnR)
 
-    const tx = Math.round((Math.random() * 2 - 1) * HALF)
-    const tz = Math.round((Math.random() * 2 - 1) * HALF)
-    const target = new THREE.Vector3(tx, 0, tz)
+    const pick = this.pickAsteroidVariant()
 
-    const geo = new THREE.DodecahedronGeometry(1.4 + Math.random() * 1.8, 0)
-    const mat = new THREE.MeshStandardMaterial({ color: 0x9f1239, emissive: 0x7f1d1d, emissiveIntensity: 0.45, roughness: 0.92 })
+    // Target: most asteroids aim at random grid coords; seekers aim at buildings.
+    let target: THREE.Vector3
+    if (pick.variant === 'seeker') {
+      const aliveBuildings = this.buildings.filter((b) => b.hp > 0)
+      if (aliveBuildings.length > 0) {
+        let best = aliveBuildings[0]
+        let bestD = Infinity
+        for (const b of aliveBuildings) {
+          const cx = b.origin.x + (b.def.size.w - 1) / 2
+          const cz = b.origin.z + (b.def.size.h - 1) / 2
+          const d = Math.hypot(cx - start.x, cz - start.z)
+          if (d < bestD) {
+            bestD = d
+            best = b
+          }
+        }
+        const cx = best.origin.x + (best.def.size.w - 1) / 2
+        const cz = best.origin.z + (best.def.size.h - 1) / 2
+        target = new THREE.Vector3(cx, 0, cz)
+      } else {
+        const tx = Math.round((Math.random() * 2 - 1) * HALF)
+        const tz = Math.round((Math.random() * 2 - 1) * HALF)
+        target = new THREE.Vector3(tx, 0, tz)
+      }
+    } else {
+      const tx = Math.round((Math.random() * 2 - 1) * HALF)
+      const tz = Math.round((Math.random() * 2 - 1) * HALF)
+      target = new THREE.Vector3(tx, 0, tz)
+    }
+
+    const baseHp = 105 + this.wave * 25
+    const baseDamage = 400 + this.wave * 35
+    const baseSpeed = 16 + this.wave * 0.7
+
+    let sizeMul = 1
+    let hpMul = 1
+    let speedMul = 1
+    let color = 0x9f1239
+    let emissive = 0x7f1d1d
+    let impactRadius = 4.6
+    let impactDamage = baseDamage
+
+    switch (pick.variant) {
+      case 'splitter':
+        sizeMul = 1
+        hpMul = 0.92
+        speedMul = 1.02
+        color = 0xa21caf
+        emissive = 0x7f1d1d
+        impactRadius = 4.2
+        impactDamage = baseDamage * 0.7
+        break
+      case 'explosive':
+        sizeMul = 1.03
+        hpMul = 0.9
+        speedMul = 1.08
+        color = 0xff4d6d
+        emissive = 0xff1744
+        impactRadius = 6.6
+        impactDamage = baseDamage * 0.68
+        break
+      case 'meteor':
+        sizeMul = 0.88
+        hpMul = 0.8
+        speedMul = 2.05
+        color = 0x38bdf8
+        emissive = 0x1d4ed8
+        // Very small splash radius: effectively "no splash".
+        impactRadius = 0.95
+        impactDamage = baseDamage * 1.45
+        break
+      case 'seeker':
+        sizeMul = 0.95
+        hpMul = 0.88
+        speedMul = 1.45
+        color = 0x22c55e
+        emissive = 0x16a34a
+        impactRadius = 4.9
+        impactDamage = baseDamage * 1.02
+        break
+      case 'planet':
+        sizeMul = 2.25
+        hpMul = 2.4
+        speedMul = 0.62
+        color = 0xeab308
+        emissive = 0x991b1b
+        impactRadius = 7.6
+        impactDamage = baseDamage * 1.12
+        break
+    }
+
+    const geo = new THREE.DodecahedronGeometry((1.4 + Math.random() * 1.8) * sizeMul, 0)
+    const mat = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: 0.45, roughness: 0.92 })
     const mesh = new THREE.Mesh(geo, mat)
     mesh.position.copy(start)
     mesh.castShadow = true
     this.world.add(mesh)
 
-    const maxHp = 120 + this.wave * 22
+    const maxHp = Math.max(40, Math.round(baseHp * hpMul))
     const hp = maxHp
-    const velocity = new THREE.Vector3().subVectors(target, start).normalize().multiplyScalar(18 + this.wave * 0.55)
 
-    const healthBar = this.createHealthBar(2.2, 0.22)
-    healthBar.group.position.copy(start).add(new THREE.Vector3(0, 3.1, 0))
+    const dir = new THREE.Vector3().subVectors(target, start).normalize()
+    const speed = baseSpeed * speedMul
+    const velocity = dir.multiplyScalar(speed)
+
+    const healthBar = this.createHealthBar(Math.max(1.2, 2.2 * sizeMul), 0.22)
+    healthBar.group.position.copy(start).add(new THREE.Vector3(0, 3.1 * Math.min(2.2, sizeMul), 0))
     this.world.add(healthBar.group)
 
     this.asteroids.push({
+      id: `a_${this.asteroidIdSeed++}`,
       mesh,
       healthBar,
       hp,
       maxHp,
       alive: true,
+      variant: pick.variant,
+      splitLevel: pick.variant === 'splitter' ? 0 : 0,
+      speed,
       target,
       velocity,
-      impactRadius: 4.6,
-      impactDamage: 420 + this.wave * 30,
+      impactRadius,
+      impactDamage,
     })
   }
 
   private updateAsteroids(dt: number) {
     for (const a of this.asteroids) {
       if (!a.alive) continue
+
+      // Seekers constantly steer toward the closest live building.
+      if (a.variant === 'seeker') {
+        let best: PlacedBuilding | null = null
+        let bestD = Infinity
+        for (const b of this.buildings) {
+          if (b.hp <= 0) continue
+          const cx = b.origin.x + (b.def.size.w - 1) / 2
+          const cz = b.origin.z + (b.def.size.h - 1) / 2
+          const d = Math.hypot(cx - a.mesh.position.x, cz - a.mesh.position.z)
+          if (d < bestD) {
+            bestD = d
+            best = b
+          }
+        }
+        if (best) {
+          const tx = best.origin.x + (best.def.size.w - 1) / 2
+          const tz = best.origin.z + (best.def.size.h - 1) / 2
+          a.target.set(tx, 0, tz)
+          const desired = new THREE.Vector3().subVectors(a.target, a.mesh.position)
+          if (desired.lengthSq() > 0.000001) {
+            desired.normalize()
+            a.velocity.copy(desired.multiplyScalar(a.speed))
+          }
+        }
+      }
+
       a.mesh.position.addScaledVector(a.velocity, dt)
       a.mesh.rotation.x += dt * 1.1
       a.mesh.rotation.y += dt * 1.3
@@ -1022,11 +2204,13 @@ export class BaseDefenseGame {
       const shield = this.getActiveShieldHit(a.mesh.position)
       if (shield) {
         // destroy asteroid and drain extra power based on damage
+        this.handleAsteroidDeath(a, 'shield')
         a.alive = false
         this.world.remove(a.mesh)
         this.world.remove(a.healthBar.group)
-        // extra drain: convert damage into power
-        this.powerStored = Math.max(0, this.powerStored - a.impactDamage * 0.02)
+        shield.hp = Math.max(0, shield.hp - a.impactDamage)
+        shield.disabled = shield.hp < shield.maxHp
+        shield.bubble.visible = shield.hp > 0 && !shield.disabled
         this.spawnExplosion(a.mesh.position, 2.2, 0x38bdf8)
         continue
       }
@@ -1034,6 +2218,7 @@ export class BaseDefenseGame {
       const distToTarget = a.mesh.position.distanceTo(a.target)
       if (distToTarget < 2.2 || a.mesh.position.y <= 0.6) {
         // Impact AOE
+        this.handleAsteroidDeath(a, 'impact')
         a.alive = false
         const impactPos = new THREE.Vector3(a.target.x, 0, a.target.z)
         this.world.remove(a.mesh)
@@ -1057,13 +2242,40 @@ export class BaseDefenseGame {
         // nothing else here; interception handled in asteroid update
         continue
       }
+      if (b.defId === 'tesla_tower') {
+        const anchor = (b.mesh.userData as any)?.teslaAnchor as THREE.Object3D | undefined
+        const origin = anchor
+          ? anchor.getWorldPosition(this.tmpAimPos)
+          : new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 2.8, b.origin.z + (d.size.h - 1) / 2)
+        const dps = d.damage ?? 0
+        let hitAny = false
+        for (const a of this.asteroids) {
+          if (!a.alive) continue
+          const dist = origin.distanceTo(a.mesh.position)
+          if (dist > (d.range ?? 0)) continue
+          a.hp -= dps * dt
+          this.spawnShot(origin, a.mesh.position, 0x67e8f9)
+          hitAny = true
+          if (a.hp <= 0) {
+            a.alive = false
+            this.handleAsteroidDeath(a, 'combat')
+            this.world.remove(a.mesh)
+            this.world.remove(a.healthBar.group)
+            this.spawnExplosion(a.mesh.position, 1.1, 0x67e8f9)
+          }
+        }
+        if (hitAny) this.spawnExplosion(origin, 0.45, 0x22d3ee)
+        continue
+      }
 
-      if (!d.range || !d.fireRate || !d.damage) continue
+      if (!d.range || !d.damage) continue
       // if out of power and the building drains power, it pauses
-      if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) continue
+      if (d.kind !== 'railgun' && (d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) continue
 
-      b.cooldown -= dt
-      if (b.cooldown > 0) continue
+      if (d.kind !== 'railgun') {
+        b.cooldown -= dt
+        if (b.cooldown > 0) continue
+      }
 
       const baseOrigin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 1.1, b.origin.z + (d.size.h - 1) / 2)
       const aim = (b.mesh.userData as any)?.aim as WeaponAim | undefined
@@ -1081,7 +2293,8 @@ export class BaseDefenseGame {
       }
       if (!target) continue
 
-      b.cooldown = 1 / d.fireRate
+      const isPlasma = b.defId === 'plasma_laser_s' || b.defId === 'plasma_laser_m' || b.defId === 'plasma_laser_l'
+      if (d.kind !== 'railgun') b.cooldown = 1 / (d.fireRate ?? 1)
       const origin = baseOrigin.clone()
       if (aim?.muzzle) origin.copy(aim.muzzle.getWorldPosition(this.tmpAimPos))
 
@@ -1108,26 +2321,271 @@ export class BaseDefenseGame {
       }
 
       if (d.kind === 'hitscan') {
-        target.hp -= d.damage
-        this.spawnShot(origin, target.mesh.position, d.color)
-        if (target.hp <= 0) {
-          target.alive = false
-          this.world.remove(target.mesh)
-          this.world.remove(target.healthBar.group)
-          this.spawnExplosion(target.mesh.position, 1.4, 0x38bdf8)
+        if (isPlasma) {
+          target.hp -= (d.damage ?? 0) * dt
+          this.spawnShot(origin, target.mesh.position, 0x22d3ee)
+          if (target.hp <= 0) {
+            target.alive = false
+            this.handleAsteroidDeath(target, 'combat')
+            this.world.remove(target.mesh)
+            this.world.remove(target.healthBar.group)
+            this.spawnExplosion(target.mesh.position, 1.0, 0x22d3ee)
+          }
+          continue
+        }
+        if ((d.aoeRadius ?? 0) > 0.01) {
+          this.explodeAt(target.mesh.position, d.aoeRadius ?? 2, d.damage, d.color)
+          this.spawnShot(origin, target.mesh.position, d.color)
+        } else {
+          target.hp -= d.damage
+          this.spawnShot(origin, target.mesh.position, d.color)
+          if (target.hp <= 0) {
+            target.alive = false
+            this.handleAsteroidDeath(target, 'combat')
+            this.world.remove(target.mesh)
+            this.world.remove(target.healthBar.group)
+            this.spawnExplosion(target.mesh.position, 1.4, 0x38bdf8)
+          }
         }
       } else if (d.kind === 'missiles') {
-        const burst = d.burst ?? 4
-        for (let i = 0; i < burst; i++) {
-          this.spawnMissile(origin, target, d)
+        const isHydra = b.defId === 'hydra_launcher'
+        const isDeathLoc = b.defId === 'missile_launcher_s' || b.defId === 'missile_launcher_m'
+        const mode: 'death_location' | 'retarget' = isDeathLoc ? 'death_location' : 'retarget'
+        const burst = d.burst ?? 1
+        if (isHydra && burst > 1) {
+          const volleyId = `v_${this.volleyIdSeed++}`
+          this.pendingMissileBursts.push({
+            origin: origin.clone(),
+            target,
+            def: d,
+            remaining: burst,
+            interval: 0.1,
+            timer: 0,
+            mode,
+            noSplash: true,
+            volleyId,
+          })
+        } else {
+          this.spawnMissile(origin, target, d, mode, false, null)
         }
       } else if (d.kind === 'ballistic') {
         this.spawnBallistic(origin, target.mesh.position, d)
+      } else if (d.kind === 'railgun') {
+        const chargeCap = 120
+        const maxDrawPerSec = 24
+        const drawn = Math.min(this.powerStored, maxDrawPerSec * dt)
+        this.powerStored -= drawn
+        b.charge += drawn
+        if (b.charge < chargeCap) continue
+        b.charge = 0
+        this.fireRailgun(origin, target.mesh.position, d.range, d.damage)
       }
     }
   }
 
+  private fireRailgun(origin: THREE.Vector3, targetPos: THREE.Vector3, range: number = 70, damage: number = 600) {
+    const dir = new THREE.Vector3().subVectors(targetPos, origin)
+    if (dir.lengthSq() < 0.0001) return
+    dir.normalize()
+    const end = origin.clone().add(dir.clone().multiplyScalar(range))
+
+    // Piercing hit: damage all asteroids close to the beam segment.
+    const beamRadius = 1.05
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const toA = new THREE.Vector3().subVectors(a.mesh.position, origin)
+      const t = toA.dot(dir)
+      if (t < 0 || t > range) continue
+      const closest = origin.clone().add(dir.clone().multiplyScalar(t))
+      if (closest.distanceTo(a.mesh.position) <= beamRadius) {
+        a.hp -= damage
+        if (a.hp <= 0) {
+          a.alive = false
+          this.handleAsteroidDeath(a, 'combat')
+          this.world.remove(a.mesh)
+          this.world.remove(a.healthBar.group)
+        }
+      }
+    }
+
+    // Railgun VFX: multi-flash along the beam for clearer feedback.
+    this.spawnShot(origin, end, 0x93c5fd)
+    for (const t of [0.25, 0.5, 0.75]) {
+      const mid = origin.clone().lerp(end, t)
+      this.spawnExplosion(mid, 0.42, 0x93c5fd)
+    }
+    this.spawnExplosion(end, 0.9, 0x93c5fd)
+  }
+
+  private updateSupportSystems(dt: number) {
+    if (!this.waveInProgress) return
+
+    // Keep 2 drones per active repair bay.
+    for (const bay of this.buildings) {
+      if (bay.hp <= 0 || bay.defId !== 'repair_bay') continue
+      const existing = this.repairDrones.filter((d) => d.bayId === bay.id)
+      while (existing.length < 2) {
+        const d = this.spawnRepairDrone(bay)
+        this.repairDrones.push(d)
+        existing.push(d)
+      }
+    }
+    // Remove drones whose bay no longer exists/alive.
+    for (const d of [...this.repairDrones]) {
+      const bay = this.buildings.find((b) => b.id === d.bayId && b.hp > 0)
+      if (!bay) {
+        this.world.remove(d.mesh)
+        this.repairDrones.splice(this.repairDrones.indexOf(d), 1)
+      }
+    }
+
+    // Drone healing logic: total 25 hp/s across two drones = 12.5 each.
+    const perDroneHeal = 12.5
+    for (const d of this.repairDrones) {
+      const bay = this.buildings.find((b) => b.id === d.bayId && b.hp > 0)
+      if (!bay) continue
+      const target = this.findLowestHpBuilding()
+      if (!target) continue
+      d.targetId = target.id
+      const targetPos = new THREE.Vector3(
+        target.origin.x + (target.def.size.w - 1) / 2,
+        4.5 + target.def.size.h * 0.2,
+        target.origin.z + (target.def.size.h - 1) / 2,
+      )
+      const bayPos = new THREE.Vector3(
+        bay.origin.x + (bay.def.size.w - 1) / 2,
+        5.2,
+        bay.origin.z + (bay.def.size.h - 1) / 2,
+      )
+      const desired = targetPos.clone().lerp(bayPos, 0.15)
+      const dir = desired.sub(d.mesh.position)
+      if (dir.lengthSq() > 0.0001) d.mesh.position.add(dir.normalize().multiplyScalar(Math.min(18 * dt, dir.length())))
+
+      const heal = perDroneHeal * dt
+      const powerCost = (heal / 10) * VARS.P
+      if (this.powerStored >= powerCost && target.hp > 0) {
+        this.powerStored -= powerCost
+        target.hp = Math.min(target.def.maxHp, target.hp + heal)
+      }
+    }
+
+    // Support node pulses.
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'support_node') continue
+      b.cooldown -= dt
+      if (b.cooldown > 0) continue
+      b.cooldown = 5
+      const pulseRange = 8
+      const pulseCost = 10 * VARS.P
+      if (this.powerStored < pulseCost) continue
+      this.powerStored -= pulseCost
+      const cx = b.origin.x
+      const cz = b.origin.z
+      for (const t of this.buildings) {
+        if (t.hp <= 0) continue
+        const tx = t.origin.x + (t.def.size.w - 1) / 2
+        const tz = t.origin.z + (t.def.size.h - 1) / 2
+        if (Math.hypot(tx - cx, tz - cz) <= pulseRange) {
+          t.hp = Math.min(t.def.maxHp, t.hp + 10)
+        }
+      }
+      this.spawnExplosion(new THREE.Vector3(cx, 0.2, cz), 1.0, 0x60a5fa)
+    }
+
+    // Chemical installations: constant corrosive aura to nearby buildings.
+    for (const chem of this.buildings) {
+      if (chem.hp <= 0 || chem.defId !== 'chemical_installation') continue
+      const auraRange = 12
+      const dps = (chem.def.auraDamagePerSec ?? 0) * dt
+      if (dps <= 0) continue
+      const cx = chem.origin.x + (chem.def.size.w - 1) / 2
+      const cz = chem.origin.z + (chem.def.size.h - 1) / 2
+      for (const b of this.buildings) {
+        if (b.hp <= 0 || b.id === chem.id) continue
+        const bx = b.origin.x + (b.def.size.w - 1) / 2
+        const bz = b.origin.z + (b.def.size.h - 1) / 2
+        if (Math.hypot(bx - cx, bz - cz) <= auraRange) {
+          b.hp = Math.max(0, b.hp - dps)
+          if (b.hp <= 0) this.destroyBuilding(b)
+        }
+      }
+    }
+
+    // Shield field maintenance + recharge.
+    for (const b of this.buildings) {
+      if (b.hp <= 0) continue
+      if (b.defId !== 'shield_generator_m' && b.defId !== 'shield_generator_l') continue
+      const sf = this.shieldFields.get(b.id)
+      if (!sf) continue
+      const effective = this.getEffectiveDef(b.defId) ?? b.def
+      const capMul = effective.shieldCapacityMul ?? 1
+      const rechargeMul = effective.shieldRechargeMul ?? 1
+
+      // Allow upgrades purchased mid-run to affect shield capacity/recharge immediately.
+      const desiredMaxHp = b.def.maxHp * 2.2 * capMul
+      const ratio = sf.maxHp > 0 ? sf.hp / sf.maxHp : 1
+      sf.maxHp = desiredMaxHp
+      sf.hp = clamp(ratio * sf.maxHp, 0, sf.maxHp)
+      sf.radius = effective.range ?? sf.radius
+      sf.bubble.scale.setScalar(sf.radius)
+
+      const rechargePerSec = sf.maxHp * 0.12 * rechargeMul
+      const want = rechargePerSec * dt
+      const missing = sf.maxHp - sf.hp
+      if (missing > 0.001) {
+        const used = Math.min(missing, want)
+        const powerCost = used * 0.06 * VARS.P
+        const can = Math.min(used, powerCost > 0 ? this.powerStored / powerCost * used : used)
+        if (can > 0.0001) {
+          const actualPower = powerCost > 0 ? (can / used) * powerCost : 0
+          this.powerStored = Math.max(0, this.powerStored - actualPower)
+          sf.hp = Math.min(sf.maxHp, sf.hp + can)
+        }
+      }
+      if (sf.disabled && sf.hp >= sf.maxHp - 0.001) sf.disabled = false
+      sf.bubble.visible = !sf.disabled && sf.hp > 0.001 && this.powerStored > 0.001
+    }
+  }
+
+  private spawnRepairDrone(bay: PlacedBuilding): RepairDrone {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 10, 8),
+      new THREE.MeshStandardMaterial({ color: 0x93c5fd, emissive: 0x1d4ed8, emissiveIntensity: 0.5, roughness: 0.25 }),
+    )
+    mesh.position.set(
+      bay.origin.x + (bay.def.size.w - 1) / 2 + (Math.random() * 1.2 - 0.6),
+      5.2,
+      bay.origin.z + (bay.def.size.h - 1) / 2 + (Math.random() * 1.2 - 0.6),
+    )
+    this.world.add(mesh)
+    return { mesh, bayId: bay.id, targetId: null }
+  }
+
+  private findLowestHpBuilding(): PlacedBuilding | null {
+    let best: PlacedBuilding | null = null
+    let bestRatio = 1
+    for (const b of this.buildings) {
+      if (b.hp <= 0) continue
+      const ratio = b.hp / b.def.maxHp
+      if (ratio < bestRatio) {
+        bestRatio = ratio
+        best = b
+      }
+    }
+    return best
+  }
+
   private updateProjectiles(dt: number) {
+    for (const p of [...this.pendingMissileBursts]) {
+      p.timer -= dt
+      while (p.remaining > 0 && p.timer <= 0) {
+        this.spawnMissile(p.origin, p.target, p.def, p.mode, p.noSplash, p.volleyId)
+        p.remaining -= 1
+        p.timer += p.interval
+      }
+      if (p.remaining <= 0) this.pendingMissileBursts.splice(this.pendingMissileBursts.indexOf(p), 1)
+    }
+
     for (const m of [...this.missiles]) {
       m.ttl -= dt
       if (m.ttl <= 0) {
@@ -1135,20 +2593,59 @@ export class BaseDefenseGame {
         this.missiles.splice(this.missiles.indexOf(m), 1)
         continue
       }
-      const tgt = m.target && m.target.alive ? m.target.mesh.position : null
-      if (tgt) {
-        const dir = new THREE.Vector3().subVectors(tgt, m.mesh.position).normalize()
-        // mild steering
-        const vel = dir.multiplyScalar(m.speed)
-        m.mesh.position.addScaledVector(vel, dt)
+
+      let destination: THREE.Vector3 | null = null
+      if (m.target && m.target.alive) {
+        destination = this.getLeadDestination(m, m.target)
+        m.lastKnownTargetPos.copy(m.target.mesh.position)
+      } else if (m.mode === 'retarget') {
+        const newTarget = this.findNearestAliveAsteroid(m.mesh.position)
+        if (newTarget) {
+          m.target = newTarget
+          m.targetId = newTarget.id
+          destination = this.getLeadDestination(m, newTarget)
+          m.lastKnownTargetPos.copy(newTarget.mesh.position)
+        } else {
+          destination = m.lastKnownTargetPos
+        }
       } else {
-        m.mesh.position.y -= dt * 20
+        destination = m.lastKnownTargetPos
+      }
+
+      if (destination) {
+        const dir = new THREE.Vector3().subVectors(destination, m.mesh.position)
+        if (dir.lengthSq() > 0.000001) {
+          // initial upward launch
+          if (m.launchUpTime > 0) {
+            m.launchUpTime = Math.max(0, m.launchUpTime - dt)
+            m.mesh.position.y += m.launchUpSpeed * dt
+          }
+          m.mesh.position.addScaledVector(dir.normalize().multiplyScalar(m.speed), dt)
+        }
       }
       m.mesh.rotation.y += dt * 8
 
-      const hit = m.target && m.target.alive ? m.mesh.position.distanceTo(m.target.mesh.position) < 1.2 : false
-      if (hit) {
-        this.explodeAt(m.mesh.position, m.aoeRadius, m.damage, 0xffb703)
+      const hitLiveTarget = m.target && m.target.alive ? m.mesh.position.distanceTo(m.target.mesh.position) < 1.2 : false
+      const hitLastKnown = !hitLiveTarget && m.mesh.position.distanceTo(m.lastKnownTargetPos) < 1.2
+      if (hitLiveTarget || hitLastKnown) {
+        if (m.noSplash) {
+          if (hitLiveTarget && m.target) {
+            const key = `${m.volleyId ?? 'v0'}:${m.target.id}`
+            const hits = this.hydraHitStack.get(key) ?? 0
+            const dmg = m.damage * (1 + hits * 0.2)
+            m.target.hp -= dmg
+            this.hydraHitStack.set(key, hits + 1)
+            if (m.target.hp <= 0) {
+              m.target.alive = false
+              this.handleAsteroidDeath(m.target, 'combat')
+              this.world.remove(m.target.mesh)
+              this.world.remove(m.target.healthBar.group)
+            }
+          }
+          this.spawnExplosion(m.mesh.position, 0.9, 0xffb703)
+        } else {
+          this.explodeAt(m.mesh.position, m.aoeRadius, m.damage, 0xffb703)
+        }
         this.projectiles.remove(m.mesh)
         this.missiles.splice(this.missiles.indexOf(m), 1)
       }
@@ -1184,6 +2681,7 @@ export class BaseDefenseGame {
       a.hp -= damage * (0.45 + 0.55 * falloff)
       if (a.hp <= 0) {
         a.alive = false
+        this.handleAsteroidDeath(a, 'combat')
         this.world.remove(a.mesh)
         this.world.remove(a.healthBar.group)
       }
@@ -1212,6 +2710,9 @@ export class BaseDefenseGame {
   }
 
   private destroyBuilding(b: PlacedBuilding) {
+    const destroyedOrigin = { ...b.origin }
+    const destroyedDef = b.def
+    const wasPylon = b.defId === 'pylon'
     this.world.remove(b.mesh)
     this.world.remove(b.healthBar.group)
     // free occupancy
@@ -1219,6 +2720,49 @@ export class BaseDefenseGame {
       for (let dx = 0; dx < b.def.size.w; dx++) {
         this.occupied.delete(key(b.origin.x + dx, b.origin.z + dz))
       }
+    }
+    if (b.refundSprite) b.mesh.remove(b.refundSprite)
+    const sf = this.shieldFields.get(b.id)
+    if (sf) {
+      sf.bubble.removeFromParent()
+      this.shieldFields.delete(b.id)
+    }
+
+    // Reconstruction Yard: auto-rebuild nearby destroyed buildings at 50% cost.
+    if (this.waveInProgress) {
+      const canRebuild = this.findReconstructionYardNear(destroyedOrigin.x, destroyedOrigin.z, 10)
+      if (canRebuild && this.credits >= destroyedDef.creditCost * 0.5) {
+        this.credits -= destroyedDef.creditCost * 0.5
+        this.placeBuilding(destroyedDef, destroyedOrigin.x, destroyedOrigin.z, true)
+        const rebuilt = this.buildings[this.buildings.length - 1]
+        rebuilt.builtInInactivePhase = -1
+      }
+    }
+
+    if (wasPylon) {
+      this.damageNearbyPylons(destroyedOrigin.x, destroyedOrigin.z, 5, 55)
+      this.spawnExplosion(new THREE.Vector3(destroyedOrigin.x, 0.25, destroyedOrigin.z), 0.9, 0xeab308)
+    }
+  }
+
+  private findReconstructionYardNear(x: number, z: number, range: number): PlacedBuilding | null {
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'reconstruction_yard') continue
+      const cx = b.origin.x + (b.def.size.w - 1) / 2
+      const cz = b.origin.z + (b.def.size.h - 1) / 2
+      if (Math.hypot(cx - x, cz - z) <= range) return b
+    }
+    return null
+  }
+
+  private damageNearbyPylons(x: number, z: number, radius: number, damage: number) {
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'pylon') continue
+      const bx = b.origin.x
+      const bz = b.origin.z
+      if (Math.hypot(bx - x, bz - z) > radius) continue
+      b.hp = Math.max(0, b.hp - damage)
+      if (b.hp <= 0) this.destroyBuilding(b)
     }
   }
 
@@ -1271,10 +2815,11 @@ export class BaseDefenseGame {
         if (Math.abs(x) > HALF || Math.abs(z) > HALF) return
         // keep a little buffer for mountains / edge
         if (Math.abs(x) >= HALF - 1 || Math.abs(z) >= HALF - 1) return
-        // can't overlap existing
-        if (this.occupied.has(key(x, z))) return
       }
     }
+
+    // Enforce a 1-cell gap so buildings cannot be directly adjacent.
+    if (!this.isAreaClearWithPadding(ox, oz, def.size.w, def.size.h, 1)) return
 
     // commit
     this.credits -= def.creditCost
@@ -1314,11 +2859,15 @@ export class BaseDefenseGame {
       mesh.add(refundSprite)
     }
 
-    // Shield bubble
-    if (def.id === 'shield_generator') {
+    // Shield field entity (not a building hitbox)
+    if (def.id === 'shield_generator_m' || def.id === 'shield_generator_l') {
+      const effective = this.getEffectiveDef(def.id) ?? def
+      const radius = effective.range ?? (def.range ?? 8)
+      const capMul = effective.shieldCapacityMul ?? 1
       const bubble = new THREE.Mesh(
-        new THREE.SphereGeometry(def.range ?? 12, 26, 18),
-        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.08 }),
+        // geometry radius = 1; scale by the shield radius so upgrades can change it at runtime.
+        new THREE.SphereGeometry(1, 26, 18),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.09, depthWrite: false }),
       )
       const anchor = (mesh.userData as any)?.shieldBubbleAnchor as THREE.Object3D | undefined
       if (anchor) {
@@ -1328,6 +2877,15 @@ export class BaseDefenseGame {
         bubble.position.y = 4.0
         mesh.add(bubble)
       }
+      bubble.scale.setScalar(radius)
+      this.shieldFields.set(id, {
+        generatorId: id,
+        hp: def.maxHp * 2.2 * capMul,
+        maxHp: def.maxHp * 2.2 * capMul,
+        radius,
+        bubble,
+        disabled: false,
+      })
     }
 
     const placed: PlacedBuilding = {
@@ -1341,6 +2899,7 @@ export class BaseDefenseGame {
       healthBar: hb,
       refundSprite,
       cooldown: 0,
+      charge: 0,
       econTimer: 0,
     }
     this.buildings.push(placed)
@@ -1440,7 +2999,7 @@ export class BaseDefenseGame {
       return group
     }
 
-    if (def.id === 'supply_depot') {
+    if (def.id === 'supply_depot_s' || def.id === 'supply_depot_l') {
       const { baseH } = addBase(1.9, def.color)
       // stacks of crates
       const crateMat = mkMat(0x9ca3af, 0.06, 0.92)
@@ -1457,6 +3016,42 @@ export class BaseDefenseGame {
       const plate = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 0.06, h * 0.92), mkMat(0x0b1220, 0.02, 0.95))
       plate.position.y = baseH + 0.03
       group.add(plate)
+      return group
+    }
+
+    if (def.id === 'repair_bay') {
+      const { baseH } = addBase(2.0, def.color)
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.8, 0.9), mkMat(0xe2e8f0, 0.2, 0.5))
+      tower.position.set(-w * 0.28, baseH + 1.4, -h * 0.28)
+      group.add(tower)
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 0.1, h * 0.9), mkMat(0x0b1220, 0.02, 0.95))
+      pad.position.y = baseH + 0.06
+      group.add(pad)
+      return group
+    }
+
+    if (def.id === 'support_node') {
+      const { baseH } = addBase(1.1, def.color)
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.4, 10), mkMat(0xe2e8f0, 0.25, 0.5))
+      mast.position.y = baseH + 0.75
+      group.add(mast)
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), mkEmat(def.color, 0.6, 0.25))
+      dish.position.y = baseH + 1.5
+      group.add(dish)
+      return group
+    }
+
+    if (def.id === 'reconstruction_yard') {
+      const { baseH } = addBase(1.9, def.color)
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 1.2, 0.25), mkMat(0xe2e8f0, 0.22, 0.48))
+      frame.position.set(0, baseH + 0.7, -h * 0.22)
+      group.add(frame)
+      const frame2 = frame.clone()
+      frame2.position.z = h * 0.22
+      group.add(frame2)
+      const crane = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.4, 0.2), mkMat(0xe2e8f0, 0.22, 0.48))
+      crane.position.set(-w * 0.25, baseH + 1.2, 0)
+      group.add(crane)
       return group
     }
 
@@ -1484,6 +3079,42 @@ export class BaseDefenseGame {
       }
       // small emitter light
       ;(body.material as THREE.MeshStandardMaterial).emissive.setHex(def.color)
+      return group
+    }
+
+    if (def.id === 'refinery' || def.id === 'mega_refinery') {
+      const { baseH } = addBase(1.8, def.color)
+      const tankA = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.0, 14), mkMat(0xe2e8f0, 0.2, 0.5))
+      tankA.position.set(-0.28, baseH + 0.5, 0)
+      group.add(tankA)
+      const tankB = tankA.clone()
+      tankB.position.x = 0.28
+      group.add(tankB)
+      const pipe = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.14), mkMat(0x0b1220, 0.02, 0.95))
+      pipe.position.set(0, baseH + 0.7, 0)
+      group.add(pipe)
+      return group
+    }
+
+    if (def.id === 'chemical_installation') {
+      const { baseH } = addBase(2.0, def.color)
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(1.05, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.2,
+          metalness: 0.0,
+          roughness: 0.12,
+          emissive: 0x22c55e,
+          emissiveIntensity: 0.28,
+        }),
+      )
+      dome.position.y = baseH + 0.2
+      group.add(dome)
+      const core = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.1, 10), mkEmat(0x22c55e, 0.55, 0.3))
+      core.position.y = baseH + 0.55
+      group.add(core)
       return group
     }
 
@@ -1520,40 +3151,82 @@ export class BaseDefenseGame {
       return group
     }
 
-    if (def.id === 'battery') {
-      const baseH = 1.5
+    if (def.id === 'battery_small' || def.id === 'battery_large') {
+      const isLarge = def.id === 'battery_large'
+      const baseH = isLarge ? 1.8 : 1.5
       addBase(baseH, def.color)
-      // cell grid
-      const cellMat = new THREE.MeshStandardMaterial({
-        color: 0x0f172a,
-        metalness: 0.05,
-        roughness: 0.85,
-        emissive: def.color,
-        emissiveIntensity: 0.18,
-      })
-      const count = 2
-      const cellW = w / count
-      const cellD = h / count
-      for (let ix = 0; ix < count; ix++) {
-        for (let iz = 0; iz < count; iz++) {
-          const cell = new THREE.Mesh(new THREE.BoxGeometry(cellW * 0.7, 0.35, cellD * 0.7), cellMat)
-          cell.position.set(-w / 2 + cellW * (ix + 0.5), 0.75, -h / 2 + cellD * (iz + 0.5))
-          group.add(cell)
-        }
+      // horizontal rooftop cylinders
+      const cylCount = isLarge ? 4 : 2
+      const span = w * 0.62
+      for (let i = 0; i < cylCount; i++) {
+        const t = i / (cylCount - 1)
+        const x = -span / 2 + t * span
+        const cell = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, h * 0.7, 12), mkMat(0xe2e8f0, 0.2, 0.46))
+        cell.rotation.z = Math.PI / 2
+        cell.position.set(x, baseH + 0.32, 0)
+        group.add(cell)
       }
-      // terminals
       const term = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.12), mkMat(0xe2e8f0, 0.25, 0.5))
       term.position.set(0, baseH + 0.35, h * 0.28)
       group.add(term)
       return group
     }
 
+    if (def.id === 'pylon') {
+      const { baseH } = addBase(0.8, def.color)
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 1.8, 10), mkMat(0xe2e8f0, 0.24, 0.5))
+      mast.position.y = baseH + 0.95
+      group.add(mast)
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), mkEmat(0xeab308, 0.7, 0.2))
+      tip.position.y = baseH + 1.9
+      group.add(tip)
+      return group
+    }
+
+    if (def.id === 'nuclear_plant') {
+      const { baseH } = addBase(2.2, def.color)
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(1.3, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.2, emissive: 0xeab308, emissiveIntensity: 0.22 }),
+      )
+      dome.position.y = baseH + 0.45
+      group.add(dome)
+      const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.32, 1.8, 14), mkMat(0xe2e8f0, 0.22, 0.5))
+      stack.position.set(-0.9, baseH + 0.9, -0.9)
+      group.add(stack)
+      const stack2 = stack.clone()
+      stack2.position.set(0.9, baseH + 0.9, -0.9)
+      group.add(stack2)
+      return group
+    }
+
     // Weapons with aiming + muzzle
-    if (def.id === 'auto_turret' || def.id === 'siege_cannon' || def.id === 'missile_launcher' || def.id === 'silo') {
-      const isAuto = def.id === 'auto_turret'
-      const isSiege = def.id === 'siege_cannon'
-      const isMissile = def.id === 'missile_launcher'
-      const isSilo = def.id === 'silo'
+    if (
+      def.id === 'auto_turret' ||
+      def.id === 'auto_turret_large' ||
+      def.id === 'siege_cannon' ||
+      def.id === 'heavy_siege_gun' ||
+      def.id === 'aa_gun' ||
+      def.id === 'railgun' ||
+      def.id === 'missile_launcher_s' ||
+      def.id === 'missile_launcher_m' ||
+      def.id === 'portable_silo' ||
+      def.id === 'missile_silo' ||
+      def.id === 'nuclear_silo' ||
+      def.id === 'hydra_launcher' ||
+      def.id === 'tesla_tower' ||
+      def.id === 'plasma_laser_s' ||
+      def.id === 'plasma_laser_m' ||
+      def.id === 'plasma_laser_l'
+    ) {
+      const isAuto = def.id === 'auto_turret' || def.id === 'auto_turret_large'
+      const isSiege = def.id === 'siege_cannon' || def.id === 'heavy_siege_gun'
+      const isAA = def.id === 'aa_gun'
+      const isRail = def.id === 'railgun'
+      const isMissile = def.id === 'missile_launcher_s' || def.id === 'missile_launcher_m' || def.id === 'hydra_launcher'
+      const isSilo = def.id === 'portable_silo' || def.id === 'missile_silo' || def.id === 'nuclear_silo'
+      const isTesla = def.id === 'tesla_tower'
+      const isPlasma = def.id === 'plasma_laser_s' || def.id === 'plasma_laser_m' || def.id === 'plasma_laser_l'
       const baseH = isSilo ? 1.0 : 2.0
 
       if (isSilo) {
@@ -1603,6 +3276,99 @@ export class BaseDefenseGame {
       const yawPivot = new THREE.Group()
       yawPivot.position.set(0, builtBaseH + 0.28, 0)
       group.add(yawPivot)
+
+      if (isTesla) {
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 2.4, 12), mkMat(0xe2e8f0, 0.24, 0.44))
+        mast.position.set(0, 1.2, 0)
+        group.add(mast)
+        const emitter = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), mkEmat(0x22d3ee, 0.75, 0.2))
+        emitter.position.set(0, 2.55, 0)
+        group.add(emitter)
+        const anchor = new THREE.Object3D()
+        anchor.position.set(0, 2.55, 0)
+        group.add(anchor)
+        ;(group.userData as any).teslaAnchor = anchor
+        return group
+      }
+
+      if (isPlasma) {
+        const turretBody = new THREE.Mesh(new THREE.BoxGeometry(w * 0.88, 0.24, h * 0.88), metalDark)
+        turretBody.position.y = 0.13
+        yawPivot.add(turretBody)
+        const barrelPivot = new THREE.Group()
+        barrelPivot.position.set(0, 0.22, 0)
+        yawPivot.add(barrelPivot)
+        const barrelLen = def.id === 'plasma_laser_s' ? 1.8 : def.id === 'plasma_laser_m' ? 2.2 : 2.7
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, barrelLen, 12), mkEmat(0x67e8f9, 0.58, 0.2))
+        barrel.rotation.x = Math.PI / 2
+        barrel.position.set(0, 0, barrelLen / 2)
+        barrelPivot.add(barrel)
+        const muzzle = new THREE.Object3D()
+        muzzle.position.set(0, 0, barrelLen)
+        barrelPivot.add(muzzle)
+        aim.yaw = yawPivot
+        aim.pitch = barrelPivot
+        aim.muzzle = muzzle
+        group.userData.aim = aim
+        return group
+      }
+
+      if (isAA) {
+        const turretBody = new THREE.Mesh(new THREE.BoxGeometry(w * 0.94, 0.18, h * 0.94), metalDark)
+        turretBody.position.y = 0.1
+        yawPivot.add(turretBody)
+        const barrelPivot = new THREE.Group()
+        barrelPivot.position.set(0, 0.14, 0)
+        yawPivot.add(barrelPivot)
+        const offs = [
+          [-0.14, -0.04],
+          [0.14, -0.04],
+          [-0.14, 0.04],
+          [0.14, 0.04],
+        ]
+        const barrelLen = 1.7
+        for (const [ox, oy] of offs) {
+          const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, barrelLen, 10), mkMat(0xe2e8f0, 0.26, 0.42))
+          barrel.rotation.x = Math.PI / 2
+          barrel.position.set(ox, oy, barrelLen / 2)
+          barrelPivot.add(barrel)
+        }
+        const muzzle = new THREE.Object3D()
+        muzzle.position.set(0, 0, barrelLen)
+        barrelPivot.add(muzzle)
+        aim.yaw = yawPivot
+        aim.pitch = barrelPivot
+        aim.muzzle = muzzle
+        group.userData.aim = aim
+        return group
+      }
+
+      if (isRail) {
+        const turretBody = new THREE.Mesh(new THREE.BoxGeometry(w * 0.98, 0.22, h * 0.98), metalDark)
+        turretBody.position.y = 0.12
+        yawPivot.add(turretBody)
+        const barrelPivot = new THREE.Group()
+        barrelPivot.position.set(0, 0.18, 0)
+        yawPivot.add(barrelPivot)
+        const railLen = 2.6
+        const railA = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, railLen), mkMat(0xe2e8f0, 0.28, 0.4))
+        railA.position.set(-0.12, 0.04, railLen / 2)
+        barrelPivot.add(railA)
+        const railB = railA.clone()
+        railB.position.x = 0.12
+        barrelPivot.add(railB)
+        const core = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, railLen), mkEmat(0x93c5fd, 0.48, 0.25))
+        core.position.set(0, 0, railLen / 2)
+        barrelPivot.add(core)
+        const muzzle = new THREE.Object3D()
+        muzzle.position.set(0, 0, railLen)
+        barrelPivot.add(muzzle)
+        aim.yaw = yawPivot
+        aim.pitch = barrelPivot
+        aim.muzzle = muzzle
+        group.userData.aim = aim
+        return group
+      }
 
       if (isAuto) {
         const turretBody = new THREE.Mesh(new THREE.BoxGeometry(w * 0.86, 0.22, h * 0.86), metalDark)
@@ -1710,7 +3476,7 @@ export class BaseDefenseGame {
       return group
     }
 
-    if (def.id === 'shield_generator') {
+    if (def.id === 'shield_generator_m' || def.id === 'shield_generator_l') {
       const baseH = 2.2
       addBase(baseH, def.color)
       // base ring
@@ -1779,10 +3545,19 @@ export class BaseDefenseGame {
         const cz = oz + dz
         if (Math.abs(cx) > HALF || Math.abs(cz) > HALF) return void (this.hoverValid = false)
         if (Math.abs(cx) >= HALF - 1 || Math.abs(cz) >= HALF - 1) return void (this.hoverValid = false)
-        if (this.occupied.has(key(cx, cz))) return void (this.hoverValid = false)
       }
     }
+    if (!this.isAreaClearWithPadding(ox, oz, def.size.w, def.size.h, 1)) return void (this.hoverValid = false)
     this.hoverValid = true
+  }
+
+  private isAreaClearWithPadding(ox: number, oz: number, w: number, h: number, pad: number): boolean {
+    for (let z = oz - pad; z <= oz + h - 1 + pad; z++) {
+      for (let x = ox - pad; x <= ox + w - 1 + pad; x++) {
+        if (this.occupied.has(key(x, z))) return false
+      }
+    }
+    return true
   }
 
   private updateHoverIndicators() {
@@ -1875,7 +3650,14 @@ export class BaseDefenseGame {
     this.effects.add(mesh)
   }
 
-  private spawnMissile(origin: THREE.Vector3, target: Asteroid, def: BuildingDef) {
+  private spawnMissile(
+    origin: THREE.Vector3,
+    target: Asteroid | null,
+    def: BuildingDef,
+    mode: 'death_location' | 'retarget',
+    noSplash: boolean,
+    volleyId: string | null,
+  ) {
     const geo = new THREE.ConeGeometry(0.15, 0.7, 10)
     const mat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, emissive: 0xf59e0b, emissiveIntensity: 0.4 })
     const mesh = new THREE.Mesh(geo, mat)
@@ -1887,11 +3669,41 @@ export class BaseDefenseGame {
     this.missiles.push({
       mesh,
       target,
-      speed: def.projectileSpeed ?? 24,
+      targetId: target?.id ?? null,
+      mode,
+      noSplash,
+      volleyId,
+      lastKnownTargetPos: target ? target.mesh.position.clone() : origin.clone(),
+      launchUpTime: 0.22,
+      launchUpSpeed: 26,
+      speed: def.projectileSpeed ?? 44,
       ttl: 4.5,
       damage: def.damage ?? 30,
       aoeRadius: def.aoeRadius ?? 3,
     })
+  }
+
+  private getLeadDestination(m: Missile, target: Asteroid): THREE.Vector3 {
+    // Predictive leading using asteroid velocity.
+    const pos = target.mesh.position
+    const v = target.velocity
+    const dist = m.mesh.position.distanceTo(pos)
+    const t = clamp(dist / Math.max(1, m.speed), 0, 1.35)
+    return new THREE.Vector3(pos.x + v.x * t, pos.y + v.y * t, pos.z + v.z * t)
+  }
+
+  private findNearestAliveAsteroid(pos: THREE.Vector3): Asteroid | null {
+    let best: Asteroid | null = null
+    let bestDist = Infinity
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const d = a.mesh.position.distanceToSquared(pos)
+      if (d < bestDist) {
+        bestDist = d
+        best = a
+      }
+    }
+    return best
   }
 
   private spawnBallistic(origin: THREE.Vector3, targetPos: THREE.Vector3, def: BuildingDef) {
@@ -1934,17 +3746,17 @@ export class BaseDefenseGame {
     }
   }
 
-  private getActiveShieldHit(pos: THREE.Vector3): PlacedBuilding | null {
-    // shield is active only if powerStored > 0 (we already drained constant in resource update)
+  private getActiveShieldHit(pos: THREE.Vector3): ShieldField | null {
     if (this.powerStored <= 0.001) return null
-    for (const b of this.buildings) {
-      if (b.hp <= 0) continue
-      if (b.defId !== 'shield_generator') continue
-      const radius = b.def.range ?? 12
+    for (const [genId, sf] of this.shieldFields) {
+      const b = this.buildings.find((x) => x.id === genId && x.hp > 0)
+      if (!b) continue
+      if (sf.disabled || sf.hp <= 0.001) continue
+      const radius = sf.radius
       const cx = b.origin.x + (b.def.size.w - 1) / 2
       const cz = b.origin.z + (b.def.size.h - 1) / 2
       const dist = Math.hypot(pos.x - cx, pos.z - cz)
-      if (dist <= radius) return b
+      if (dist <= radius) return sf
     }
     return null
   }
@@ -2004,16 +3816,21 @@ export class BaseDefenseGame {
   private recomputeUnlockedBuildingIds() {
     this.unlockedBuildingIds.clear()
     this.unlockedBuildingIds.add('command_center')
-    this.unlockedBuildingIds.add('supply_depot')
+    this.unlockedBuildingIds.add('supply_depot_s')
+    this.unlockedBuildingIds.add('supply_depot_l')
+    this.unlockedBuildingIds.add('repair_bay')
+    this.unlockedBuildingIds.add('support_node')
+    this.unlockedBuildingIds.add('reconstruction_yard')
     this.unlockedBuildingIds.add('factory_business')
     this.unlockedBuildingIds.add('generator_small')
     this.unlockedBuildingIds.add('generator_large')
-    this.unlockedBuildingIds.add('battery')
+    this.unlockedBuildingIds.add('battery_small')
+    this.unlockedBuildingIds.add('battery_large')
+    this.unlockedBuildingIds.add('pylon')
+    this.unlockedBuildingIds.add('nuclear_plant')
     this.unlockedBuildingIds.add('auto_turret')
     this.unlockedBuildingIds.add('siege_cannon')
-    this.unlockedBuildingIds.add('missile_launcher')
-    this.unlockedBuildingIds.add('silo')
-    this.unlockedBuildingIds.add('shield_generator')
+    this.unlockedBuildingIds.add('missile_launcher_s')
     for (const upId of this.purchasedUpgradeIds) {
       const up = UPGRADES.find((u) => u.id === upId)
       for (const bid of up?.unlockBuildingIds ?? []) this.unlockedBuildingIds.add(bid)
