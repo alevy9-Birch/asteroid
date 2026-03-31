@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BaseDefenseGame, BUILDINGS, type BuildingCategory, type BuildingId } from './game/BaseDefenseGame'
+import { BaseDefenseGame, BUILDINGS, UPGRADES, type BuildingCategory, type BuildingId, type UpgradeId } from './game/BaseDefenseGame'
 
 type State = {
   credits: number
@@ -14,6 +14,9 @@ type State = {
   waveSpawnEnded: boolean
   inactiveTimeLeftSec: number
   asteroidsRemaining: number
+  unlockedBuildingIds: BuildingId[]
+  purchasedUpgradeIds: UpgradeId[]
+  refundableUpgradeIds: UpgradeId[]
   selected: BuildingId
   gameOver: boolean
 }
@@ -31,6 +34,21 @@ const INITIAL_STATE: State = {
   waveSpawnEnded: false,
   inactiveTimeLeftSec: 0,
   asteroidsRemaining: 0,
+  unlockedBuildingIds: [
+    'command_center',
+    'supply_depot',
+    'factory_business',
+    'generator_small',
+    'generator_large',
+    'battery',
+    'auto_turret',
+    'siege_cannon',
+    'missile_launcher',
+    'silo',
+    'shield_generator',
+  ],
+  purchasedUpgradeIds: ['core_protocol'],
+  refundableUpgradeIds: [],
   selected: 'auto_turret',
   gameOver: false,
 }
@@ -44,6 +62,13 @@ function App() {
   const [wheelOpen, setWheelOpen] = useState(false)
   const wheelOpenRef = useRef(false)
   const wheelOpenStateRef = useRef(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const upgradeOpenRef = useRef(false)
+  const [skillCam, setSkillCam] = useState({ x: 0, y: 0, zoom: 1 })
+  const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight })
+  const hoverStabilityRef = useRef<{ id?: BuildingId; ticks: number }>({ id: undefined, ticks: 0 })
+  const hoveredUpgradeRef = useRef<UpgradeId | undefined>(undefined)
+  const hoveredUpgradeCanBuyRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('menu')
   const [sessionId, setSessionId] = useState(0)
   const [lastWave, setLastWave] = useState(0)
@@ -96,6 +121,7 @@ function App() {
       return ca - cb
     })
   }, [])
+  const unlockedSet = useMemo(() => new Set(state.unlockedBuildingIds), [state.unlockedBuildingIds])
   const selectedDef = buildingDefs.find((b) => b.id === state.selected) ?? buildingDefs[0]
   const selectedCategory = selectedDef?.category ?? 'structural'
   const categoryItems = useMemo(
@@ -147,15 +173,55 @@ function App() {
     }
   }
   const selectedStat = buildDesc(selectedDef)
+  const purchasedUpgrades = useMemo(() => new Set(state.purchasedUpgradeIds), [state.purchasedUpgradeIds])
+  const refundableUpgrades = useMemo(() => new Set(state.refundableUpgradeIds), [state.refundableUpgradeIds])
+  const skillNodes = useMemo(
+    () =>
+      [
+        { id: 'core_protocol', x: 0, y: 0 },
+        { id: 'unlock_factory', x: -180, y: -40 },
+        { id: 'unlock_megacomplex', x: -300, y: -120 },
+        { id: 'turret_targeting', x: 180, y: -40 },
+        { id: 'generator_efficiency', x: 40, y: 170 },
+      ] as Array<{ id: UpgradeId; x: number; y: number }>,
+    [],
+  )
+  const skillAdj = useMemo(
+    () =>
+      ({
+        core_protocol: ['unlock_factory', 'turret_targeting', 'generator_efficiency'],
+        unlock_factory: ['core_protocol', 'unlock_megacomplex'],
+        unlock_megacomplex: ['unlock_factory'],
+        turret_targeting: ['core_protocol'],
+        generator_efficiency: ['core_protocol'],
+      }) as Record<UpgradeId, UpgradeId[]>,
+    [],
+  )
+  const unlockedUpgradeSet = useMemo(() => {
+    const s = new Set<UpgradeId>(['core_protocol'])
+    for (const p of purchasedUpgrades) {
+      s.add(p)
+      for (const n of skillAdj[p] ?? []) s.add(n)
+    }
+    return s
+  }, [purchasedUpgrades, skillAdj])
+  const canBuyUpgrade = (id: UpgradeId, cost: number) =>
+    unlockedUpgradeSet.has(id) && !purchasedUpgrades.has(id) && state.credits >= cost
+
   const jumpCategory = (dir: 1 | -1) => {
     const curIdx = categoryOrder.indexOf(selectedCategory)
-    const nextIdx = (curIdx + dir + categoryOrder.length) % categoryOrder.length
-    const nextCat = categoryOrder[nextIdx]
-    const remembered = categorySelectionRef.current[nextCat]
-    const rememberedValid = remembered && buildingDefs.some((b) => b.id === remembered && b.category === nextCat)
-    const fallback = buildingDefs.find((b) => b.category === nextCat)
-    const next = rememberedValid ? remembered : fallback?.id
-    if (next) gameRef.current?.setSelected(next)
+    for (let step = 1; step <= categoryOrder.length; step++) {
+      const nextIdx = (curIdx + dir * step + categoryOrder.length) % categoryOrder.length
+      const nextCat = categoryOrder[nextIdx]
+      const remembered = categorySelectionRef.current[nextCat]
+      const rememberedValid = remembered && buildingDefs.some((b) => b.id === remembered && b.category === nextCat)
+      const fallback = buildingDefs.find((b) => b.category === nextCat)
+      const next = rememberedValid ? remembered : fallback?.id
+      if (next) {
+        gameRef.current?.setSelected(next)
+        return
+      }
+    }
   }
   const selectedDescription = useMemo(() => {
     const id = selectedDef?.id
@@ -175,6 +241,9 @@ function App() {
     if (id === 'shield_generator') return 'Large forcefield that intercepts impacts while draining power.'
     return ''
   }, [selectedDef])
+  const selectedCatIndex = categoryOrder.indexOf(selectedCategory)
+  const prevCategory = categoryOrder[(selectedCatIndex - 1 + categoryOrder.length) % categoryOrder.length]
+  const nextCategory = categoryOrder[(selectedCatIndex + 1) % categoryOrder.length]
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -183,11 +252,30 @@ function App() {
 
   useEffect(() => {
     if (phase !== 'playing') return
+    if (buildingDefs.length === 0) return
+    if (!buildingDefs.some((b) => b.id === state.selected)) {
+      gameRef.current?.setSelected(buildingDefs[0].id)
+    }
+  }, [phase, buildingDefs, state.selected])
+
+  useEffect(() => {
+    if (phase !== 'playing') return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'c' || e.key === 'C') {
+        if (upgradeOpenRef.current) return
         if (!wheelOpenRef.current) {
           wheelOpenRef.current = true
           setWheelOpen(true)
+        }
+      }
+      if (e.key === 'u' || e.key === 'U') {
+        if (wheelOpenRef.current) {
+          wheelOpenRef.current = false
+          setWheelOpen(false)
+        }
+        if (!upgradeOpenRef.current) {
+          upgradeOpenRef.current = true
+          setUpgradeOpen(true)
         }
       }
     }
@@ -195,6 +283,10 @@ function App() {
       if (e.key === 'c' || e.key === 'C') {
         wheelOpenRef.current = false
         setWheelOpen(false)
+      }
+      if (e.key === 'u' || e.key === 'U') {
+        upgradeOpenRef.current = false
+        setUpgradeOpen(false)
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -208,11 +300,19 @@ function App() {
   useEffect(() => {
     if (phase !== 'playing') return
     const onWheel = (e: WheelEvent) => {
-      if (!wheelOpenRef.current) return
-      e.preventDefault()
-      const dir = Math.sign(e.deltaY)
-      if (dir === 0) return
-      jumpCategory(dir > 0 ? 1 : -1)
+      if (upgradeOpenRef.current) {
+        e.preventDefault()
+        const dir = Math.sign(e.deltaY)
+        if (dir === 0) return
+        setSkillCam((prev) => ({ ...prev, zoom: Math.max(0.45, Math.min(2.2, prev.zoom - dir * 0.08)) }))
+        return
+      }
+      if (wheelOpenRef.current) {
+        e.preventDefault()
+        const dir = Math.sign(e.deltaY)
+        if (dir === 0) return
+        jumpCategory(dir > 0 ? 1 : -1)
+      }
     }
     window.addEventListener('wheel', onWheel, { passive: false })
     return () => window.removeEventListener('wheel', onWheel as any)
@@ -227,31 +327,54 @@ function App() {
 
   useEffect(() => {
     if (!wheelOpen || !hoveredItem) return
-    if (hoveredItem.id !== state.selected) gameRef.current?.setSelected(hoveredItem.id)
+    if (hoverStabilityRef.current.id === hoveredItem.id) {
+      hoverStabilityRef.current.ticks += 1
+    } else {
+      hoverStabilityRef.current.id = hoveredItem.id
+      hoverStabilityRef.current.ticks = 1
+    }
+    if (hoverStabilityRef.current.ticks >= 2 && hoveredItem.id !== state.selected) {
+      gameRef.current?.setSelected(hoveredItem.id)
+    }
   }, [wheelOpen, hoveredItem, state.selected])
+
+  useEffect(() => {
+    const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   useEffect(() => {
     wheelOpenStateRef.current = wheelOpen
   }, [wheelOpen])
 
   useEffect(() => {
+    upgradeOpenRef.current = upgradeOpen
+  }, [upgradeOpen])
+
+  useEffect(() => {
     if (phase !== 'playing') return
     const onMouseMove = (e: MouseEvent) => {
-      if (!wheelOpenStateRef.current) return
       const dx = e.movementX ?? 0
       const dy = e.movementY ?? 0
       if (dx === 0 && dy === 0) return
-      setVirtualCursor((prev) => {
-        let x = prev.x + dx
-        let y = prev.y + dy
-        const len = Math.hypot(x, y)
-        if (len > itemRadius && len > 0.0001) {
-          const s = itemRadius / len
-          x *= s
-          y *= s
-        }
-        return { x, y }
-      })
+      if (upgradeOpenRef.current) {
+        setSkillCam((prev) => ({ ...prev, x: prev.x - dx / prev.zoom, y: prev.y - dy / prev.zoom }))
+        return
+      }
+      if (wheelOpenStateRef.current) {
+        setVirtualCursor((prev) => {
+          let x = prev.x + dx
+          let y = prev.y + dy
+          const len = Math.hypot(x, y)
+          if (len > itemRadius && len > 0.0001) {
+            const s = itemRadius / len
+            x *= s
+            y *= s
+          }
+          return { x, y }
+        })
+      }
     }
     window.addEventListener('mousemove', onMouseMove)
     return () => window.removeEventListener('mousemove', onMouseMove)
@@ -269,13 +392,32 @@ function App() {
   }, [phase])
 
   useEffect(() => {
+    if (phase !== 'playing' || !upgradeOpen) return
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return
+      const id = hoveredUpgradeRef.current
+      if (!id) return
+      e.preventDefault()
+      if (refundableUpgrades.has(id)) {
+        gameRef.current?.refundUpgrade(id)
+        return
+      }
+      if (hoveredUpgradeCanBuyRef.current) gameRef.current?.purchaseUpgrade(id)
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    return () => window.removeEventListener('mousedown', onMouseDown)
+  }, [phase, upgradeOpen, refundableUpgrades])
+
+  useEffect(() => {
     if (phase !== 'playing') return
-    gameRef.current?.setWheelOpen(wheelOpen)
-  }, [wheelOpen, phase])
+    gameRef.current?.setWheelOpen(wheelOpen || upgradeOpen)
+  }, [wheelOpen, upgradeOpen, phase])
 
   const startNewRun = () => {
     wheelOpenRef.current = false
+    upgradeOpenRef.current = false
     setWheelOpen(false)
+    setUpgradeOpen(false)
     setState(INITIAL_STATE)
     setLastWave(0)
     categorySelectionRef.current = {}
@@ -285,7 +427,9 @@ function App() {
 
   const goToMenu = () => {
     wheelOpenRef.current = false
+    upgradeOpenRef.current = false
     setWheelOpen(false)
+    setUpgradeOpen(false)
     setPhase('menu')
   }
 
@@ -296,6 +440,38 @@ function App() {
     ? Math.max(0, Math.min(1, state.waveSpawnProgress))
     : Math.max(0, Math.min(1, state.inactiveTimeLeftSec / 60))
   const waveDashOffset = waveCircleCirc * (1 - waveProgress)
+  const treeW = Math.max(820, viewport.w - 80)
+  const treeH = Math.max(520, viewport.h - 210)
+  const treeCx = treeW / 2
+  const treeCy = treeH / 2
+  const renderedSkillNodes = useMemo(
+    () =>
+      skillNodes.map((n) => ({
+        ...n,
+        sx: treeCx + (n.x - skillCam.x) * skillCam.zoom,
+        sy: treeCy + (n.y - skillCam.y) * skillCam.zoom,
+      })),
+    [skillNodes, skillCam],
+  )
+  const hoveredUpgradeId = useMemo(() => {
+    let best: UpgradeId | undefined
+    let bestDist = Infinity
+    for (const n of renderedSkillNodes) {
+      const d = Math.hypot(n.sx - treeCx, n.sy - treeCy)
+      if (d < bestDist) {
+        bestDist = d
+        best = n.id
+      }
+    }
+    return bestDist <= 34 ? best : undefined
+  }, [renderedSkillNodes, treeCx, treeCy])
+  const hoveredUpgradeDef = UPGRADES.find((u) => u.id === hoveredUpgradeId)
+  const hoveredNodeCanBuy = hoveredUpgradeDef ? canBuyUpgrade(hoveredUpgradeDef.id, hoveredUpgradeDef.creditCost) : false
+
+  useEffect(() => {
+    hoveredUpgradeRef.current = hoveredUpgradeId
+    hoveredUpgradeCanBuyRef.current = hoveredNodeCanBuy
+  }, [hoveredUpgradeId, hoveredNodeCanBuy])
 
   return (
     <div className="app-root" style={{ ['--accent-color' as string]: categoryColor[selectedCategory] }}>
@@ -391,6 +567,90 @@ function App() {
         </div>
       )}
 
+      {phase === 'playing' && upgradeOpen && (
+        <div
+          className="upgrade-overlay"
+          aria-hidden="true"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
+          <div className="upgrade-panel">
+            <div className="upgrade-title">Skill Tree</div>
+            <div className="upgrade-subtitle">
+              Hold <b>U</b> to keep open. Move mouse to pan, scroll to zoom, center reticle hovers.
+            </div>
+            <div className="skilltree-canvas" style={{ width: treeW, height: treeH }}>
+              <svg className="skilltree-lines" viewBox={`0 0 ${treeW} ${treeH}`} aria-hidden="true">
+                {renderedSkillNodes.flatMap((n) =>
+                  (skillAdj[n.id] ?? [])
+                    .filter((to) => n.id < to)
+                    .map((to) => {
+                      const t = renderedSkillNodes.find((k) => k.id === to)
+                      if (!t) return null
+                      return <line key={`${n.id}-${to}`} x1={n.sx} y1={n.sy} x2={t.sx} y2={t.sy} className="skilltree-line" />
+                    }),
+                )}
+              </svg>
+
+              {renderedSkillNodes.map((n) => {
+                const up = UPGRADES.find((u) => u.id === n.id)!
+                const purchased = purchasedUpgrades.has(n.id)
+                const refundable = refundableUpgrades.has(n.id)
+                const unlocked = unlockedUpgradeSet.has(n.id)
+                const isHovered = hoveredUpgradeId === n.id
+                return (
+                  <div
+                    key={n.id}
+                    className={[
+                      'skill-node',
+                      purchased ? 'purchased' : '',
+                      unlocked ? 'unlocked' : 'locked',
+                      isHovered ? 'hovered' : '',
+                    ].join(' ')}
+                    style={{
+                      left: `${n.sx}px`,
+                      top: `${n.sy}px`,
+                      ['--node-color' as string]: categoryColor[up.category],
+                    }}
+                  >
+                    {refundable && <div className="skill-node-refund">$</div>}
+                    <div className="skill-node-label">{up.label}</div>
+                    <div className="skill-node-cost">{purchased ? 'Owned' : `${up.creditCost}c`}</div>
+                  </div>
+                )
+              })}
+              <div className="skilltree-reticle" />
+            </div>
+            <div className="skilltree-info">
+              {hoveredUpgradeDef ? (
+                <>
+                  <div className="skilltree-tooltip-title">{hoveredUpgradeDef.label}</div>
+                  <div className="skilltree-tooltip-body">{hoveredUpgradeDef.description}</div>
+                  <div className="skilltree-tooltip-meta">
+                    {purchasedUpgrades.has(hoveredUpgradeDef.id)
+                      ? refundableUpgrades.has(hoveredUpgradeDef.id)
+                        ? 'Left click to refund this inactive phase'
+                        : 'Purchased'
+                      : hoveredNodeCanBuy
+                        ? 'Left click to purchase'
+                        : unlockedUpgradeSet.has(hoveredUpgradeDef.id)
+                          ? 'Insufficient credits'
+                          : 'Locked: purchase adjacent upgrade first'}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="skilltree-tooltip-title">Upgrade Details</div>
+                  <div className="skilltree-tooltip-body">Move the tree so an upgrade is under the center reticle.</div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {phase === 'playing' && wheelOpen && (
         <div
           className="wheel-overlay"
@@ -406,6 +666,24 @@ function App() {
           }}
         >
           <div className="wheel-category-outside">{categoryLabel[selectedCategory]}</div>
+          <div className="wheel-adjacent wheel-adjacent-left">
+            <span className="wheel-adjacent-arrow">◀</span>
+            <span
+              className="wheel-adjacent-label"
+              style={{ ['--adj-color' as string]: categoryColor[prevCategory] }}
+            >
+              {categoryLabel[prevCategory]}
+            </span>
+          </div>
+          <div className="wheel-adjacent wheel-adjacent-right">
+            <span
+              className="wheel-adjacent-label"
+              style={{ ['--adj-color' as string]: categoryColor[nextCategory] }}
+            >
+              {categoryLabel[nextCategory]}
+            </span>
+            <span className="wheel-adjacent-arrow">▶</span>
+          </div>
           <div className="wheel">
             <div className="wheel-selected">{selectedDef?.label ?? state.selected}</div>
             <div className="wheel-sub">
@@ -418,20 +696,23 @@ function App() {
                 {itemLayout.map(({ b, x, y }) => {
                   const isSelected = b.id === state.selected
                   const isHovered = b.id === hoveredItem?.id
-                  const affordable = state.credits >= b.creditCost && state.supplyUsed + b.supplyCost <= state.supplyCap
+                  const hasUpgrade = unlockedSet.has(b.id)
+                  const hasMoney = state.credits >= b.creditCost
+                  const hasSupply = state.supplyUsed + b.supplyCost <= state.supplyCap
+                  const buildable = hasUpgrade && hasMoney && hasSupply
                   return (
                     <div
                       key={b.id}
                       className={
                         isSelected
-                          ? affordable
+                          ? buildable
                             ? 'wheel-item selected'
                             : 'wheel-item selected unaffordable'
                           : isHovered
-                            ? affordable
+                            ? buildable
                               ? 'wheel-item hovered'
                               : 'wheel-item hovered unaffordable'
-                          : affordable
+                          : buildable
                             ? 'wheel-item'
                             : 'wheel-item unaffordable'
                       }
@@ -439,6 +720,8 @@ function App() {
                         transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
                       }}
                     >
+                      {!hasUpgrade && <div className="wheel-lock-icon">W</div>}
+                      {hasUpgrade && !hasMoney && <div className="wheel-lock-icon">$</div>}
                       <div className="wheel-item-title">{b.label}</div>
                     </div>
                   )
@@ -470,7 +753,7 @@ function App() {
             <h2>Meteor Base Defense</h2>
             <p>Defend your command center(s) against massive meteor impacts.</p>
             <p className="small">
-              Controls: WASD move, Q/E vertical, mouse-look, hold C + scroll to choose tower, RMB sell, Space starts the next wave.
+              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, hold U for skill tree, RMB sell, Space starts next wave.
             </p>
             <button type="button" className="primary-btn" onClick={startNewRun}>
               Start Game

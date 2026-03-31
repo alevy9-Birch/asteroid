@@ -57,9 +57,11 @@ type PlacedBuilding = {
   defId: BuildingId
   def: BuildingDef
   origin: { x: number; z: number } // top-left in cells
+  builtInInactivePhase: number
   hp: number
   mesh: THREE.Object3D
   healthBar: HealthBar
+  refundSprite?: THREE.Sprite
   cooldown: number
   econTimer: number
 }
@@ -99,6 +101,32 @@ type Ballistic = {
   duration: number
   damage: number
   aoeRadius: number
+}
+
+export type UpgradeId =
+  | 'core_protocol'
+  | 'unlock_factory'
+  | 'unlock_megacomplex'
+  | 'turret_targeting'
+  | 'generator_efficiency'
+
+type BuildingModifier = {
+  rangeAdd?: number
+  damageAdd?: number
+  fireRateMul?: number
+  creditPayoutMul?: number
+  powerGenMul?: number
+}
+
+export type UpgradeDef = {
+  id: UpgradeId
+  label: string
+  category: BuildingCategory
+  creditCost: number
+  description: string
+  prereqIds?: UpgradeId[]
+  unlockBuildingIds?: BuildingId[]
+  modifiers?: Partial<Record<BuildingId, BuildingModifier>>
 }
 
 const BOARD_SIZE = 101
@@ -297,6 +325,55 @@ export const BUILDINGS: BuildingDef[] = [
   },
 ]
 
+export const UPGRADES: UpgradeDef[] = [
+  {
+    id: 'core_protocol',
+    label: 'Core Protocol',
+    category: 'structural',
+    creditCost: 0,
+    description: 'Starting upgrade. Unlocks adjacent branches in the skill tree.',
+  },
+  {
+    id: 'unlock_factory',
+    label: 'Unlock Factory Tier',
+    category: 'economy',
+    creditCost: 550,
+    description: 'Unlocks the Factory building.',
+    unlockBuildingIds: ['factory_factory'],
+  },
+  {
+    id: 'unlock_megacomplex',
+    label: 'Unlock Mega-Complex',
+    category: 'economy',
+    creditCost: 1200,
+    description: 'Unlocks the Mega-Complex building.',
+    prereqIds: ['unlock_factory'],
+    unlockBuildingIds: ['factory_megacomplex'],
+  },
+  {
+    id: 'turret_targeting',
+    label: 'Turret Targeting Suite',
+    category: 'turrets',
+    creditCost: 700,
+    description: 'Auto-Turret and Siege Cannon gain range and damage.',
+    modifiers: {
+      auto_turret: { rangeAdd: 5, damageAdd: 2 },
+      siege_cannon: { rangeAdd: 10, damageAdd: 30 },
+    },
+  },
+  {
+    id: 'generator_efficiency',
+    label: 'Generator Efficiency',
+    category: 'electrical',
+    creditCost: 480,
+    description: 'Generators produce 25% more power.',
+    modifiers: {
+      generator_small: { powerGenMul: 1.25 },
+      generator_large: { powerGenMul: 1.25 },
+    },
+  },
+]
+
 export class BaseDefenseGame {
   private readonly canvas: HTMLCanvasElement
   private renderer!: THREE.WebGLRenderer
@@ -354,6 +431,22 @@ export class BaseDefenseGame {
   private spawnWindowEnded = false
   private inactiveTimeLeftSec = 0
   private readonly inactiveDurationSec = 60
+  private currentInactivePhase = 0
+  private readonly purchasedUpgradeIds = new Set<UpgradeId>()
+  private readonly purchasedUpgradePhase = new Map<UpgradeId, number>()
+  private readonly unlockedBuildingIds = new Set<BuildingId>([
+    'command_center',
+    'supply_depot',
+    'factory_business',
+    'generator_small',
+    'generator_large',
+    'battery',
+    'auto_turret',
+    'siege_cannon',
+    'missile_launcher',
+    'silo',
+    'shield_generator',
+  ])
 
   // World state
   private readonly buildings: PlacedBuilding[] = []
@@ -372,6 +465,7 @@ export class BaseDefenseGame {
   private hoverOutline!: THREE.LineSegments
   private hoverGhost!: THREE.Mesh
   private skyStars!: { obj: THREE.Points; dispose: () => void }
+  private refundSpriteMap?: THREE.Texture
 
   onStateChange?: (state: {
     credits: number
@@ -386,6 +480,9 @@ export class BaseDefenseGame {
     waveSpawnEnded: boolean
     inactiveTimeLeftSec: number
     asteroidsRemaining: number
+    unlockedBuildingIds: BuildingId[]
+    purchasedUpgradeIds: UpgradeId[]
+    refundableUpgradeIds: UpgradeId[]
     selected: BuildingId
     gameOver: boolean
   }) => void
@@ -420,6 +517,44 @@ export class BaseDefenseGame {
     this.wheelOpen = open
   }
 
+  purchaseUpgrade(id: UpgradeId) {
+    if (this.isLost) return
+    const up = UPGRADES.find((u) => u.id === id)
+    if (!up) return
+    if (this.purchasedUpgradeIds.has(id)) return
+    if (this.credits < up.creditCost) return
+
+    this.credits -= up.creditCost
+    this.purchasedUpgradeIds.add(id)
+    this.purchasedUpgradePhase.set(id, this.currentInactivePhase)
+    this.recomputeUnlockedBuildingIds()
+    this.emitState()
+  }
+
+  refundUpgrade(id: UpgradeId) {
+    if (this.isLost || this.waveInProgress) return
+    if (id === 'core_protocol') return
+    if (!this.purchasedUpgradeIds.has(id)) return
+    const phase = this.purchasedUpgradePhase.get(id)
+    if (phase !== this.currentInactivePhase) return
+    const up = UPGRADES.find((u) => u.id === id)
+    if (!up) return
+
+    this.credits += up.creditCost
+    this.purchasedUpgradeIds.delete(id)
+    this.purchasedUpgradePhase.delete(id)
+    this.recomputeUnlockedBuildingIds()
+
+    if (!this.unlockedBuildingIds.has(this.selected)) {
+      const fallback = BUILDINGS.find((b) => this.unlockedBuildingIds.has(b.id))
+      if (fallback) {
+        this.selected = fallback.id
+        this.updateGhostForSelected()
+      }
+    }
+    this.emitState()
+  }
+
   startNextWave(manual: boolean = true) {
     if (this.isLost) return
 
@@ -445,6 +580,7 @@ export class BaseDefenseGame {
       }
     }
 
+    this.currentInactivePhase += 1
     this.wave += 1
     this.waveInProgress = true
     this.waveReady = false
@@ -490,6 +626,12 @@ export class BaseDefenseGame {
     this.spawnWindowElapsedSec = 0
     this.spawnWindowEnded = false
     this.inactiveTimeLeftSec = 0
+    this.currentInactivePhase = 0
+    this.purchasedUpgradeIds.clear()
+    this.purchasedUpgradeIds.add('core_protocol')
+    this.purchasedUpgradePhase.clear()
+    this.purchasedUpgradePhase.set('core_protocol', -1)
+    this.recomputeUnlockedBuildingIds()
 
     // Place initial command center at grid center.
     const cc = BUILDINGS.find((d) => d.id === 'command_center')!
@@ -630,7 +772,7 @@ export class BaseDefenseGame {
     if (e.button !== 0) return
     this.updateHover()
     if (!this.hoverValid) return
-    const def = BUILDINGS.find((d) => d.id === this.selected)
+    const def = this.getEffectiveDef(this.selected)
     if (!def) return
     this.tryPlace(def, this.hoverCell.x, this.hoverCell.z)
   }
@@ -673,6 +815,7 @@ export class BaseDefenseGame {
     this.updateDefenses(dt)
     this.updateProjectiles(dt)
     this.updateHealthBars()
+    this.updateRefundSprites()
     this.emitState()
   }
 
@@ -709,6 +852,27 @@ export class BaseDefenseGame {
     this.camera.lookAt(lookTarget)
   }
 
+  private getBaseDef(id: BuildingId): BuildingDef | undefined {
+    return BUILDINGS.find((d) => d.id === id)
+  }
+
+  private getEffectiveDef(id: BuildingId): BuildingDef | undefined {
+    const base = this.getBaseDef(id)
+    if (!base) return undefined
+    const out: BuildingDef = { ...base }
+    for (const upId of this.purchasedUpgradeIds) {
+      const up = UPGRADES.find((u) => u.id === upId)
+      const mod = up?.modifiers?.[id]
+      if (!mod) continue
+      if (mod.rangeAdd) out.range = (out.range ?? 0) + mod.rangeAdd
+      if (mod.damageAdd) out.damage = (out.damage ?? 0) + mod.damageAdd
+      if (mod.fireRateMul) out.fireRate = (out.fireRate ?? 0) * mod.fireRateMul
+      if (mod.creditPayoutMul) out.creditPayout = (out.creditPayout ?? 0) * mod.creditPayoutMul
+      if (mod.powerGenMul) out.powerGenPerSec = (out.powerGenPerSec ?? 0) * mod.powerGenMul
+    }
+    return out
+  }
+
   private updateResources(dt: number) {
     let gen = 0
     let drain = 0
@@ -718,7 +882,7 @@ export class BaseDefenseGame {
 
     for (const b of this.buildings) {
       if (b.hp <= 0) continue
-      const d = b.def
+      const d = this.getEffectiveDef(b.defId) ?? b.def
       supplyCap += d.supplyCapAdd ?? 0
       supplyUsed += d.supplyCost
       powerCap += d.powerCapAdd ?? 0
@@ -730,8 +894,9 @@ export class BaseDefenseGame {
     this.supplyUsed = supplyUsed
     this.powerCap = powerCap
 
-    // Structures are offline until first wave begins.
-    if (!this.firstWaveStarted) {
+    // Building jobs only run during ACTIVE waves.
+    // Inactive phase: no economy payouts and no power production/drain ticking.
+    if (!this.waveInProgress) {
       this.powerStored = Math.min(this.powerStored, this.powerCap)
       return
     }
@@ -741,7 +906,7 @@ export class BaseDefenseGame {
 
     // Economy payouts (require power to operate if the building has drain and power is empty).
     for (const b of this.buildings) {
-      const d = b.def
+      const d = this.getEffectiveDef(b.defId) ?? b.def
       if (!d.creditPayout || !d.creditIntervalSec) continue
       if (b.hp <= 0) continue
       // if out of power, pause economy buildings
@@ -880,9 +1045,12 @@ export class BaseDefenseGame {
   }
 
   private updateDefenses(dt: number) {
+    // Defenses are inactive outside ACTIVE waves.
+    if (!this.waveInProgress) return
+
     for (const b of this.buildings) {
       if (b.hp <= 0) continue
-      const d = b.def
+      const d = this.getEffectiveDef(b.defId) ?? b.def
 
       // Shield: visible bubble + active only if has power
       if (d.kind === 'shield') {
@@ -1065,8 +1233,9 @@ export class BaseDefenseGame {
     if (!top) return
     if (top.defId === 'command_center') return
 
-    // refund 50% credits and free supply via removing building
-    this.credits += Math.floor(top.def.creditCost * 0.5)
+    // 100% refund for buildings placed this inactive phase, otherwise 50%.
+    const fullRefund = !this.waveInProgress && top.builtInInactivePhase === this.currentInactivePhase
+    this.credits += fullRefund ? top.def.creditCost : Math.floor(top.def.creditCost * 0.5)
     top.hp = 0
     this.destroyBuilding(top)
   }
@@ -1090,6 +1259,7 @@ export class BaseDefenseGame {
     const oz = cz - Math.floor(def.size.h / 2)
 
     // resource checks
+    if (!this.unlockedBuildingIds.has(def.id)) return
     if (this.credits < def.creditCost) return
     if (this.supplyUsed + def.supplyCost > this.supplyCap) return
 
@@ -1137,6 +1307,13 @@ export class BaseDefenseGame {
     hb.group.position.set(mesh.position.x, 3.8 + def.size.h * 0.2, mesh.position.z)
     this.world.add(hb.group)
 
+    let refundSprite: THREE.Sprite | undefined
+    if (!free) {
+      refundSprite = this.createRefundSprite()
+      refundSprite.position.set(0, 3.3 + def.size.h * 0.25, 0)
+      mesh.add(refundSprite)
+    }
+
     // Shield bubble
     if (def.id === 'shield_generator') {
       const bubble = new THREE.Mesh(
@@ -1158,13 +1335,57 @@ export class BaseDefenseGame {
       defId: def.id,
       def,
       origin: { x: ox, z: oz },
+      builtInInactivePhase: free ? -1 : this.currentInactivePhase,
       hp: def.maxHp,
       mesh,
       healthBar: hb,
+      refundSprite,
       cooldown: 0,
       econTimer: 0,
     }
     this.buildings.push(placed)
+  }
+
+  private updateRefundSprites() {
+    for (const b of this.buildings) {
+      if (!b.refundSprite || b.hp <= 0) continue
+      b.refundSprite.visible = !this.waveInProgress && b.builtInInactivePhase === this.currentInactivePhase
+    }
+  }
+
+  private createRefundSprite(): THREE.Sprite {
+    if (!this.refundSpriteMap) this.refundSpriteMap = this.createRefundSpriteTexture()
+    const mat = new THREE.SpriteMaterial({ map: this.refundSpriteMap, transparent: true, depthWrite: false })
+    const sprite = new THREE.Sprite(mat)
+    sprite.scale.set(1.2, 1.2, 1)
+    return sprite
+  }
+
+  private createRefundSpriteTexture(): THREE.Texture {
+    const size = 128
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')!
+
+    ctx.clearRect(0, 0, size, size)
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.76)'
+    ctx.beginPath()
+    ctx.arc(size / 2, size / 2, size * 0.34, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(34, 211, 238, 0.9)'
+    ctx.lineWidth = 6
+    ctx.stroke()
+
+    ctx.fillStyle = '#eab308'
+    ctx.font = 'bold 66px Arial, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('$', size / 2, size / 2 + 1)
+
+    const tex = new THREE.CanvasTexture(canvas)
+    tex.needsUpdate = true
+    return tex
   }
 
   private createBuildingMesh(def: BuildingDef): THREE.Object3D {
@@ -1533,7 +1754,7 @@ export class BaseDefenseGame {
     this.hoverCell.x = x
     this.hoverCell.z = z
 
-    const def = BUILDINGS.find((d) => d.id === this.selected)
+    const def = this.getEffectiveDef(this.selected)
     if (!def) {
       this.hoverValid = false
       return
@@ -1565,7 +1786,7 @@ export class BaseDefenseGame {
   }
 
   private updateHoverIndicators() {
-    const def = BUILDINGS.find((d) => d.id === this.selected)
+    const def = this.getEffectiveDef(this.selected)
     if (!def) return
 
     const ox = this.hoverCell.x - Math.floor(def.size.w / 2)
@@ -1756,6 +1977,9 @@ export class BaseDefenseGame {
     const asteroidsRemaining = this.asteroids.reduce((acc, a) => acc + (a.alive ? 1 : 0), 0)
     const waveSpawnProgress =
       this.waveInProgress && this.spawnWindowDurationSec > 0 ? clamp(this.spawnWindowElapsedSec / this.spawnWindowDurationSec, 0, 1) : 0
+    const refundableUpgradeIds = [...this.purchasedUpgradeIds].filter(
+      (id) => id !== 'core_protocol' && this.purchasedUpgradePhase.get(id) === this.currentInactivePhase && !this.waveInProgress,
+    )
     this.onStateChange?.({
       credits: Math.floor(this.credits),
       supplyUsed: Math.floor(this.supplyUsed),
@@ -1769,9 +1993,31 @@ export class BaseDefenseGame {
       waveSpawnEnded: this.spawnWindowEnded,
       inactiveTimeLeftSec: this.inactiveTimeLeftSec,
       asteroidsRemaining,
+      unlockedBuildingIds: [...this.unlockedBuildingIds],
+      purchasedUpgradeIds: [...this.purchasedUpgradeIds],
+      refundableUpgradeIds,
       selected: this.selected,
       gameOver: this.isLost,
     })
+  }
+
+  private recomputeUnlockedBuildingIds() {
+    this.unlockedBuildingIds.clear()
+    this.unlockedBuildingIds.add('command_center')
+    this.unlockedBuildingIds.add('supply_depot')
+    this.unlockedBuildingIds.add('factory_business')
+    this.unlockedBuildingIds.add('generator_small')
+    this.unlockedBuildingIds.add('generator_large')
+    this.unlockedBuildingIds.add('battery')
+    this.unlockedBuildingIds.add('auto_turret')
+    this.unlockedBuildingIds.add('siege_cannon')
+    this.unlockedBuildingIds.add('missile_launcher')
+    this.unlockedBuildingIds.add('silo')
+    this.unlockedBuildingIds.add('shield_generator')
+    for (const upId of this.purchasedUpgradeIds) {
+      const up = UPGRADES.find((u) => u.id === upId)
+      for (const bid of up?.unlockBuildingIds ?? []) this.unlockedBuildingIds.add(bid)
+    }
   }
 
   private resize() {

@@ -49,6 +49,243 @@ body,
   pointer-events: auto;
 }
 
+.upgrade-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+.upgrade-panel {
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-color, #22d3ee) 55%, rgba(148, 163, 184, 0.22));
+  background: rgba(2, 6, 23, 0.88);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(8px);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.upgrade-title {
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.upgrade-subtitle {
+  font-size: 12px;
+  opacity: 0.78;
+  margin-bottom: 10px;
+}
+
+.skilltree-canvas {
+  position: relative;
+  margin: 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: radial-gradient(circle at 30% 20%, rgba(15, 23, 42, 0.85), rgba(2, 6, 23, 0.95));
+  overflow: hidden;
+}
+
+.skilltree-lines {
+  position: absolute;
+  inset: 0;
+}
+
+.skilltree-line {
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-width: 2;
+}
+
+.skill-node {
+  position: absolute;
+  width: 118px;
+  min-height: 68px;
+  transform: translate(-50%, -50%);
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--node-color, #22d3ee) 60%, rgba(148, 163, 184, 0.4));
+  background: rgba(15, 23, 42, 0.85);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+  padding: 6px;
+}
+
+.skill-node.locked {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.skill-node.unlocked {
+  opacity: 0.88;
+}
+
+.skill-node.purchased {
+  opacity: 1;
+  background: color-mix(in srgb, var(--node-color, #22d3ee) 18%, rgba(15, 23, 42, 0.9));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--node-color, #22d3ee) 24%, transparent);
+}
+
+.skill-node.hovered {
+  border-color: color-mix(in srgb, var(--node-color, #22d3ee) 95%, white);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--node-color, #22d3ee) 35%, transparent);
+}
+
+.skill-node-label {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.skill-node-cost {
+  font-size: 11px;
+  opacity: 0.82;
+  font-weight: 700;
+}
+
+.skill-node-refund {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 900;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(2, 6, 23, 0.9);
+  color: #eab308;
+}
+
+.skilltree-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(226, 232, 240, 0.8);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.skilltree-tooltip {
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.7);
+  padding: 9px 10px;
+}
+
+.skilltree-info {
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.7);
+  padding: 9px 10px;
+}
+
+.skilltree-tooltip-title {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.skilltree-tooltip-body {
+  margin-top: 3px;
+  font-size: 12px;
+  opacity: 0.86;
+}
+
+.skilltree-tooltip-meta {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.8;
+}
+
+.upgrade-list {
+  display: grid;
+  gap: 8px;
+}
+
+.upgrade-item {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.66);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.upgrade-item.bought {
+  border-color: color-mix(in srgb, var(--accent-color, #22d3ee) 70%, rgba(148, 163, 184, 0.35));
+  opacity: 0.85;
+}
+
+.upgrade-item.blocked {
+  opacity: 0.55;
+}
+
+.upgrade-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.upgrade-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  border: 1px solid color-mix(in srgb, var(--accent-color, #22d3ee) 75%, rgba(148, 163, 184, 0.4));
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.upgrade-name {
+  flex: 1 1 auto;
+}
+
+.upgrade-cost {
+  opacity: 0.85;
+}
+
+.upgrade-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.82;
+}
+
+.upgrade-buy-btn {
+  margin-top: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-color, #22d3ee) 60%, rgba(148, 163, 184, 0.45));
+  background: color-mix(in srgb, var(--accent-color, #22d3ee) 20%, rgba(15, 23, 42, 0.85));
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.upgrade-buy-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .wheel {
   width: 320px;
   height: 320px;
@@ -139,6 +376,23 @@ body,
   font-weight: 800;
 }
 
+.wheel-lock-icon {
+  position: absolute;
+  right: 6px;
+  top: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(2, 6, 23, 0.9);
+  color: #e2e8f0;
+}
+
 .wheel-virtual-overlay {
   position: absolute;
   inset: 0;
@@ -167,6 +421,37 @@ body,
   letter-spacing: 0.2px;
   color: color-mix(in srgb, var(--accent-color, #22d3ee) 85%, white);
   text-shadow: 0 0 16px color-mix(in srgb, var(--accent-color, #22d3ee) 25%, transparent);
+}
+
+.wheel-adjacent {
+  position: absolute;
+  top: calc(50% - 205px);
+  transform: translateY(0);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.wheel-adjacent-left {
+  left: calc(50% - 220px);
+}
+
+.wheel-adjacent-right {
+  left: calc(50% + 150px);
+}
+
+.wheel-adjacent-arrow {
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.wheel-adjacent-label {
+  color: color-mix(in srgb, var(--adj-color, #22d3ee) 85%, white);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--adj-color, #22d3ee) 30%, transparent);
 }
 
 .hud {
@@ -200,6 +485,8 @@ body,
 .top-right {
   right: 16px;
   top: 16px;
+  z-index: 40;
+  pointer-events: none;
 }
 
 .wave-timer {
@@ -207,12 +494,14 @@ body,
   left: 50%;
   top: 16px;
   transform: translateX(-50%);
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
   min-width: 240px;
   justify-content: center;
+  pointer-events: none;
 }
 
 .wave-timer-svg {
