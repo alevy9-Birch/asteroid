@@ -191,117 +191,48 @@ function App() {
   const selectedStat = buildDesc(selectedDef)
   const purchasedUpgrades = useMemo(() => new Set(state.purchasedUpgradeIds), [state.purchasedUpgradeIds])
   const refundableUpgrades = useMemo(() => new Set(state.refundableUpgradeIds), [state.refundableUpgradeIds])
-  const skillNodes = useMemo(
-    () =>
-      [
-        { id: 'core_protocol', x: 0, y: 0 },
-        // Economy
-        { id: 'unlock_factory', x: -220, y: -40 },
-        { id: 'unlock_megacomplex', x: -360, y: -120 },
-        { id: 'economy_optimization_1', x: -520, y: -40 },
-        { id: 'economy_optimization_2', x: -680, y: -80 },
-        { id: 'unlock_refinery', x: -360, y: 40 },
-        { id: 'unlock_mega_refinery', x: -520, y: 80 },
-
-        // Electrical
-        { id: 'generator_efficiency', x: -40, y: 170 },
-        { id: 'battery_capacity_1', x: -180, y: 260 },
-        { id: 'battery_capacity_2', x: -300, y: 330 },
-        { id: 'power_distribution_1', x: -40, y: 310 },
-        { id: 'power_distribution_2', x: -40, y: 430 },
-        { id: 'nuclear_overclock_1', x: -220, y: 420 },
-
-        // Turrets
-        { id: 'turret_targeting', x: 220, y: -40 },
-        { id: 'unlock_turret_t2', x: 360, y: -120 },
-        { id: 'unlock_railgun', x: 520, y: -180 },
-        { id: 'turret_range_1', x: 180, y: 90 },
-        { id: 'turret_range_2', x: 300, y: 150 },
-        { id: 'turret_damage_1', x: 300, y: 40 },
-        { id: 'turret_damage_2', x: 440, y: 80 },
-
-        // Missiles
-        { id: 'unlock_missile_silos', x: 0, y: -210 },
-        { id: 'unlock_nuclear_silo', x: 120, y: -320 },
-        { id: 'unlock_hydra_launcher', x: -120, y: -320 },
-        { id: 'missile_payload_1', x: 0, y: -360 },
-        { id: 'missile_payload_2', x: 0, y: -480 },
-
-        // Support
-        { id: 'logistics_1', x: -220, y: 80 },
-        { id: 'logistics_2', x: -360, y: 80 },
-        { id: 'command_autonomy_1', x: -220, y: 10 },
-        { id: 'structural_fortification_1', x: -360, y: 10 },
-        { id: 'structural_fortification_2', x: -520, y: 10 },
-
-        // Energy
-        { id: 'unlock_shields', x: 220, y: 240 },
-        { id: 'unlock_shield_large', x: 360, y: 320 },
-        { id: 'shield_capacity_1', x: 120, y: 320 },
-        { id: 'shield_capacity_2', x: 40, y: 420 },
-        { id: 'shield_recharge_1', x: 240, y: 420 },
-        { id: 'plasma_focus_1', x: 520, y: 210 },
-        { id: 'plasma_focus_2', x: 680, y: 260 },
-        { id: 'tesla_coils_1', x: 520, y: 340 },
-      ] as Array<{ id: UpgradeId; x: number; y: number }>,
-    [],
-  )
-  const skillAdj = useMemo(
-    () =>
-      ({
-        core_protocol: ['unlock_factory', 'turret_targeting', 'generator_efficiency', 'unlock_missile_silos', 'unlock_shields', 'logistics_1'],
-
-        // Economy
-        unlock_factory: ['core_protocol', 'unlock_megacomplex', 'economy_optimization_1', 'unlock_refinery'],
-        unlock_megacomplex: ['unlock_factory'],
-        economy_optimization_1: ['unlock_factory', 'economy_optimization_2'],
-        economy_optimization_2: ['economy_optimization_1'],
-        unlock_refinery: ['unlock_factory', 'unlock_mega_refinery'],
-        unlock_mega_refinery: ['unlock_refinery'],
-
-        // Electrical
-        generator_efficiency: ['core_protocol', 'battery_capacity_1', 'power_distribution_1'],
-        battery_capacity_1: ['generator_efficiency', 'battery_capacity_2'],
-        battery_capacity_2: ['battery_capacity_1'],
-        power_distribution_1: ['generator_efficiency', 'power_distribution_2', 'nuclear_overclock_1'],
-        power_distribution_2: ['power_distribution_1'],
-        nuclear_overclock_1: ['power_distribution_1'],
-
-        // Turrets
-        turret_targeting: ['core_protocol', 'unlock_turret_t2', 'turret_range_1', 'turret_damage_1'],
-        unlock_turret_t2: ['turret_targeting', 'unlock_railgun'],
-        unlock_railgun: ['unlock_turret_t2'],
-        turret_range_1: ['turret_targeting', 'turret_range_2'],
-        turret_range_2: ['turret_range_1'],
-        turret_damage_1: ['turret_targeting', 'turret_damage_2'],
-        turret_damage_2: ['turret_damage_1'],
-
-        // Missiles
-        unlock_missile_silos: ['core_protocol', 'unlock_nuclear_silo', 'unlock_hydra_launcher', 'missile_payload_1'],
-        unlock_nuclear_silo: ['unlock_missile_silos'],
-        unlock_hydra_launcher: ['unlock_missile_silos'],
-        missile_payload_1: ['unlock_missile_silos', 'missile_payload_2'],
-        missile_payload_2: ['missile_payload_1'],
-
-        // Structural
-        logistics_1: ['core_protocol', 'logistics_2', 'command_autonomy_1'],
-        logistics_2: ['logistics_1'],
-        command_autonomy_1: ['logistics_1', 'structural_fortification_1'],
-        structural_fortification_1: ['command_autonomy_1', 'structural_fortification_2'],
-        structural_fortification_2: ['structural_fortification_1'],
-
-        // Energy
-        unlock_shields: ['core_protocol', 'unlock_shield_large', 'shield_capacity_1', 'shield_recharge_1', 'plasma_focus_1', 'tesla_coils_1'],
-        unlock_shield_large: ['unlock_shields'],
-        shield_capacity_1: ['unlock_shields', 'shield_capacity_2'],
-        shield_capacity_2: ['shield_capacity_1'],
-        shield_recharge_1: ['unlock_shields'],
-        plasma_focus_1: ['unlock_shields', 'plasma_focus_2'],
-        plasma_focus_2: ['plasma_focus_1'],
-        tesla_coils_1: ['unlock_shields'],
-      }) as Record<UpgradeId, UpgradeId[]>,
-    [],
-  )
+  const skillNodes = useMemo(() => {
+    const nodes: Array<{ id: UpgradeId; x: number; y: number }> = [{ id: 'core_protocol', x: 0, y: 0 }]
+    const anchors: Record<Exclude<BuildingCategory, 'structural'> | 'structural', { x: number; y: number }> = {
+      structural: { x: -520, y: 0 },
+      economy: { x: -360, y: -460 },
+      electrical: { x: -360, y: 460 },
+      turrets: { x: 360, y: -460 },
+      missile: { x: 520, y: 0 },
+      energy: { x: 360, y: 460 },
+    }
+    for (const cat of categoryOrder) {
+      const list = UPGRADES.filter((u) => u.id !== 'core_protocol' && u.category === cat)
+      const anchor = anchors[cat]
+      for (let i = 0; i < list.length; i++) {
+        const col = Math.floor(i / 6)
+        const row = i % 6
+        nodes.push({
+          id: list[i].id,
+          x: anchor.x + col * 165,
+          y: anchor.y + (row - 2.5) * 102,
+        })
+      }
+    }
+    return nodes
+  }, [categoryOrder])
+  const skillAdj = useMemo(() => {
+    const adj = {} as Record<UpgradeId, UpgradeId[]>
+    for (const u of UPGRADES) adj[u.id] = []
+    const link = (a: UpgradeId, b: UpgradeId) => {
+      if (!adj[a].includes(b)) adj[a].push(b)
+      if (!adj[b].includes(a)) adj[b].push(a)
+    }
+    for (const u of UPGRADES) {
+      for (const p of u.prereqIds ?? []) link(u.id, p)
+    }
+    for (const cat of categoryOrder) {
+      const list = UPGRADES.filter((u) => u.id !== 'core_protocol' && u.category === cat)
+      if (list[0]) link('core_protocol', list[0].id)
+      for (let i = 1; i < list.length; i++) link(list[i - 1].id, list[i].id)
+    }
+    return adj
+  }, [categoryOrder])
   const unlockedUpgradeSet = useMemo(() => {
     const s = new Set<UpgradeId>(['core_protocol'])
     for (const p of purchasedUpgrades) {
@@ -360,9 +291,9 @@ function App() {
     if (id === 'portable_silo') return '1x1 slow silo: retargeting missiles with bigger blasts and higher per-shot damage.'
     if (id === 'missile_silo') return '3x3 heavy silo with long reload, retargeting missiles, and large AOE strikes.'
     if (id === 'nuclear_silo') return '5x5 extreme silo with huge retargeting missile damage and massive splash radius.'
-    if (id === 'hydra_launcher') return '8-round burst launcher (0.1s spacing), fastest missiles, no splash, stacking volley damage.'
-    if (id === 'shield_generator_m') return '3x3 medium dome generator creating an 8-radius shield field.'
-    if (id === 'shield_generator_l') return '5x5 large dome generator creating a 16-radius shield field.'
+    if (id === 'hydra_launcher') return '12-round burst launcher (0.1s spacing), fastest missiles, no splash, stacking volley damage.'
+    if (id === 'shield_generator_m') return '3x3 medium dome generator creating a 12-radius shield field.'
+    if (id === 'shield_generator_l') return '5x5 large dome generator creating a 24-radius shield field.'
     if (id === 'tesla_tower') return '2x2 tower with top emitter that zaps all enemies in range with rapid lightning DoT.'
     if (id === 'plasma_laser_s') return 'Small long-range beam turret with high sustained power cost.'
     if (id === 'plasma_laser_m') return 'Medium long-range plasma beam with stronger sustained damage.'

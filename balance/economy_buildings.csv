@@ -1,5 +1,5 @@
 id,label,category,size_w,size_h,hp,cost_C,supply_cost,power_gen_per_sec,power_drain_per_sec,credits_per_sec,tech_requirement,notes
-factory_business,Business,economy,2,2,650,160,4,0,0.25,8,none,Basic low-power economy
+factory_business,Business,economy,2,2,650,160,4,0,0.6,8,none,Basic economy but power-hungry (credits stop when out of power)
 factory_factory,Factory,economy,3,3,1250,480,10,0,0.9,15,unlock_factory,Larger low-power economy
 factory_megacomplex,Mega Factory,economy,5,5,3600,1700,28,0,2.4,40,unlock_megacomplex,Massive economy hub, more credits
 refinery,Refinery,economy,2,2,560,260,4,0,2.2,20,none,Small fast cash high power
