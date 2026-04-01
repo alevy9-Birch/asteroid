@@ -3966,6 +3966,15 @@ export class BaseDefenseGame {
   private readonly tmpV3 = new THREE.Vector3()
   private readonly tmpAimVec = new THREE.Vector3()
   private readonly tmpAimPos = new THREE.Vector3()
+  private readonly tmpMissileLead = new THREE.Vector3()
+  private readonly tmpMissileDir = new THREE.Vector3()
+  private readonly tmpMissileQuat = new THREE.Quaternion()
+  private readonly missileConeAxis = new THREE.Vector3(0, 1, 0)
+  private readonly tmpMissile180Axis = new THREE.Vector3(1, 0, 0)
+  private readonly tmpBallisticPos = new THREE.Vector3()
+  /** Throttle React/UI state pushes — full emitState every frame was a major steady-state cost. */
+  private stateEmitAccum = 0
+  private readonly STATE_EMIT_INTERVAL = 0.05
 
   // Camera controls
   private camPos = new THREE.Vector3(0, 55, 70)
@@ -4357,7 +4366,10 @@ export class BaseDefenseGame {
     // Clear state
     for (const b of this.buildings) this.world.remove(b.mesh), this.world.remove(b.healthBar.group)
     for (const a of this.asteroids) this.world.remove(a.mesh), this.world.remove(a.healthBar.group)
-    for (const m of this.missiles) this.projectiles.remove(m.mesh)
+    for (const m of this.missiles) {
+      this.disposeProjectileMesh(m.mesh)
+      this.projectiles.remove(m.mesh)
+    }
     this.pendingMissileBursts.length = 0
     this.hydraHitStack.clear()
     for (const sf of this.shieldFields.values()) {
@@ -4370,7 +4382,10 @@ export class BaseDefenseGame {
       this.world.remove(this.universalShield.shieldBar.group)
       this.universalShield = null
     }
-    for (const b of this.ballistics) this.projectiles.remove(b.mesh)
+    for (const b of this.ballistics) {
+      this.disposeProjectileMesh(b.mesh)
+      this.projectiles.remove(b.mesh)
+    }
     for (const d of this.repairDrones) this.world.remove(d.mesh)
     for (const s of this.dominionShrapnel) this.projectiles.remove(s.mesh)
     for (const d of this.dominionSeekerDrones) this.world.remove(d.mesh)
@@ -4388,6 +4403,7 @@ export class BaseDefenseGame {
     this.occupied.clear()
 
     this.isLost = false
+    this.stateEmitAccum = 0
     this.statsMoneyEarned = 0
     this.statsMoneySpent = 0
     this.statsPowerProduced = 0
@@ -4683,7 +4699,15 @@ export class BaseDefenseGame {
       if (this.asteroidDiscoveryTimerSec <= 0) this.activeAsteroidDiscovery = null
     }
     this.updateRefundSprites()
-    this.emitState()
+    if (this.isLost) {
+      this.emitState()
+    } else {
+      this.stateEmitAccum += dt
+      if (this.stateEmitAccum >= this.STATE_EMIT_INTERVAL) {
+        this.stateEmitAccum -= this.STATE_EMIT_INTERVAL
+        this.emitState()
+      }
+    }
   }
 
   private updateDragBuild(dt: number) {
@@ -6089,6 +6113,7 @@ export class BaseDefenseGame {
   }
 
   private handleAsteroidDeath(a: Asteroid, reason: 'impact' | 'shield' | 'combat', killer?: PlacedBuilding) {
+    this.pruneHydraHitStackForAsteroid(a.id)
     const pos = a.mesh.position.clone()
 
     if (reason === 'impact') {
@@ -7790,34 +7815,37 @@ export class BaseDefenseGame {
   private updateProjectiles(dt: number) {
     this.updateNovaPhotons(dt)
     this.updateDominionShrapnel(dt)
-    for (const p of [...this.pendingMissileBursts]) {
+    for (let pi = this.pendingMissileBursts.length - 1; pi >= 0; pi--) {
+      const p = this.pendingMissileBursts[pi]
       p.timer -= dt
       while (p.remaining > 0 && p.timer <= 0) {
         this.spawnMissile(p.origin, p.target, p.def, p.mode, p.noSplash, p.volleyId, p.powerSite, p.damageScale ?? 1)
         p.remaining -= 1
         p.timer += p.interval
       }
-      if (p.remaining <= 0) this.pendingMissileBursts.splice(this.pendingMissileBursts.indexOf(p), 1)
+      if (p.remaining <= 0) this.pendingMissileBursts.splice(pi, 1)
     }
 
-    for (const m of [...this.missiles]) {
+    for (let mi = this.missiles.length - 1; mi >= 0; mi--) {
+      const m = this.missiles[mi]
       m.ttl -= dt
       if (m.ttl <= 0) {
+        this.disposeProjectileMesh(m.mesh)
         this.projectiles.remove(m.mesh)
-        this.missiles.splice(this.missiles.indexOf(m), 1)
+        this.missiles.splice(mi, 1)
         continue
       }
 
       let destination: THREE.Vector3 | null = null
       if (m.target && m.target.alive) {
-        destination = this.getLeadDestination(m, m.target)
+        destination = this.getLeadDestination(m, m.target, this.tmpMissileLead)
         m.lastKnownTargetPos.copy(m.target.mesh.position)
       } else if (m.mode === 'retarget') {
         const newTarget = this.findNearestAliveAsteroid(m.mesh.position)
         if (newTarget) {
           m.target = newTarget
           m.targetId = newTarget.id
-          destination = this.getLeadDestination(m, newTarget)
+          destination = this.getLeadDestination(m, newTarget, this.tmpMissileLead)
           m.lastKnownTargetPos.copy(newTarget.mesh.position)
         } else {
           destination = m.lastKnownTargetPos
@@ -7827,17 +7855,23 @@ export class BaseDefenseGame {
       }
 
       if (destination) {
-        const dir = new THREE.Vector3().subVectors(destination, m.mesh.position)
-        if (dir.lengthSq() > 0.000001) {
-          // initial upward launch
+        this.tmpMissileDir.subVectors(destination, m.mesh.position)
+        const lenSq = this.tmpMissileDir.lengthSq()
+        if (lenSq > 1e-6) {
+          this.tmpMissileDir.multiplyScalar(1 / Math.sqrt(lenSq))
+          if (this.tmpMissileDir.dot(this.missileConeAxis) < -0.9999) {
+            m.mesh.quaternion.setFromAxisAngle(this.tmpMissile180Axis, Math.PI)
+          } else {
+            this.tmpMissileQuat.setFromUnitVectors(this.missileConeAxis, this.tmpMissileDir)
+            m.mesh.quaternion.copy(this.tmpMissileQuat)
+          }
           if (m.launchUpTime > 0) {
             m.launchUpTime = Math.max(0, m.launchUpTime - dt)
             m.mesh.position.y += m.launchUpSpeed * dt
           }
-          m.mesh.position.addScaledVector(dir.normalize().multiplyScalar(m.speed), dt)
+          m.mesh.position.addScaledVector(this.tmpMissileDir, m.speed * dt)
         }
       }
-      m.mesh.rotation.y += dt * 8
 
       const hitLiveTarget = m.target && m.target.alive ? m.mesh.position.distanceTo(m.target.mesh.position) < 1.2 : false
       const hitLastKnown = !hitLiveTarget && m.mesh.position.distanceTo(m.lastKnownTargetPos) < 1.2
@@ -7860,24 +7894,37 @@ export class BaseDefenseGame {
         } else {
           this.explodeAt(m.mesh.position, m.aoeRadius, m.damage, 0xffb703)
         }
+        this.disposeProjectileMesh(m.mesh)
         this.projectiles.remove(m.mesh)
-        this.missiles.splice(this.missiles.indexOf(m), 1)
+        this.missiles.splice(mi, 1)
       }
     }
 
-    for (const b of [...this.ballistics]) {
+    for (let bi = this.ballistics.length - 1; bi >= 0; bi--) {
+      const b = this.ballistics[bi]
+      const t0 = clamp(b.t / b.duration, 0, 1)
       b.t += dt
       const t = clamp(b.t / b.duration, 0, 1)
-      // simple arc
-      const p = new THREE.Vector3().lerpVectors(b.start, b.end, t)
-      const arc = Math.sin(Math.PI * t) * 28
-      p.y += arc
+      const p = this.tmpBallisticPos.lerpVectors(b.start, b.end, t)
+      p.y += Math.sin(Math.PI * t) * 28
+      const p0 = this.tmpV3.lerpVectors(b.start, b.end, t0)
+      p0.y += Math.sin(Math.PI * t0) * 28
       b.mesh.position.copy(p)
-      b.mesh.rotation.y += dt * 2
+      this.tmpMissileDir.subVectors(p, p0)
+      if (this.tmpMissileDir.lengthSq() > 1e-10) {
+        this.tmpMissileDir.normalize()
+        if (this.tmpMissileDir.dot(this.missileConeAxis) < -0.9999) {
+          b.mesh.quaternion.setFromAxisAngle(this.tmpMissile180Axis, Math.PI)
+        } else {
+          this.tmpMissileQuat.setFromUnitVectors(this.missileConeAxis, this.tmpMissileDir)
+          b.mesh.quaternion.copy(this.tmpMissileQuat)
+        }
+      }
       if (t >= 1) {
         this.explodeAt(b.end, b.aoeRadius, b.damage, 0xff4d6d)
+        this.disposeProjectileMesh(b.mesh)
         this.projectiles.remove(b.mesh)
-        this.ballistics.splice(this.ballistics.indexOf(b), 1)
+        this.ballistics.splice(bi, 1)
       }
     }
 
@@ -9586,7 +9633,6 @@ export class BaseDefenseGame {
     const mesh = new THREE.Mesh(geo, mat)
     mesh.position.copy(origin)
     mesh.position.y += 0.5
-    mesh.rotation.x = Math.PI / 2
     mesh.castShadow = true
     this.projectiles.add(mesh)
     this.missiles.push({
@@ -9619,7 +9665,6 @@ export class BaseDefenseGame {
     const mesh = new THREE.Mesh(geo, mat)
     mesh.position.copy(origin)
     mesh.position.y += 0.6
-    mesh.rotation.x = Math.PI / 2
     mesh.castShadow = true
     this.projectiles.add(mesh)
     this.missiles.push({
@@ -9639,13 +9684,27 @@ export class BaseDefenseGame {
     })
   }
 
-  private getLeadDestination(m: Missile, target: Asteroid): THREE.Vector3 {
-    // Predictive leading using asteroid velocity.
+  /** Writes predictive intercept into `out` (no per-frame allocation). */
+  private getLeadDestination(m: Missile, target: Asteroid, out: THREE.Vector3): THREE.Vector3 {
     const pos = target.mesh.position
     const v = target.velocity
     const dist = m.mesh.position.distanceTo(pos)
     const t = clamp(dist / Math.max(1, m.speed), 0, 1.35)
-    return new THREE.Vector3(pos.x + v.x * t, pos.y + v.y * t, pos.z + v.z * t)
+    return out.set(pos.x + v.x * t, pos.y + v.y * t, pos.z + v.z * t)
+  }
+
+  private pruneHydraHitStackForAsteroid(deadId: string) {
+    for (const key of [...this.hydraHitStack.keys()]) {
+      const i = key.lastIndexOf(':')
+      if (i >= 0 && key.slice(i + 1) === deadId) this.hydraHitStack.delete(key)
+    }
+  }
+
+  private disposeProjectileMesh(mesh: THREE.Mesh) {
+    mesh.geometry?.dispose()
+    const mat = mesh.material
+    if (Array.isArray(mat)) mat.forEach((m) => m.dispose())
+    else (mat as THREE.Material | undefined)?.dispose?.()
   }
 
   private findNearestAliveAsteroid(pos: THREE.Vector3): Asteroid | null {
