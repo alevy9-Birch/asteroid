@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGameAudioController } from './audio/useGameAudio'
+import {
+  addScoreRecord,
+  computeRunScore,
+  type CommanderKey,
+} from './highScores'
 import { BaseDefenseGame, BUILDINGS, UPGRADES, type BuildingCategory, type BuildingId, type GameDifficulty, type HeroId, type UpgradeId } from './game/BaseDefenseGame'
 
 type State = {
@@ -16,7 +21,14 @@ type State = {
   inactiveTimeLeftSec: number
   asteroidsRemaining: number
   asteroidDiscovery: { variant: string; name: string; description: string; color: number } | null
-  heroId: HeroId
+  heroId: HeroId | null
+  runStats: {
+    moneyEarned: number
+    moneySpent: number
+    powerProduced: number
+    asteroidsKilled: number
+    mostCommonBuildingLabel: string
+  }
   unlockedBuildingIds: BuildingId[]
   purchasedUpgradeIds: UpgradeId[]
   refundableUpgradeIds: UpgradeId[]
@@ -25,7 +37,7 @@ type State = {
 }
 
 const INITIAL_STATE: State = {
-  credits: 650,
+  credits: 1550,
   supplyUsed: 0,
   supplyCap: 0,
   powerStored: 20,
@@ -38,7 +50,14 @@ const INITIAL_STATE: State = {
   inactiveTimeLeftSec: 0,
   asteroidsRemaining: 0,
   asteroidDiscovery: null,
-  heroId: 'archangel',
+  heroId: null,
+  runStats: {
+    moneyEarned: 0,
+    moneySpent: 0,
+    powerProduced: 0,
+    asteroidsKilled: 0,
+    mostCommonBuildingLabel: '—',
+  },
   unlockedBuildingIds: [
     'command_center',
     'supply_depot_s',
@@ -97,19 +116,32 @@ function App() {
   const hoveredUpgradeCanBuyRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('menu')
   const [sessionId, setSessionId] = useState(0)
-  const [lastWave, setLastWave] = useState(0)
   const [virtualCursor, setVirtualCursor] = useState({ x: 0, y: -118 })
   const virtualCursorLiveRef = useRef(virtualCursor)
   const pendingLockedWheelSelectionRef = useRef<BuildingId | undefined>(undefined)
   const pendingUpgradeFocusRef = useRef<UpgradeId | undefined>(undefined)
   const categorySelectionRef = useRef<Partial<Record<BuildingCategory, BuildingId>>>({})
   const [selectedDifficulty, setSelectedDifficulty] = useState<GameDifficulty>('hard')
-  const [selectedHero, setSelectedHero] = useState<HeroId>('archangel')
-  const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty; heroId?: HeroId }>({
+  /** `null` = None (neutral-only buildings). */
+  const [selectedCommander, setSelectedCommander] = useState<HeroId | null>(null)
+  const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty; heroId?: HeroId | null }>({
     mode: 'normal',
     difficulty: 'hard',
-    heroId: 'archangel',
+    heroId: null,
   })
+  const gameOverHandledRef = useRef(false)
+  const [gameOverSnapshot, setGameOverSnapshot] = useState<{
+    wave: number
+    difficulty: GameDifficulty
+    sandbox: boolean
+    commander: CommanderKey
+    stats: State['runStats']
+    score: number
+    rankTotal: number | null
+    rankCommander: number | null
+    madeTotalTop: boolean
+    madeCommanderTop: boolean
+  } | null>(null)
 
   const [masterVolume, setMasterVolume] = useState(readStoredMasterVolume)
   const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
@@ -143,8 +175,57 @@ function App() {
     game.onAudio = (e) => audio.handleEvent(e)
     game.onStateChange = (s) => {
       setState(s)
-      if (s.gameOver) {
-        setLastWave(s.wave)
+      if (s.gameOver && !gameOverHandledRef.current) {
+        gameOverHandledRef.current = true
+        const cfg = runConfigRef.current
+        const diff = cfg.difficulty ?? 'hard'
+        const sandbox = cfg.mode === 'sandbox'
+        const commander: CommanderKey = cfg.heroId ?? 'none'
+        const score = sandbox
+          ? 0
+          : computeRunScore({
+              wave: s.wave,
+              asteroidsKilled: s.runStats.asteroidsKilled,
+              moneyEarned: s.runStats.moneyEarned,
+              moneySpent: s.runStats.moneySpent,
+              powerProduced: s.runStats.powerProduced,
+              difficulty: diff,
+            })
+        let rankTotal: number | null = null
+        let rankCommander: number | null = null
+        let madeTotalTop = false
+        let madeCommanderTop = false
+        if (!sandbox && score > 0) {
+          const recAt = Date.now()
+          const r = addScoreRecord({
+            score,
+            wave: s.wave,
+            commander,
+            difficulty: diff,
+            moneyEarned: s.runStats.moneyEarned,
+            moneySpent: s.runStats.moneySpent,
+            powerProduced: s.runStats.powerProduced,
+            asteroidsKilled: s.runStats.asteroidsKilled,
+            mostCommonBuildingLabel: s.runStats.mostCommonBuildingLabel,
+            at: recAt,
+          })
+          rankTotal = r.totalRank
+          rankCommander = r.commanderRank
+          madeTotalTop = r.madeTotalTop
+          madeCommanderTop = r.madeCommanderTop
+        }
+        setGameOverSnapshot({
+          wave: s.wave,
+          difficulty: diff,
+          sandbox,
+          commander,
+          stats: s.runStats,
+          score,
+          rankTotal,
+          rankCommander,
+          madeTotalTop,
+          madeCommanderTop,
+        })
         setPhase('gameover')
       }
     }
@@ -157,7 +238,18 @@ function App() {
     }
   }, [phase, sessionId])
 
-  const categoryOrder: BuildingCategory[] = ['structural', 'economy', 'electrical', 'turrets', 'missile', 'energy', 'hero']
+  useEffect(() => {
+    if (phase === 'playing') {
+      gameOverHandledRef.current = false
+      setGameOverSnapshot(null)
+    }
+  }, [phase, sessionId])
+
+  const categoryOrder: BuildingCategory[] = useMemo(() => {
+    const all: BuildingCategory[] = ['structural', 'economy', 'electrical', 'turrets', 'missile', 'energy', 'hero']
+    if (state.heroId == null) return all.filter((c) => c !== 'hero')
+    return all
+  }, [state.heroId])
   const heroLabel: Record<HeroId, string> = {
     archangel: 'Archangel',
     dominion: 'Dominion',
@@ -173,7 +265,7 @@ function App() {
     turrets: 'Turrets',
     missile: 'Missile',
     energy: 'Energy',
-    hero: heroLabel[state.heroId],
+    hero: state.heroId ? heroLabel[state.heroId] : 'No commander',
   }
   const categoryColor: Record<BuildingCategory, string> = {
     structural: '#60a5fa',
@@ -189,7 +281,7 @@ function App() {
     const order = new Map(categoryOrder.map((c, i) => [c, i]))
     return [...BUILDINGS]
       // Commander-specific buildings may live in economy/turrets/etc.; hide them unless `heroId` matches.
-      .filter((b) => b.heroId == null || b.heroId === state.heroId)
+      .filter((b) => b.heroId == null || (state.heroId != null && b.heroId === state.heroId))
       .sort((a, b) => {
       const ca = order.get(a.category) ?? 0
       const cb = order.get(b.category) ?? 0
@@ -251,7 +343,10 @@ function App() {
   const purchasedUpgrades = useMemo(() => new Set(state.purchasedUpgradeIds), [state.purchasedUpgradeIds])
   const refundableUpgrades = useMemo(() => new Set(state.refundableUpgradeIds), [state.refundableUpgradeIds])
   const normalUpgradeDefs = useMemo(() => UPGRADES.filter((u) => !u.heroId), [])
-  const heroResearchDefs = useMemo(() => UPGRADES.filter((u) => u.heroId === state.heroId), [state.heroId])
+  const heroResearchDefs = useMemo(
+    () => (state.heroId == null ? [] : UPGRADES.filter((u) => u.heroId === state.heroId)),
+    [state.heroId],
+  )
   const activeTreeDefs = researchOpen ? heroResearchDefs : normalUpgradeDefs
   const skillHexLayout = useMemo(() => {
     type Hex = { q: number; r: number }
@@ -590,6 +685,7 @@ function App() {
       }
       if (e.key === 'r' || e.key === 'R') {
         if (e.repeat) return
+        if (state.heroId == null) return
         if (wheelOpenRef.current) {
           wheelOpenRef.current = false
           setWheelOpen(false)
@@ -628,7 +724,7 @@ function App() {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [phase, unlockedSet, skillNodes, purchasedUpgrades])
+  }, [phase, unlockedSet, skillNodes, purchasedUpgrades, state.heroId])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -810,7 +906,7 @@ function App() {
 
   const startNewRun = () => {
     setPauseMenuOpen(false)
-    runConfigRef.current = { mode: 'normal', difficulty: selectedDifficulty, heroId: selectedHero }
+    runConfigRef.current = { mode: 'normal', difficulty: selectedDifficulty, heroId: selectedCommander }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
     researchOpenRef.current = false
@@ -818,7 +914,6 @@ function App() {
     setUpgradeOpen(false)
     setResearchOpen(false)
     setState(INITIAL_STATE)
-    setLastWave(0)
     categorySelectionRef.current = {}
     setSessionId((v) => v + 1)
     setPhase('playing')
@@ -826,7 +921,7 @@ function App() {
 
   const startSandbox = () => {
     setPauseMenuOpen(false)
-    runConfigRef.current = { mode: 'sandbox', difficulty: selectedDifficulty, heroId: selectedHero }
+    runConfigRef.current = { mode: 'sandbox', difficulty: selectedDifficulty, heroId: selectedCommander }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
     researchOpenRef.current = false
@@ -834,13 +929,14 @@ function App() {
     setUpgradeOpen(false)
     setResearchOpen(false)
     setState(INITIAL_STATE)
-    setLastWave(0)
     categorySelectionRef.current = {}
     setSessionId((v) => v + 1)
     setPhase('playing')
   }
 
   const goToMenu = () => {
+    gameOverHandledRef.current = false
+    setGameOverSnapshot(null)
     setPauseMenuOpen(false)
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
@@ -944,7 +1040,7 @@ function App() {
 
       {phase === 'playing' && state.wave === 0 && !state.waveInProgress && (
         <div className="hud top-left">
-          <h1>Meteor Base Defense</h1>
+          <h1>Asteroid Defense</h1>
           <p>Defend the base through waves.</p>
         </div>
       )}
@@ -1235,16 +1331,67 @@ function App() {
       )}
 
       {phase === 'menu' && (
-        <div className="screen-overlay">
-          <div className="screen-card">
-            <h2>Meteor Base Defense</h2>
-            <p>Defend your command center(s) against massive meteor impacts.</p>
-            <p className="small">
-              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, press U for skill tree, press R for
-              hero research, RMB sell, Space starts the next wave, P pauses in-game.
-            </p>
-            {masterVolumeSlider('menu')}
-            <div className="difficulty-picker">
+        <div className="main-menu-overlay">
+          <h1 className="main-menu-title">Asteroid Defense</h1>
+          <div className="main-menu-volume" title="Master volume">
+            <span className="main-menu-volume-label">Vol</span>
+            <div className="main-menu-volume-track">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(masterVolume * 100)}
+                onChange={(e) => commitMasterVolume(Number(e.target.value) / 100)}
+                aria-label="Master volume"
+              />
+            </div>
+            <span className="main-menu-volume-pct">{Math.round(masterVolume * 100)}</span>
+          </div>
+
+          <div className="main-menu-difficulty-block">
+            <div className="main-menu-section-label">Difficulty</div>
+            <div className="main-menu-difficulty-btns">
+              {(
+                [
+                  ['easy', 'Easy'],
+                  ['medium', 'Medium'],
+                  ['hard', 'Hard'],
+                  ['brutal', 'Brutal'],
+                  ['deadly', 'Deadly'],
+                ] as Array<[GameDifficulty, string]>
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={selectedDifficulty === id ? 'menu-chip active' : 'menu-chip'}
+                  onClick={() => setSelectedDifficulty(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="main-menu-actions">
+            <button type="button" className="primary-btn main-menu-start" onClick={startNewRun}>
+              Start Game
+            </button>
+            <button type="button" className="secondary-btn main-menu-sandbox" onClick={startSandbox}>
+              Sandbox
+            </button>
+          </div>
+
+          <div className="main-menu-commander-block">
+            <div className="main-menu-section-label">Commander</div>
+            <button
+              type="button"
+              className={selectedCommander === null ? 'commander-none-btn active' : 'commander-none-btn'}
+              onClick={() => setSelectedCommander(null)}
+            >
+              None
+            </button>
+            <p className="commander-none-hint">Neutral tech only — no hero buildings or hero research.</p>
+            <div className="commander-grid-2x3">
               {(
                 [
                   ['archangel', 'Archangel'],
@@ -1258,57 +1405,100 @@ function App() {
                 <button
                   key={id}
                   type="button"
-                  className={selectedHero === id ? 'secondary-btn active' : 'secondary-btn'}
-                  onClick={() => setSelectedHero(id)}
+                  className={selectedCommander === id ? 'commander-cell active' : 'commander-cell'}
+                  onClick={() => setSelectedCommander(id)}
                 >
                   {label}
                 </button>
               ))}
-            </div>
-            <div className="difficulty-picker">
-              {([
-                ['easy', 'Easy'],
-                ['medium', 'Medium'],
-                ['hard', 'Hard'],
-                ['brutal', 'Brutal'],
-                ['deadly', 'Deadly'],
-              ] as Array<[GameDifficulty, string]>).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={selectedDifficulty === id ? 'secondary-btn active' : 'secondary-btn'}
-                  onClick={() => setSelectedDifficulty(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <button type="button" className="primary-btn" onClick={startNewRun}>
-              Start Game ({selectedDifficulty[0].toUpperCase() + selectedDifficulty.slice(1)})
-            </button>
-            <div className="screen-actions" style={{ marginTop: 10 }}>
-              <button type="button" className="secondary-btn" onClick={startSandbox}>
-                Sandbox (Debug)
-              </button>
             </div>
           </div>
+
+          <p className="main-menu-hint small">
+            WASD move · Q/E height · mouse look · C build wheel · U skills · R hero research (with commander) · RMB sell ·
+            Space wave · P pause
+          </p>
         </div>
       )}
 
       {phase === 'gameover' && (
-        <div className="screen-overlay">
-          <div className="screen-card danger">
-            <h2>Base Destroyed</h2>
-            <p>You survived <b>{lastWave}</b> wave(s).</p>
-            <div className="screen-actions">
-              <button type="button" className="primary-btn" onClick={startNewRun}>
-                Play Again
-              </button>
-              <button type="button" className="secondary-btn" onClick={goToMenu}>
-                Main Menu
-              </button>
+        <div className="screen-overlay gameover-overlay">
+          {gameOverSnapshot ? (
+            <div className="screen-card danger gameover-card-wide">
+              <h2>Base Destroyed</h2>
+              <p className="gameover-wave-line">
+                Waves survived: <b>{gameOverSnapshot.wave}</b>
+                {gameOverSnapshot.sandbox && <span className="sandbox-tag"> Sandbox — score not saved</span>}
+              </p>
+
+              <div className="gameover-score-big">Score: {gameOverSnapshot.score.toLocaleString()}</div>
+
+              <div className="gameover-stats-grid">
+                <div>
+                  <span className="stat-k">Money earned</span>
+                  <span className="stat-v">{gameOverSnapshot.stats.moneyEarned.toLocaleString()} c</span>
+                </div>
+                <div>
+                  <span className="stat-k">Money spent</span>
+                  <span className="stat-v">{gameOverSnapshot.stats.moneySpent.toLocaleString()} c</span>
+                </div>
+                <div>
+                  <span className="stat-k">Power produced</span>
+                  <span className="stat-v">{gameOverSnapshot.stats.powerProduced.toLocaleString()} P·s</span>
+                </div>
+                <div>
+                  <span className="stat-k">Asteroids killed</span>
+                  <span className="stat-v">{gameOverSnapshot.stats.asteroidsKilled.toLocaleString()}</span>
+                </div>
+                <div className="gameover-stat-wide">
+                  <span className="stat-k">Most common building</span>
+                  <span className="stat-v">{gameOverSnapshot.stats.mostCommonBuildingLabel}</span>
+                </div>
+              </div>
+
+              {!gameOverSnapshot.sandbox && gameOverSnapshot.score > 0 && (
+                <div className="gameover-ranks">
+                  <div>
+                    Global top 5:{' '}
+                    {gameOverSnapshot.madeTotalTop ? (
+                      <b>#{gameOverSnapshot.rankTotal}</b>
+                    ) : (
+                      <span className="muted">not in top 5</span>
+                    )}
+                  </div>
+                  <div>
+                    {gameOverSnapshot.commander === 'none' ? 'None' : heroLabel[gameOverSnapshot.commander]} board:{' '}
+                    {gameOverSnapshot.madeCommanderTop ? (
+                      <b>#{gameOverSnapshot.rankCommander}</b>
+                    ) : (
+                      <span className="muted">not in top 5</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="screen-actions gameover-actions">
+                <button type="button" className="primary-btn" onClick={startNewRun}>
+                  Play Again
+                </button>
+                <button type="button" className="secondary-btn" onClick={goToMenu}>
+                  Main Menu
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="screen-card danger">
+              <h2>Base Destroyed</h2>
+              <div className="screen-actions">
+                <button type="button" className="primary-btn" onClick={startNewRun}>
+                  Play Again
+                </button>
+                <button type="button" className="secondary-btn" onClick={goToMenu}>
+                  Main Menu
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

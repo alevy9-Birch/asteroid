@@ -308,6 +308,8 @@ type ArchangelPlane = {
   bomberBurstGapTimer: number
   /** Bomber: seconds until a new 4-missile volley can begin after the last ends. */
   bomberBurstRestTimer: number
+  /** Random delay before leaving pad so multiple craft do not launch in perfect sync. */
+  padLaunchStagger?: number
   hud: ArchangelPlaneHud
 }
 
@@ -557,7 +559,14 @@ const VARS = {
   P: 1, // power rates scale
   S: 1, // supply scale
   E: 1, // economy outputs scale
+  /** Multiplier on base asteroid kill credits (before per-wave scaling). */
+  asteroidKillCreditMul: 1.45,
 }
+
+/** Min horizontal (XZ) tiles from the **plane** to an asteroid to allow targeting/attacks (not measured from the base). */
+const ARCHANGEL_MIN_TARGET_TILE_DIST = 8
+/** Airfield gunships and Starport bombers use this flight speed (world units/s); missile speeds still use each building's `projectileSpeed`. */
+const ARCHANGEL_PLANE_FLIGHT_SPEED = 40
 
 // Global multiplier to tighten power budgeting.
 // Increase if power feels "too generous" during active waves.
@@ -1141,7 +1150,7 @@ export const BUILDINGS: BuildingDef[] = [
     powerDrainPerSec: 0.15 * VARS.P,
     range: 42,
     fireRate: 14,
-    damage: 5.8,
+    damage: 9.2,
     projectileSpeed: 24,
     wheelDetails: () => ['Deploys gunships (two with Tight Shift)', 'Long-range bullet stream; needs fuel & bullets'],
   },
@@ -1158,7 +1167,7 @@ export const BUILDINGS: BuildingDef[] = [
     powerDrainPerSec: 0.2 * VARS.P,
     range: 36,
     fireRate: 0.19,
-    damage: 238,
+    damage: 302,
     aoeRadius: 13.5,
     projectileSpeed: 56,
     wheelDetails: () => ['Deploys bombers (two with Tight Shift)', 'Slow huge missiles; needs fuel & missile ordnance'],
@@ -3935,7 +3944,8 @@ export class BaseDefenseGame {
   private readonly canvas: HTMLCanvasElement
   private readonly mode: 'normal' | 'sandbox'
   private readonly difficulty: GameDifficulty
-  private readonly heroId: HeroId
+  /** `null` = no commander; neutral buildings and global tree only. */
+  private readonly heroId: HeroId | null
   private renderer!: THREE.WebGLRenderer
   private scene!: THREE.Scene
   private camera!: THREE.PerspectiveCamera
@@ -3973,7 +3983,7 @@ export class BaseDefenseGame {
   private hoverValid = false
 
   // Resources
-  private credits = 650
+  private credits = 1550
   private supplyCap = 0
   private supplyUsed = 0
   private powerCap = 20
@@ -4060,6 +4070,19 @@ export class BaseDefenseGame {
   private autoWavesEnabled = true
   private resourceBonus = { supplyCap: 0, powerCap: 0, powerStored: 0 }
 
+  /** Run statistics for end-of-game summary (reset each `resetRun`). */
+  private statsMoneyEarned = 0
+  private statsMoneySpent = 0
+  private statsPowerProduced = 0
+  private statsAsteroidsKilled = 0
+  private readonly statsBuildingPlacements = new Map<BuildingId, number>()
+
+  private applyCreditDelta(delta: number) {
+    if (delta > 0) this.statsMoneyEarned += delta
+    else if (delta < 0) this.statsMoneySpent += -delta
+    this.credits = Math.max(0, this.credits + delta)
+  }
+
   // Scene objects
   private readonly world = new THREE.Group()
   private readonly projectiles = new THREE.Group()
@@ -4083,7 +4106,14 @@ export class BaseDefenseGame {
     inactiveTimeLeftSec: number
     asteroidsRemaining: number
     asteroidDiscovery: { variant: AsteroidVariant; name: string; description: string; color: number } | null
-    heroId: HeroId
+    heroId: HeroId | null
+    runStats: {
+      moneyEarned: number
+      moneySpent: number
+      powerProduced: number
+      asteroidsKilled: number
+      mostCommonBuildingLabel: string
+    }
     unlockedBuildingIds: BuildingId[]
     purchasedUpgradeIds: UpgradeId[]
     refundableUpgradeIds: UpgradeId[]
@@ -4097,11 +4127,11 @@ export class BaseDefenseGame {
     this.onAudio?.(e)
   }
 
-  constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty; heroId?: HeroId }) {
+  constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty; heroId?: HeroId | null }) {
     this.canvas = canvas
     this.mode = opts?.mode ?? 'normal'
     this.difficulty = opts?.difficulty ?? 'hard'
-    this.heroId = opts?.heroId ?? 'archangel'
+    this.heroId = opts?.heroId !== undefined ? opts.heroId : null
   }
 
   private getDifficultyScale() {
@@ -4207,11 +4237,11 @@ export class BaseDefenseGame {
     if (this.isLost) return
     const up = UPGRADES.find((u) => u.id === id)
     if (!up) return
-    if (up.heroId && up.heroId !== this.heroId) return
+    if (up.heroId && (this.heroId == null || up.heroId !== this.heroId)) return
     if (this.purchasedUpgradeIds.has(id)) return
     if (this.credits < up.creditCost) return
 
-    this.credits -= up.creditCost
+    this.applyCreditDelta(-up.creditCost)
     this.purchasedUpgradeIds.add(id)
     this.purchasedUpgradePhase.set(id, this.currentInactivePhase)
     this.recomputeUnlockedBuildingIds()
@@ -4233,7 +4263,7 @@ export class BaseDefenseGame {
     const up = UPGRADES.find((u) => u.id === id)
     if (!up) return
 
-    this.credits += up.creditCost
+    this.applyCreditDelta(up.creditCost)
     this.purchasedUpgradeIds.delete(id)
     this.purchasedUpgradePhase.delete(id)
     this.refundInvalidCurrentPhaseUpgrades()
@@ -4262,7 +4292,7 @@ export class BaseDefenseGame {
         const up = UPGRADES.find((u) => u.id === upId)
         if (!up) continue
         if (up.prereqIds?.some((p) => !this.purchasedUpgradeIds.has(p))) {
-          this.credits += up.creditCost
+          this.applyCreditDelta(up.creditCost)
           this.purchasedUpgradeIds.delete(upId)
           this.purchasedUpgradePhase.delete(upId)
           changed = true
@@ -4320,7 +4350,6 @@ export class BaseDefenseGame {
     this.inactiveTimeLeftSec = 0
     this.configureWaveVariantPool()
 
-    this.emitAudio({ type: 'wave_start' })
     this.emitState()
   }
 
@@ -4359,8 +4388,13 @@ export class BaseDefenseGame {
     this.occupied.clear()
 
     this.isLost = false
+    this.statsMoneyEarned = 0
+    this.statsMoneySpent = 0
+    this.statsPowerProduced = 0
+    this.statsAsteroidsKilled = 0
+    this.statsBuildingPlacements.clear()
     // Early game starts faster: more money, more power, more supply from the Command Center.
-    this.credits = 1200
+    this.credits = 1550
     this.powerCap = 45
     this.powerStored = 45
     this.supplyCap = 0
@@ -5360,7 +5394,7 @@ export class BaseDefenseGame {
       if (!ok) ok = this.hasKingpinTurretNearProcessor(proc, r)
       if (!ok) continue
       const base = scrapFutures ? 48 : 34
-      this.credits += Math.round(base * VARS.E * (1 + this.wave * 0.024))
+      this.applyCreditDelta(Math.round(base * VARS.E * (1 + this.wave * 0.024)))
       paid = true
     }
   }
@@ -5508,6 +5542,7 @@ export class BaseDefenseGame {
     }
 
     // Power is a stored resource produced over time and drained by active buildings.
+    this.statsPowerProduced += gen * dt
     this.powerStored = clamp(this.powerStored + gen * dt - drain * dt, 0, this.powerCap)
 
     if (this.heroId === 'jupiter' && this.purchasedUpgradeIds.has('hero_jupiter_emergency_generator')) {
@@ -5529,8 +5564,7 @@ export class BaseDefenseGame {
         if (this.heroId === 'kingpin' && (b.defId === 'refinery' || b.defId === 'mega_refinery')) {
           payout *= this.getKingpinDecoderRefineryMul(b)
         }
-        const nextCredits = this.credits + payout
-        this.credits = Math.max(0, nextCredits)
+        this.applyCreditDelta(payout)
       }
     }
 
@@ -5543,7 +5577,7 @@ export class BaseDefenseGame {
         const wealthBonus = 1 + Math.min(2.35, this.credits / 3200)
         let add = baseRate * wealthBonus * dt
         if (this.purchasedUpgradeIds.has('hero_kingpin_compound_interest')) add *= 1.24
-        this.credits += add
+        this.applyCreditDelta(add)
       }
     }
 
@@ -5677,7 +5711,7 @@ export class BaseDefenseGame {
         p.evadeTimer = 0
       }
       const eff = this.getEffectiveDef(home.defId) ?? home.def
-      const speed = eff.projectileSpeed ?? 20
+      const speed = ARCHANGEL_PLANE_FLIGHT_SPEED
       const cx = home.origin.x + (home.def.size.w - 1) / 2
       const cz = home.origin.z + (home.def.size.h - 1) / 2
       const hx = p.slot === 0 ? -0.55 : 0.55
@@ -5708,7 +5742,7 @@ export class BaseDefenseGame {
             if (plants > 0 && p.bullets < p.maxBullets - 1e-3 && this.credits > 1e-4) {
               const creditBudget = 0.82 * plants * dt * m.munitionsMul
               const spend = Math.min(creditBudget, this.credits)
-              this.credits -= spend
+              this.applyCreditDelta(-spend)
               const room = p.maxBullets - p.bullets
               p.bullets = Math.min(p.maxBullets, p.bullets + Math.min(room, spend * 1.42))
             }
@@ -5718,7 +5752,7 @@ export class BaseDefenseGame {
             if (factories > 0 && p.missiles < p.maxMissiles - 1e-4 && this.credits > 1e-4) {
               const creditBudget = 1.05 * factories * dt * m.missileFactoryMul
               const spend = Math.min(creditBudget, this.credits)
-              this.credits -= spend
+              this.applyCreditDelta(-spend)
               const room = p.maxMissiles - p.missiles
               p.missiles = Math.min(p.maxMissiles, p.missiles + Math.min(room, spend * 0.056))
             }
@@ -5728,6 +5762,14 @@ export class BaseDefenseGame {
         const ordFull =
           p.role === 'gunship' ? p.bullets >= p.maxBullets - 0.35 : p.missiles >= p.maxMissiles - 0.04
         if (fuelFull && ordFull) {
+          if (waveOn && anyAsteroids) {
+            if (p.padLaunchStagger === undefined) p.padLaunchStagger = Math.random() * 1.05
+            p.padLaunchStagger -= dt
+            if (p.padLaunchStagger > 0) {
+              continue
+            }
+            p.padLaunchStagger = undefined
+          }
           p.fuel = p.maxFuel
           if (p.role === 'gunship') p.bullets = p.maxBullets
           else p.missiles = p.maxMissiles
@@ -5753,6 +5795,7 @@ export class BaseDefenseGame {
         const lenHome = toHome.length()
         if (lenHome < HOME_RZ && Math.abs(p.mesh.position.y - PLANE_ALT) < 1.6) {
           p.state = 'refuel'
+          p.padLaunchStagger = undefined
           continue
         }
         const stepHome = Math.min(speed * dt, lenHome)
@@ -5778,8 +5821,23 @@ export class BaseDefenseGame {
       }
 
       let target = p.targetId ? this.asteroids.find((a) => a.id === p.targetId && a.alive) : null
+      if (target) {
+        const hDist = Math.hypot(
+          target.mesh.position.x - p.mesh.position.x,
+          target.mesh.position.z - p.mesh.position.z,
+        )
+        if (hDist <= ARCHANGEL_MIN_TARGET_TILE_DIST) {
+          p.targetId = null
+          target = null
+          if (p.role === 'bomber' && p.bomberBurstLeft > 0) {
+            p.bomberBurstLeft = 0
+            p.bomberBurstGapTimer = 0
+            p.bomberBurstRestTimer = Math.max(p.bomberBurstRestTimer, BOMBER_BURST_REST)
+          }
+        }
+      }
       if (!target && p.evadeTimer <= 0) {
-        target = this.findNearestAliveAsteroid(p.mesh.position)
+        target = this.pickRandomEngageTarget(p.mesh.position)
         p.targetId = target?.id ?? null
       }
       if (p.evadeTimer > 0) {
@@ -5865,7 +5923,7 @@ export class BaseDefenseGame {
           }
         }
       } else if (anyAsteroids) {
-        const wander = this.findNearestAliveAsteroid(p.mesh.position)
+        const wander = this.pickRandomEngageTarget(p.mesh.position)
         if (wander) {
           const wp = wander.mesh.position
           const toW = this.tmpAimVec.copy(wp).sub(p.mesh.position)
@@ -5916,9 +5974,8 @@ export class BaseDefenseGame {
         this.spawnWindowEnded = false
         this.spawnWindowDurationSec = 0
         this.spawnWindowElapsedSec = 0
-        this.emitAudio({ type: 'wave_cleared' })
         if (this.heroId === 'kingpin' && this.purchasedUpgradeIds.has('hero_kingpin_hazard_pay')) {
-          this.credits += Math.round((72 + this.wave * 20) * VARS.E)
+          this.applyCreditDelta(Math.round((72 + this.wave * 20) * VARS.E))
         }
         this.emitState()
       }
@@ -6044,7 +6101,10 @@ export class BaseDefenseGame {
 
     // Player-caused kills grant credits by asteroid type.
     if (reason !== 'impact') {
-      this.credits += Math.round(this.getAsteroidKillReward(a) * (1 + this.wave * 0.025))
+      this.applyCreditDelta(
+        Math.round(this.getAsteroidKillReward(a) * VARS.asteroidKillCreditMul * (1 + this.wave * 0.025)),
+      )
+      this.statsAsteroidsKilled += 1
     }
 
     if (reason === 'combat' && this.heroId === 'jupiter' && a.radarMarkTimer > 0) {
@@ -6707,7 +6767,7 @@ export class BaseDefenseGame {
             b.cooldown = Math.max(b.cooldown, 0.16)
             continue
           }
-          this.credits -= shotC
+          this.applyCreditDelta(-shotC)
         }
         if (!this.tryConsumeShotPower(dCombat, 1, wc)) continue
         if ((dCombat.aoeRadius ?? 0) > 0.01) {
@@ -7018,7 +7078,7 @@ export class BaseDefenseGame {
     const dmg =
       (d.damage ?? 52) * dt * this.getNovaWeaponDamageMul(b) * this.getJupiterOverclockFireRateMul(b)
     target.hp -= dmg * this.getRadarMarkedDamageMul(target)
-    this.credits += dmg * 0.092
+    this.applyCreditDelta(dmg * 0.092)
     this.spawnShot(origin, target.mesh.position, 0xf472b6)
     if (target.hp <= 0) {
       target.alive = false
@@ -7875,7 +7935,7 @@ export class BaseDefenseGame {
       !this.suppressKingpinScavenge &&
       destroyedDef.id !== 'command_center'
     ) {
-      this.credits += Math.round(destroyedDef.creditCost * 0.22)
+      this.applyCreditDelta(Math.round(destroyedDef.creditCost * 0.22))
     }
     if (destroyedDef.id === 'jupiter_mass_relay' && this.jupiterRelayPool) {
       const contrib = this.getBuildingMaxHp(b)
@@ -7936,7 +7996,7 @@ export class BaseDefenseGame {
     if (this.waveInProgress) {
       const canRebuild = this.findReconstructionYardNear(destroyedCenter.x, destroyedCenter.z)
       if (canRebuild && this.credits >= destroyedDef.creditCost * 0.5) {
-        this.credits -= destroyedDef.creditCost * 0.5
+        this.applyCreditDelta(-destroyedDef.creditCost * 0.5)
         this.placeBuilding(destroyedDef, destroyedOrigin.x, destroyedOrigin.z, true)
         const rebuilt = this.buildings[this.buildings.length - 1]
         rebuilt.builtInInactivePhase = -1
@@ -7984,7 +8044,7 @@ export class BaseDefenseGame {
 
     // 100% refund for buildings placed this inactive phase, otherwise 50%.
     const fullRefund = !this.waveInProgress && top.builtInInactivePhase === this.currentInactivePhase
-    this.credits += fullRefund ? top.def.creditCost : Math.floor(top.def.creditCost * 0.5)
+    this.applyCreditDelta(fullRefund ? top.def.creditCost : Math.floor(top.def.creditCost * 0.5))
     this.emitAudio({ type: 'build_sell' })
     top.hp = 0
     this.suppressKingpinScavenge = true
@@ -8033,7 +8093,7 @@ export class BaseDefenseGame {
     if (!this.isAreaClearWithPadding(ox, oz, def.size.w, def.size.h, 1)) return
 
     // commit
-    this.credits -= placeCost
+    this.applyCreditDelta(-placeCost)
     this.placeBuilding(def, ox, oz, false)
     this.emitAudio({ type: 'build_place' })
     this.emitState()
@@ -8122,6 +8182,7 @@ export class BaseDefenseGame {
       econTimer: 0,
     }
     this.buildings.push(placed)
+    this.statsBuildingPlacements.set(def.id, (this.statsBuildingPlacements.get(def.id) ?? 0) + 1)
     if (def.id === 'jupiter_mass_relay') {
       const m = this.getBuildingMaxHp(placed)
       if (!this.jupiterRelayPool) {
@@ -9565,7 +9626,7 @@ export class BaseDefenseGame {
       mesh,
       target,
       targetId: target?.id ?? null,
-      mode: 'retarget',
+      mode: 'death_location',
       noSplash: false,
       volleyId: null,
       lastKnownTargetPos: target ? target.mesh.position.clone() : origin.clone(),
@@ -9599,6 +9660,24 @@ export class BaseDefenseGame {
       }
     }
     return best
+  }
+
+  /** Prefer a random rock among the nearest few so Archangel planes do not stack on one target. `pos` is the plane position. */
+  private pickRandomEngageTarget(pos: THREE.Vector3): Asteroid | null {
+    const alive = this.asteroids.filter((a) => a.alive)
+    if (alive.length === 0) return null
+    const hz = (a: Asteroid) => Math.hypot(a.mesh.position.x - pos.x, a.mesh.position.z - pos.z)
+    const farEnough = alive.filter((a) => hz(a) > ARCHANGEL_MIN_TARGET_TILE_DIST)
+    let candidates: Asteroid[]
+    if (farEnough.length > 0) {
+      candidates = [...farEnough].sort((a, b) => hz(a) - hz(b))
+    } else {
+      // Every rock is within min distance of this plane — pick among the farthest from the plane so it still has a job.
+      candidates = [...alive].sort((a, b) => hz(b) - hz(a))
+    }
+    if (candidates.length === 1) return candidates[0]
+    const pool = candidates.slice(0, Math.min(14, candidates.length))
+    return pool[Math.floor(Math.random() * pool.length)] ?? candidates[0]
   }
 
   private spawnBallistic(
@@ -9710,6 +9789,14 @@ export class BaseDefenseGame {
     const asteroidDiscovery = this.activeAsteroidDiscovery
       ? { variant: this.activeAsteroidDiscovery, ...this.getAsteroidVariantInfo(this.activeAsteroidDiscovery) }
       : null
+    let mostCommonBuildingLabel = '—'
+    let bestPlaced = 0
+    for (const [bid, n] of this.statsBuildingPlacements) {
+      if (n > bestPlaced) {
+        bestPlaced = n
+        mostCommonBuildingLabel = BUILDINGS.find((b) => b.id === bid)?.label ?? bid
+      }
+    }
     this.onStateChange?.({
       credits: Math.floor(this.credits),
       supplyUsed: Math.floor(this.supplyUsed),
@@ -9725,6 +9812,13 @@ export class BaseDefenseGame {
       asteroidsRemaining,
       asteroidDiscovery,
       heroId: this.heroId,
+      runStats: {
+        moneyEarned: Math.round(this.statsMoneyEarned),
+        moneySpent: Math.round(this.statsMoneySpent),
+        powerProduced: Math.round(this.statsPowerProduced),
+        asteroidsKilled: this.statsAsteroidsKilled,
+        mostCommonBuildingLabel,
+      },
       unlockedBuildingIds: [...this.unlockedBuildingIds],
       purchasedUpgradeIds: [...this.purchasedUpgradeIds],
       refundableUpgradeIds,

@@ -32,9 +32,6 @@ export class GameAudioEngine {
     empBurst: sfx('/audio/sfx/emp_burst.ogg', 0.75),
     /** Quiet placement tick (separate from door UI sounds). */
     buildPlace: sfx('/audio/sfx/door_open.ogg', 0.14),
-    /** Distinct stingers for wave lifecycle */
-    waveStart: sfx('/audio/sfx/thr_whoosh.ogg', 0.56),
-    waveCleared: sfx('/audio/sfx/computer.ogg', 0.58),
   }
 
   /** Dark sci-fi ambience / loops (OGG + MP3); see `public/audio/ATTRIBUTION.md`. */
@@ -92,10 +89,7 @@ export class GameAudioEngine {
     if (!this.unlocked) return
     switch (e.type) {
       case 'wave_start':
-        this.sfx.waveStart.play()
-        break
       case 'wave_cleared':
-        this.sfx.waveCleared.play()
         break
       case 'asteroid_impact':
         this.sfx.explosionLow.play()
@@ -124,9 +118,11 @@ export class GameAudioEngine {
       case 'build_place':
         this.sfx.buildPlace.play()
         break
-      case 'build_sell':
-        this.sfx.doorClose.play()
+      case 'build_sell': {
+        const id = this.sfx.doorClose.play()
+        window.setTimeout(() => this.sfx.doorClose.stop(id), 72)
         break
+      }
       case 'upgrade_purchase':
         this.sfx.computer.play()
         break

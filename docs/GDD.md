@@ -1,226 +1,183 @@
-# Meteor Base Defense — Game Design Document (GDD)
+# Meteor Base Defense — What each structure is for
 
-Living reference for structure IDs, upgrade IDs, and high-level design. **Implementation source of truth** remains `src/game/BaseDefenseGame.ts` (and `src/App.tsx` for UI).
+Plain-language design intent: what the player is *supposed* to feel each building is for. Balance and exact behavior live in the game code.
 
----
+You defend a grid base against asteroid waves. **Command centers** are your lifeline—lose them all and the run ends. **Credits** pay for construction, **supply** limits how much you can build, and **power** keeps industry and many weapons running during combat.
 
-## Naming note: “Mega-Complex” vs “Mega Factory”
-
-- **Upgrade** `factory_megacomplex_mk2` is labeled **“Mega-Complex Level 2”** in the skill tree.
-- It modifies the building **`factory_megacomplex`**, whose **wheel / HUD label** is **“Mega Factory”** (tier-3 credit factory: Business → Factory → **Mega Factory**).
-- **Unlock** `unlock_megacomplex` describes unlocking the “Mega-Complex” building — same entity as **Mega Factory**.
-
-**Recommendation:** Rename the upgrade (and unlock copy) to **“Mega Factory Level 2”** (or “Mega Factory MK2”) everywhere player-facing so it matches the build wheel.
+**Naming:** The skill tree sometimes says “Mega-Complex” while the build wheel says **Mega Factory** for the same top-tier factory. Worth aligning the words everywhere players see them.
 
 ---
 
-## 1. High concept
+## Core and logistics (neutral)
 
-Top-down / first-person hybrid **base builder** and **tower defense** against **asteroid waves**. Players place structures on a grid during **inactive** phases; **active waves** spawn asteroids that damage the base on impact. **Command centers** are the lose condition: when none remain, the run ends.
+**Command Center** — Your headquarters. It’s meant to anchor the base: it raises how much you can build, trickles in credits, and contributes a little power so the early grid isn’t dead weight. It’s the thing you protect above all else.
 
----
+**Supply Depot (small and large)** — These exist so you can **afford more structures**. They don’t fight; they expand your build budget. The large one is the same job with a bigger footprint and a bigger bump to capacity.
 
-## 2. Core loop
+**Repair Bay** — Sends repair drones to hurt buildings. The fantasy is **surgical recovery**: something got chipped by a rock or splash, and this facility chases the damage down instead of waiting for passive fixes.
 
-1. **Inactive phase** — Build, sell (RMB), open build wheel (C), skill tree (U), commander research (R), purchase/refund upgrades.
-2. **Start wave** — Space (manual) or timer (auto); **combat phase** begins.
-3. **Active wave** — Spawning + combat; economy and power tick; placement/sell typically disabled during wave (per game rules).
-4. **Wave clear** — All asteroids destroyed after spawn window; return to inactive or game over.
+**Support Node** — A small relay that periodically **heals everything nearby** at the cost of power. It’s for blanket upkeep around a cluster of important buildings, not precision drone work.
 
----
-
-## 3. Resources
-
-| Resource | Role |
-|----------|------|
-| **Credits** | Build costs, some hero mechanics (e.g., Slag shots, Kingpin investment scaling). |
-| **Supply** | Cap on placed structures; depots raise cap. |
-| **Power** | Stored energy; generation vs. drain; many producers/consumers require power during waves. |
+**Reconstruction Yard** — Insurance. When something is destroyed, this is meant to **bring it back** (at a discount) if it was inside its coverage—so a bad wave doesn’t permanently erase your layout.
 
 ---
 
-## 4. Commanders (`HeroId`)
+## Economy (neutral)
 
-| ID | Theme (short) |
-|----|----------------|
-| `archangel` | Air units: gunships, bombers, fueling, munitions. |
-| `dominion` | Heavy weapons, orbital, flak, drones, support bay. |
-| `nova` | Gravity well, photon projectors, shockwave pulsar, forcefield, power banks. |
-| `citadel` | Conduit auras affecting repair, build discount, defense, attack, efficiency, range. |
-| `jupiter` | Mass relays, arc thrower, radar, recon drone, battery complex, overclock. |
-| `kingpin` | Economic structures, refinery auras, mineral salvage, credit-fired Slag Cannon. |
+**Business** — The starter money building. It’s meant to be cheap to slot in and teach that **economy costs power**, not just credits.
 
-Commander-specific **buildings** use `category: 'hero'` and `heroId`. Neutral buildings omit `heroId`.
+**Factory** — A step up: larger footprint, better payouts, still the “normal” industrial backbone of the mid-game.
 
----
+**Mega Factory** — The heavy end of the neutral factory line. It’s meant to be a **credit powerhouse** that demands serious power and supply—you commit grid space and infrastructure to it.
 
-## 5. Building categories (build wheel)
+**Refinery** and **Mega Refinery** — Fast, punchy income tuned for **high throughput and high power draw**. The idea is “burstier cash” than factories, with a smaller refinery for tight layouts and a mega version when you’ve stabilized the grid.
 
-Order in UI: **structural → economy → electrical → turrets → missile → energy → hero** (hero tab label shows current commander).
+**Chemical Installation** — A risky high-tech earner. It’s meant to pay well but **punish careless packing**: the fantasy is toxic runoff or volatile chemistry hurting neighbors if you stack bases too tight.
 
 ---
 
-## 6. Structures — complete list
+## Power grid (neutral)
 
-All entries are `BuildingId` values. **Label** is the primary player-facing name in `BUILDINGS`.
+**Generator (small and large)** — Straightforward: turn space into **steady power**. Small for early expansion, large for when one big block is better than many tiny ones.
 
-### 6.1 Neutral (no `heroId`)
+**Battery (small and large)** — **Headroom** for the grid. They don’t create energy; they let you store spikes from weapons and refill between waves so defenses don’t brown out the moment everything fires at once.
 
-| ID | Label (typical) | Category |
-|----|------------------|----------|
-| `command_center` | Command Center | structural |
-| `supply_depot_s` | Supply Depo (S) | structural |
-| `supply_depot_l` | Supply Depo (L) | structural |
-| `repair_bay` | Repair Bay | structural |
-| `support_node` | Support Node | structural |
-| `reconstruction_yard` | Reconstruction Yard | structural |
-| `factory_business` | Business | economy |
-| `factory_factory` | Factory | economy |
-| `factory_megacomplex` | **Mega Factory** | economy |
-| `refinery` | Refinery | economy |
-| `mega_refinery` | Mega Refinery | economy |
-| `chemical_installation` | Chemical Installation | economy |
-| `generator_small` | Generator (S) | electrical |
-| `generator_large` | Generator (L) | electrical |
-| `battery_small` | Battery (S) | electrical |
-| `battery_large` | Battery (L) | electrical |
-| `pylon` | Pylon | electrical |
-| `nuclear_plant` | Nuclear Plant | electrical |
-| `auto_turret` | Auto-Turret | turrets |
-| `auto_turret_large` | Auto-Turret (L) | turrets |
-| `siege_cannon` | Siege Cannon | turrets |
-| `heavy_siege_gun` | Heavy Siege Cannon | turrets |
-| `aa_gun` | AA Gun | turrets |
-| `railgun` | Railgun | turrets |
-| `missile_launcher_s` | Missile Launcher (S) | missile |
-| `missile_launcher_m` | Missile Launcher (M) | missile |
-| `portable_silo` | Portable Silo | missile |
-| `missile_silo` | Missile Silo | missile |
-| `nuclear_silo` | Nuclear Silo | missile |
-| `hydra_launcher` | Hydra Launcher | missile |
-| `shield_generator_m` | Shield Generator (M) | energy |
-| `shield_generator_l` | Shield Generator (L) | energy |
-| `tesla_tower` | Tesla Tower | energy |
-| `plasma_laser_s` | Plasma Laser (S) | energy |
-| `plasma_laser_m` | Plasma Laser (M) | energy |
-| `plasma_laser_l` | Plasma Laser (L) | energy |
+**Pylon** — Part of a **network**: weak alone, meaningful when linked with other pylons. The intent is a secondary path to power that rewards placement patterns and carries a risk (damaged pylons aren’t harmless to their neighbors).
 
-### 6.2 Archangel
-
-| ID | Label |
-|----|--------|
-| `archangel_airfield` | Airfield |
-| `archangel_starport` | Starport |
-| `archangel_fueling_station` | Fueling Station |
-| `archangel_bulk_fueling_station` | Bulk Fueling Station |
-| `archangel_munitions_plant` | Munitions Plant |
-| `archangel_missile_factory` | Missile Factory |
-
-### 6.3 Dominion
-
-| ID | Label |
-|----|--------|
-| `dominion_orbital_cannon` | Orbital Cannon |
-| `dominion_flak_gun` | Flak Gun |
-| `dominion_seeker_drone_spawner` | Seeker Drone Spawner |
-| `dominion_defensive_bunker` | Defensive Bunker |
-| `dominion_laser_drill` | Laser Drill |
-| `dominion_support_bay` | Support Bay |
-
-### 6.4 Nova
-
-| ID | Label |
-|----|--------|
-| `nova_gravity_well` | Gravity Well |
-| `nova_photon_projector_s` | Photon Projector (S) |
-| `nova_photon_projector_l` | Photon Projector (L) |
-| `nova_shockwave_pulsar` | Shockwave Pulsar |
-| `nova_universal_forcefield` | Universal Forcefield |
-| `nova_power_bank` | Power Bank |
-
-### 6.5 Citadel
-
-| ID | Label |
-|----|--------|
-| `citadel_repair_conduit` | Repair Conduit |
-| `citadel_construction_conduit` | Construction Conduit |
-| `citadel_defense_conduit` | Defense Conduit |
-| `citadel_attack_conduit` | Attack Conduit |
-| `citadel_efficiency_conduit` | Efficiency Conduit |
-| `citadel_range_conduit` | Range Conduit |
-
-### 6.6 Jupiter
-
-| ID | Label |
-|----|--------|
-| `jupiter_mass_relay` | Mass Relay |
-| `jupiter_arc_thrower` | Arc Thrower |
-| `jupiter_overclock_augment` | Overclock Augment |
-| `jupiter_radar_station` | Radar Station |
-| `jupiter_recon_drone` | Recon Drone |
-| `jupiter_battery_complex` | Battery Complex |
-
-### 6.7 Kingpin
-
-| ID | Label |
-|----|--------|
-| `kingpin_data_array` | Data Array |
-| `kingpin_investment_complex` | Investment Complex |
-| `kingpin_cryptographic_decoder` | Cryptographic Decoder |
-| `kingpin_indoctrinated_labor` | Indoctrinated Labor |
-| `kingpin_mineral_processor` | Mineral Processor |
-| `kingpin_slag_cannon` | Slag Cannon |
+**Nuclear Plant** — Maximum baseline generation at a **ongoing credit cost**. The fantasy is you’re buying raw output by running something expensive and politically ugly—fine when you’re rich, painful when you’re broke.
 
 ---
 
-## 7. Upgrades — complete ID list
+## Ballistic and rail defenses (neutral)
 
-**Global** upgrades have no `heroId`. **Commander** upgrades include `heroId` and appear only for that hero’s research panel.
+**Auto-Turret** — The workhorse anti-asteroid gun: **high rate of fire**, modest per-shot punch, hungry for power. It’s meant to chew through swarms and chip big targets over time.
 
-Exact **labels, costs, descriptions, prerequisites, unlocks, and numeric modifiers** live in `UPGRADES_RAW` / `UPGRADES` in code. Below is the **exhaustive ID inventory** from `UpgradeId`.
+**Auto-Turret (large)** — Same role, bigger platform: more durability, more DPS, more supply and power commitment.
 
-### 7.1 Global — core progression
+**Siege Cannon** — **Slow, long-range artillery** for big rocks. You trade cadence for single-shot impact—ideal when asteroids have time to cross the map.
 
-`core_protocol`, `unlock_factory`, `unlock_megacomplex`, `turret_targeting`, `generator_efficiency`, `unlock_turret_t2`, `unlock_railgun`, `turret_range_1`, `turret_range_2`, `turret_damage_1`, `turret_damage_2`, `unlock_missile_silos`, `unlock_nuclear_silo`, `unlock_hydra_launcher`, `missile_payload_1`, `missile_payload_2`, `unlock_shields`, `unlock_shield_large`, `shield_capacity_1`, `shield_capacity_2`, `shield_recharge_1`, `plasma_focus_1`, `plasma_focus_2`, `tesla_coils_1`, `logistics_1`, `logistics_2`, `command_autonomy_1`, `structural_fortification_1`, `structural_fortification_2`, `structural_auto_repair`, `battery_capacity_1`, `battery_capacity_2`, `power_distribution_1`, `power_distribution_2`, `nuclear_overclock_1`, `economy_optimization_1`, `economy_optimization_2`, `unlock_refinery`, `unlock_mega_refinery`, `unlock_repair_infra`, `unlock_reconstruction_yard`, `unlock_grid_expansion`, `unlock_pylon`, `unlock_nuclear_plant`.
+**Heavy Siege Cannon** — The siege fantasy turned up: even slower, even harder hits, a **fortress piece** for the back line.
 
-### 7.2 Global — structure MK2 line
+**AA Gun** — Long reach and **splash**. It’s meant to feel like flak or burst AA—good against clusters and smaller threats at distance, not the same niche as a single-target siege tube.
 
-`command_center_mk2`, `supply_depot_s_mk2`, `supply_depot_l_mk2`, `repair_bay_mk2`, `support_node_mk2`, `reconstruction_yard_mk2`, `factory_business_mk2`, `factory_factory_mk2`, **`factory_megacomplex_mk2`**, `refinery_mk2`, `mega_refinery_mk2`, `chemical_installation_mk2`, `generator_small_mk2`, `generator_large_mk2`, `battery_small_mk2`, `battery_large_mk2`, `pylon_mk2`, `nuclear_plant_mk2`, `auto_turret_mk2`, `auto_turret_large_mk2`, `siege_cannon_mk2`, `heavy_siege_gun_mk2`, `aa_gun_mk2`, `railgun_mk2`, `missile_launcher_s_mk2`, `missile_launcher_m_mk2`, `portable_silo_mk2`, `missile_silo_mk2`, `nuclear_silo_mk2`, `hydra_launcher_mk2`, `shield_generator_m_mk2`, `shield_generator_l_mk2`, `tesla_tower_mk2`, `plasma_laser_s_mk2`, `plasma_laser_m_mk2`, `plasma_laser_l_mk2`.
-
-### 7.3 Archangel (`hero_archangel_*`)
-
-`hero_archangel_core`, `hero_archangel_unlock_bulk_fueling`, `hero_archangel_fuel_efficiency_1`, `hero_archangel_fuel_efficiency_2`, `hero_archangel_armor_piercing`, `hero_archangel_quick_reload`, `hero_archangel_tight_shift`, `hero_archangel_airfield_mk2`, `hero_archangel_starport_mk2`, `hero_archangel_fueling_mk2`, `hero_archangel_bulk_fueling_mk2`, `hero_archangel_munitions_mk2`, `hero_archangel_missile_factory_mk2`, `hero_archangel_missile_damage_1`, `hero_archangel_missile_damage_2`, `hero_archangel_missile_range_1`, `hero_archangel_missile_range_2`, `hero_archangel_missile_payload_1`, `hero_archangel_missile_payload_2`.
-
-### 7.4 Dominion (`hero_dominion_*`)
-
-`hero_dominion_core`, `hero_dominion_unlock_elite_weaponry`, `hero_dominion_unlock_advanced_tech`, `hero_dominion_extended_support`, `hero_dominion_enhanced_power`, `hero_dominion_reinforced_plating`, `hero_dominion_lead_rounds`, `hero_dominion_orbital_mk2`, `hero_dominion_flak_mk2`, `hero_dominion_bunker_mk2`, `hero_dominion_spawner_mk2`, `hero_dominion_drill_mk2`, `hero_dominion_support_mk2`, `hero_dominion_turret_damage_1`, `hero_dominion_turret_damage_2`, `hero_dominion_turret_range_1`, `hero_dominion_turret_range_2`, `hero_dominion_turret_rof_1`, `hero_dominion_turret_rof_2`.
-
-### 7.5 Nova (`hero_nova_*`)
-
-`hero_nova_core`, `hero_nova_unlock_advanced_weaponry`, `hero_nova_unlock_forcefield`, `hero_nova_shield_implosion`, `hero_nova_energized_power_bank`, `hero_nova_fission_blast`, `hero_nova_stasis_surge`, `hero_nova_gravity_well_mk2`, `hero_nova_photon_s_mk2`, `hero_nova_photon_l_mk2`, `hero_nova_shockwave_mk2`, `hero_nova_forcefield_mk2`, `hero_nova_power_bank_mk2`, `hero_nova_energy_damage_1`, `hero_nova_energy_damage_2`, `hero_nova_energy_range_1`, `hero_nova_energy_range_2`, `hero_nova_energy_cycle_1`, `hero_nova_energy_cycle_2`.
-
-### 7.6 Citadel (`hero_citadel_*`)
-
-`hero_citadel_core`, `hero_citadel_struct_grid_1`, `hero_citadel_struct_grid_2`, `hero_citadel_command_fortress`, `hero_citadel_conduit_integrity`, `hero_citadel_supply_lines`, `hero_citadel_industrial_shell`, `hero_citadel_repair_conduit_mk2`, `hero_citadel_construction_conduit_mk2`, `hero_citadel_defense_conduit_mk2`, `hero_citadel_attack_conduit_mk2`, `hero_citadel_efficiency_conduit_mk2`, `hero_citadel_range_conduit_mk2`, `hero_citadel_defense_centers`, `hero_citadel_enhanced_conductivity`, `hero_citadel_sophisticated_repairs`, `hero_citadel_last_stand`, `hero_citadel_focused_power`, `hero_citadel_unlock_advanced_conduits`.
-
-### 7.7 Jupiter (`hero_jupiter_*`)
-
-`hero_jupiter_core`, `hero_jupiter_unlock_support_machines`, `hero_jupiter_unlock_advanced_electrical`, `hero_jupiter_unlock_arc_thrower`, `hero_jupiter_grid_tuning_1`, `hero_jupiter_grid_tuning_2`, `hero_jupiter_capacitance_1`, `hero_jupiter_capacitance_2`, `hero_jupiter_transmission_lines`, `hero_jupiter_emergency_shunts`, `hero_jupiter_induction_weave`, `hero_jupiter_mass_relay_mk2`, `hero_jupiter_arc_thrower_mk2`, `hero_jupiter_overclock_mk2`, `hero_jupiter_radar_mk2`, `hero_jupiter_recon_drone_mk2`, `hero_jupiter_battery_complex_mk2`, `hero_jupiter_enhanced_pinging`, `hero_jupiter_emergency_generator`, `hero_jupiter_arc_supercharge`.
-
-### 7.8 Kingpin (`hero_kingpin_*`)
-
-`hero_kingpin_core`, `hero_kingpin_unlock_advanced_economic_solutions`, `hero_kingpin_unlock_production_enhancements`, `hero_kingpin_unlock_slag_cannon`, `hero_kingpin_factory_dividends_1`, `hero_kingpin_factory_dividends_2`, `hero_kingpin_refinery_contracts_1`, `hero_kingpin_refinery_contracts_2`, `hero_kingpin_venture_capital`, `hero_kingpin_energy_arbitrage`, `hero_kingpin_data_array_mk2`, `hero_kingpin_investment_complex_mk2`, `hero_kingpin_cryptographic_decoder_mk2`, `hero_kingpin_indoctrinated_labor_mk2`, `hero_kingpin_mineral_processor_mk2`, `hero_kingpin_slag_cannon_mk2`, `hero_kingpin_hazard_pay`, `hero_kingpin_insider_discounts`, `hero_kingpin_scavenging`, `hero_kingpin_compound_interest`, `hero_kingpin_signal_amplification`, `hero_kingpin_scrap_futures`.
+**Railgun** — A **capital weapon** that eats stored energy instead of a constant trickle drain. The intent is spike damage and piercing fantasy: you bank power, then delete something important.
 
 ---
 
-## 8. Asteroid variants (reference)
+## Missiles (neutral)
 
-`normal`, `splitter`, `explosive`, `meteor`, `seeker`, `planet`, `gold`, `spawner`, `emp`, `colossus` — behaviors and rewards are implemented in `BaseDefenseGame.ts`.
+**Missile Launcher (S and M)** — Reliable **guided missiles** with area damage—middle of the road range, rate, and blast. S is compact; M is the same idea scaled up.
+
+**Portable Silo** — A **compact silo** with slow shots and big booms—meant for tight bases that still want retargeting heavy missiles.
+
+**Missile Silo** and **Nuclear Silo** — Escalating **endgame silos**: huge range, huge payloads, long reloads. The player fantasy is “I saved for this, and now the sky falls.”
+
+**Hydra Launcher** — A **volley** system: many small hits in quick succession with little or no splash. It’s meant to feel like saturation fire—strip shields, stress many targets—rather than one nuclear-style bubble.
 
 ---
 
-## 9. Related docs
+## Shields and energy weapons (neutral)
 
-- `docs/BALANCE_AND_EXCEL.md` — balance philosophy and external tooling.
-- `docs/BALANCE_PIPELINE.md` — how we can move numbers to data files in safe phases.
-- `docs/PERFORMANCE_PLAN.md` — runtime optimization roadmap.
+**Shield Generator (medium and large)** — Local **domes** that absorb hits for buildings underneath until the shield breaks, then need power to come back. Medium is the default unlock; large is the same fantasy with a wider bubble and heavier upkeep.
+
+**Tesla Tower** — **Short-range, constant zaps**—the “everything in this radius melts” tower. High power draw matches the fantasy of an always-on coil.
+
+**Plasma Laser (S, M, L)** — **Sustained beams at long range**—damage-over-time pressure on single targets (or whatever the beam is touching). Sizes step up commitment, reach, and throughput.
+
+---
+
+## Archangel (commander)
+
+**Airfield** — Deploys **gunships** that stream fire downrange. The intent is mobile air DPS that depends on fuel and bullets—you’re running a mini airbase, not a static turret.
+
+**Starport** — Deploys **bombers** with slow, heavy missiles. Fantasy is fewer shots, bigger pops; same logistics loop as the airfield but aimed at chunky targets and clusters.
+
+**Fueling Station** and **Bulk Fueling Station** — Keep planes **airworthy during waves**. More stations mean faster turnaround; bulk is the large-footprint version for serious air economies.
+
+**Munitions Plant** and **Missile Factory** — **Loadout buildings**: one feeds gunship rounds, the other bomber ordnance while craft are on the pad. They’re meant to make air power feel like supply chain gameplay, not free damage.
+
+---
+
+## Dominion (commander)
+
+**Orbital Cannon** — **Global strike fantasy**: one enormous shot on a long timer, meant to delete or cripple something anywhere on the map and feel like you called down the hammer.
+
+**Flak Gun** — **Anti-air style** work at long range with splash and secondary shrapnel. It’s meant to punish high targets and groups, with positioning rules that make it different from ground-hugging autocannons.
+
+**Seeker Drone Spawner** — Launches drones that **cling to asteroids** and grind them down while slowing them—control and chip damage, not burst.
+
+**Defensive Bunker** — A **tough, general-purpose ballistic nest**: durable, medium range, steady fire—your “reliable line infantry” emplacement.
+
+**Laser Drill** — A weapon that **pays you while it fires**—mining fantasy tied to combat; you’re melting rocks for salvage as well as defense.
+
+**Support Bay** — **Dropship healing** over a wide area, faster and punchier than scattered small nodes. The intent is mobile triage for a battered front line.
+
+---
+
+## Nova (commander)
+
+**Gravity Well** — **Pulls incoming threats** toward it so you can shape waves—less raw DPS, more “I decide where the rocks go.”
+
+**Photon Projector (S and L)** — **Slow, piercing energy orbs** with trail damage—long-range line weapons meant to punch through multiple targets or saturate a lane.
+
+**Shockwave Pulsar** — A **wide, repeating shock** that mostly slows (and with upgrades can lock) asteroids. Fantasy is crowd control and tempo, not primary burst damage.
+
+**Universal Forcefield** — A **single shared barrier** over the map (or HQ region)—stackable fantasy of one umbrella shield instead of many small domes.
+
+**Power Bank** — Makes **nearby weapons cheaper in power per shot** (and can add a little offensive oomph). It’s meant to be the “efficiency aura” that lets you run more beams and missiles without rebuilding the whole grid.
+
+---
+
+## Citadel (commander)
+
+**Repair Conduit** — **Area heal pulses** like a heavy-duty support node: larger radius, stronger role as the citadel’s dedicated medic structure.
+
+**Construction Conduit** — **Discounts new building** placed inside its influence. Fantasy: forward operating engineering—expand cheaper where you’ve prepared the ground.
+
+**Defense Conduit** — **Reduces impact damage** to buildings in its ward—small footprint, “harden this cluster” gameplay.
+
+**Attack Conduit** — **Amplifies damage** dealt by defenses in range—pair with choke points or turret nests.
+
+**Efficiency Conduit** — **Speeds up firing** for covered defenses—same footprint idea as attack, different knob (cadence instead of alpha).
+
+**Range Conduit** — **Extends reach** of covered weapons—meant to stretch a defensive line without moving every turret.
+
+---
+
+## Jupiter (commander)
+
+**Mass Relay** — **Shared health pool** across relays: one network, one collective durability fantasy—plus light linking behavior for power.
+
+**Arc Thrower** — **Chaining lightning** that grows nastier when you have energy banked—reward for keeping batteries filled.
+
+**Overclock Augment** — **Turbocharges adjacent defenses** while you have power—placement puzzle: tuck it against the wall that matters most.
+
+**Radar Station** — **Marks asteroids** so they take more damage and refund energy when killed—spotter / debuffer fantasy.
+
+**Recon Drone** — **Orbital coil** that zaps mid-range targets and **boosts generation** for buildings under it—map-aware support, not just damage.
+
+**Battery Complex** — Large **storage and trickle generation**, with a fantasy of “strategic reserve”—especially strong when the grid is running empty (with upgrades).
+
+---
+
+## Kingpin (commander)
+
+**Data Array** — **Infrequent huge credit dumps**—fragile, slow cycle, meant for players who like batch income and timing.
+
+**Investment Complex** — **Passive wealth** that scales with how many credits you’re already holding—compound-interest fantasy on the base itself.
+
+**Cryptographic Decoder** — **Buffs nearby refineries**—syndicate tech stealing margin from supply chains you already built.
+
+**Indoctrinated Labor** — **Removes idle power drain** on nearby factories—meant to make heavy industry feel cheaper to run once you’ve paid the moral (and placement) cost.
+
+**Mineral Processor** — **Pays credits when kills happen near linked turrets**—salvage routing: combat directly feeds the economy if you wire the base correctly.
+
+**Slag Cannon** — A **heavy gun that spends credits per shot** as well as power—meant to convert banked money into burst damage when you need a breacher.
+
+---
+
+## Related docs
+
+- `docs/BALANCE_AND_EXCEL.md` — where numbers live and export ideas.  
+- `docs/BALANCE_PIPELINE.md` — future data-driven balance.  
+- `docs/PERFORMANCE_PLAN.md` — performance work.
