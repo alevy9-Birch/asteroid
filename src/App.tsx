@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useGameAudioController } from './audio/useGameAudio'
 import { BaseDefenseGame, BUILDINGS, UPGRADES, type BuildingCategory, type BuildingId, type GameDifficulty, type HeroId, type UpgradeId } from './game/BaseDefenseGame'
 
 type State = {
@@ -96,11 +97,15 @@ function App() {
     heroId: 'archangel',
   })
 
+  const audioRef = useGameAudioController(phase, state.waveInProgress, state.gameOver)
+
   useEffect(() => {
     if (phase !== 'playing') return
     const canvas = canvasRef.current
     if (!canvas) return
     const game = new BaseDefenseGame(canvas, runConfigRef.current)
+    const audio = audioRef.current!
+    game.onAudio = (e) => audio.handleEvent(e)
     game.onStateChange = (s) => {
       setState(s)
       if (s.gameOver) {
@@ -111,6 +116,7 @@ function App() {
     game.start()
     gameRef.current = game
     return () => {
+      game.onAudio = undefined
       game.stop()
       gameRef.current = null
     }

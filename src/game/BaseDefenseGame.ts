@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { GameAudioEvent } from '../audio/types'
 
 export type BuildingId =
   | 'command_center'
@@ -81,6 +82,12 @@ type BuildingDef = {
   // Shield-specific tuning (for shield generator upgrades).
   shieldCapacityMul?: number
   shieldRechargeMul?: number
+  /** Power per second required to keep the bubble online (not healing). */
+  shieldUpkeepPowerPerSec?: number
+  /** Power per second consumed while shield is below max and regen is active (at full budget). */
+  shieldRegenPowerPerSec?: number
+  /** Width of the shield’s floating health bar (larger = “better” shield readout). */
+  shieldBarWidth?: number
 
   // Economy
   creditPayout?: number
@@ -195,7 +202,13 @@ type ShieldField = {
   maxHp: number
   radius: number
   bubble: THREE.Mesh
-  disabled: boolean
+  /** No grid power for upkeep — bubble offline, no interception. */
+  noPower: boolean
+  /** Below 10% max: no interception until healed to 100%. */
+  lowHpOffline: boolean
+  shieldBar: HealthBar
+  /** Vertical scale of bubble (1 = sphere); universal uses 0.5 for shorter dome. */
+  scaleY: number
 }
 
 type Ballistic = {
@@ -441,8 +454,9 @@ export type UpgradeDef = {
   modifiers?: Partial<Record<BuildingId, BuildingModifier>>
 }
 
-const BOARD_SIZE = 101
-const HALF = Math.floor(BOARD_SIZE / 2) // 50
+/** Origin-centered playable grid: BOARD_SIZE × BOARD_SIZE cells (odd → integer cell coordinates). */
+const BOARD_SIZE = Math.max(3, Math.round(101 * 0.8) | 1) // ~20% smaller than legacy 101×101
+const HALF = Math.floor(BOARD_SIZE / 2)
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 const key = (x: number, z: number) => `${x}:${z}`
@@ -933,10 +947,13 @@ export const BUILDINGS: BuildingDef[] = [
     supplyCost: 10,
     kind: 'shield',
     range: 12,
-    powerDrainPerSec: 5.5 * VARS.P,
+    powerDrainPerSec: 0,
     shieldCapacityMul: 1,
     shieldRechargeMul: 1,
-    wheelDetails: () => ['Medium shield dome', 'Constant power + recharge draw'],
+    shieldUpkeepPowerPerSec: 3.6 * VARS.P,
+    shieldRegenPowerPerSec: 5.8 * VARS.P,
+    shieldBarWidth: 3.5,
+    wheelDetails: () => ['Own dome + shield HP bar', 'Upkeep keeps it online; regen costs extra power'],
   },
   {
     id: 'shield_generator_l',
@@ -949,10 +966,13 @@ export const BUILDINGS: BuildingDef[] = [
     supplyCost: 18,
     kind: 'shield',
     range: 24,
-    powerDrainPerSec: 10.5 * VARS.P,
+    powerDrainPerSec: 0,
     shieldCapacityMul: 1,
     shieldRechargeMul: 1,
-    wheelDetails: () => ['Large shield dome', 'Higher upkeep and shield capacity'],
+    shieldUpkeepPowerPerSec: 7.6 * VARS.P,
+    shieldRegenPowerPerSec: 11.5 * VARS.P,
+    shieldBarWidth: 5.2,
+    wheelDetails: () => ['Stronger dome + larger shield bar', 'Higher upkeep/regen draw than medium'],
   },
   {
     id: 'tesla_tower',
@@ -1266,7 +1286,7 @@ export const BUILDINGS: BuildingDef[] = [
     creditCost: Math.round(760 * VARS.C),
     supplyCost: 7,
     powerDrainPerSec: 0.52 * VARS.P,
-    range: 34,
+    range: 68,
     fireRate: 0.17,
     damage: 16,
     aoeRadius: 24,
@@ -1283,10 +1303,15 @@ export const BUILDINGS: BuildingDef[] = [
     maxHp: 2200,
     creditCost: Math.round(1680 * VARS.C),
     supplyCost: 14,
-    powerDrainPerSec: 1.35 * VARS.P,
+    powerDrainPerSec: 0,
     range: 86,
     kind: 'shield',
-    wheelDetails: () => ['Only one on the field', 'Map-wide shield bubble, very high capacity'],
+    shieldCapacityMul: 1,
+    shieldRechargeMul: 1,
+    shieldUpkeepPowerPerSec: 1.58 * VARS.P,
+    shieldRegenPowerPerSec: 3.3 * VARS.P,
+    shieldBarWidth: 8.5,
+    wheelDetails: () => ['Stackable; one shared map bubble at HQ', 'Low flat dome; survives if any generator lives'],
   },
   {
     id: 'nova_power_bank',
@@ -2980,6 +3005,10 @@ export class BaseDefenseGame {
   private readonly pendingMissileBursts: PendingMissileBurst[] = []
   private readonly hydraHitStack = new Map<string, number>()
   private readonly shieldFields = new Map<string, ShieldField>()
+  /** One map-wide bubble shared by all Universal Forcefield buildings. */
+  private universalShield: ShieldField | null = null
+  /** Applied to `maxHp * 5.8 * capacityMul` contribution per generator (balance: lower pool than legacy). */
+  private readonly universalShieldMaxHpMul = 0.8
   private readonly ballistics: Ballistic[] = []
   private readonly repairDrones: RepairDrone[] = []
   private readonly dominionShrapnel: DominionShrapnel[] = []
@@ -3034,6 +3063,12 @@ export class BaseDefenseGame {
     gameOver: boolean
   }) => void
 
+  onAudio?: (e: GameAudioEvent) => void
+
+  private emitAudio(e: GameAudioEvent) {
+    this.onAudio?.(e)
+  }
+
   constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty; heroId?: HeroId }) {
     this.canvas = canvas
     this.mode = opts?.mode ?? 'normal'
@@ -3054,6 +3089,53 @@ export class BaseDefenseGame {
       case 'hard':
       default:
         return { countMul: 1, hpMul: 1, damageMul: 1, speedMul: 1, spawnIntervalMul: 1 }
+    }
+  }
+
+  /**
+   * Scales how fast enemy stats react to the displayed wave number (linear + power terms).
+   * Lower difficulties use a smaller factor so power ramps noticeably slower across the run.
+   */
+  private getEnemyWaveProgressK(): number {
+    switch (this.difficulty) {
+      case 'easy':
+        return 0.5
+      case 'medium':
+        return 0.64
+      case 'hard':
+        return 0.82
+      case 'brutal':
+        return 0.94
+      case 'deadly':
+        return 1
+      default:
+        return 0.82
+    }
+  }
+
+  /** Effective wave index for enemy scaling: `adj` for linear terms, `powT` for exponentials. */
+  private getEnemyScalingWave(): { adj: number; powT: number } {
+    const k = this.getEnemyWaveProgressK()
+    const powT = Math.max(0, this.wave - 1) * k
+    const adj = 1 + powT
+    return { adj, powT }
+  }
+
+  /** Per-wave spawn-count growth after the early game; lower = smaller jumps on easier modes. */
+  private getEnemySpawnBurstExponent(): number {
+    switch (this.difficulty) {
+      case 'easy':
+        return 1.1
+      case 'medium':
+        return 1.135
+      case 'hard':
+        return 1.16
+      case 'brutal':
+        return 1.172
+      case 'deadly':
+        return 1.18
+      default:
+        return 1.16
     }
   }
 
@@ -3095,6 +3177,7 @@ export class BaseDefenseGame {
     this.purchasedUpgradeIds.add(id)
     this.purchasedUpgradePhase.set(id, this.currentInactivePhase)
     this.recomputeUnlockedBuildingIds()
+    this.emitAudio({ type: 'upgrade_purchase' })
     this.emitState()
   }
 
@@ -3120,6 +3203,7 @@ export class BaseDefenseGame {
         this.updateGhostForSelected()
       }
     }
+    this.emitAudio({ type: 'upgrade_refund' })
     this.emitState()
   }
 
@@ -3177,20 +3261,23 @@ export class BaseDefenseGame {
     this.spawnWindowEnded = false
     this.spawnWindowElapsedSec = 0
     const diff = this.getDifficultyScale()
-    // Earlier waves should be calmer; after wave 5 difficulty ramps up aggressively.
-    const baseCount = 10 + this.wave * 3.5
-    const extra = this.wave > 5 ? 6 * Math.pow(1.18, this.wave - 5) : 0
+    const { adj } = this.getEnemyScalingWave()
+    const spawnBurst = this.getEnemySpawnBurstExponent()
+    // Earlier waves should be calmer; after effective wave ~5 spawn pressure ramps (tempered on lower difficulties).
+    const baseCount = 10 + adj * 3.5
+    const extra = adj > 5 ? 6 * Math.pow(spawnBurst, adj - 5) : 0
     this.toSpawn = Math.max(1, Math.round((baseCount + extra) * diff.countMul))
     this.spawnTimer = 0
 
     // Approximate how long spawning will last so the UI circle matches the spawn window.
-    const spawnIntervalBase = Math.max(0.06, 0.34 - this.wave * 0.015)
-    const lateMult = this.wave > 5 ? Math.pow(0.93, this.wave - 5) : 1
+    const spawnIntervalBase = Math.max(0.06, 0.34 - adj * 0.015)
+    const lateMult = adj > 5 ? Math.pow(0.93, adj - 5) : 1
     const spawnInterval = Math.max(0.035, spawnIntervalBase * lateMult * diff.spawnIntervalMul)
     this.spawnWindowDurationSec = Math.max(6, this.toSpawn * spawnInterval)
     this.inactiveTimeLeftSec = 0
     this.configureWaveVariantPool()
 
+    this.emitAudio({ type: 'wave_start' })
     this.emitState()
   }
 
@@ -3201,8 +3288,16 @@ export class BaseDefenseGame {
     for (const m of this.missiles) this.projectiles.remove(m.mesh)
     this.pendingMissileBursts.length = 0
     this.hydraHitStack.clear()
-    for (const sf of this.shieldFields.values()) sf.bubble.removeFromParent()
+    for (const sf of this.shieldFields.values()) {
+      sf.bubble.removeFromParent()
+      this.world.remove(sf.shieldBar.group)
+    }
     this.shieldFields.clear()
+    if (this.universalShield) {
+      this.world.remove(this.universalShield.bubble)
+      this.world.remove(this.universalShield.shieldBar.group)
+      this.universalShield = null
+    }
     for (const b of this.ballistics) this.projectiles.remove(b.mesh)
     for (const d of this.repairDrones) this.world.remove(d.mesh)
     for (const s of this.dominionShrapnel) this.projectiles.remove(s.mesh)
@@ -3299,15 +3394,15 @@ export class BaseDefenseGame {
 
     // Generic dark ground
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(101, 101),
+      new THREE.PlaneGeometry(BOARD_SIZE, BOARD_SIZE),
       new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95, metalness: 0.02 }),
     )
     ground.rotation.x = -Math.PI / 2
     ground.receiveShadow = true
     this.world.add(ground)
 
-    // 101 cells at 1 unit each: lines at half-cell boundaries align to integer cell centers.
-    const grid = new THREE.GridHelper(101, 101, 0x1e3a8a, 0x1e293b)
+    // One world unit per cell; lines align to integer cell centers.
+    const grid = new THREE.GridHelper(BOARD_SIZE, BOARD_SIZE, 0x1e3a8a, 0x1e293b)
     grid.position.y = 0.01
     this.world.add(grid)
 
@@ -3475,6 +3570,7 @@ export class BaseDefenseGame {
     this.updateDragBuild(dt)
     this.updateDragSell(dt)
     this.updateResources(dt)
+    this.updateShieldLayers(dt)
     this.updateWave(dt)
     this.updateAsteroids(dt)
     this.updateDefenses(dt)
@@ -4077,8 +4173,9 @@ export class BaseDefenseGame {
       if (!this.spawnWindowEnded && this.toSpawn > 0) {
         this.spawnTimer -= dt
         if (this.spawnTimer <= 0) {
-          const spawnIntervalBase = Math.max(0.06, 0.34 - this.wave * 0.015)
-          const lateMult = this.wave > 5 ? Math.pow(0.93, this.wave - 5) : 1
+          const { adj } = this.getEnemyScalingWave()
+          const spawnIntervalBase = Math.max(0.06, 0.34 - adj * 0.015)
+          const lateMult = adj > 5 ? Math.pow(0.93, adj - 5) : 1
           const spawnInterval = Math.max(0.035, spawnIntervalBase * lateMult * this.getDifficultyScale().spawnIntervalMul)
           this.spawnTimer = spawnInterval
           this.spawnAsteroid()
@@ -4094,6 +4191,7 @@ export class BaseDefenseGame {
         this.spawnWindowEnded = false
         this.spawnWindowDurationSec = 0
         this.spawnWindowElapsedSec = 0
+        this.emitAudio({ type: 'wave_cleared' })
         this.emitState()
       }
       return
@@ -4208,6 +4306,14 @@ export class BaseDefenseGame {
   private handleAsteroidDeath(a: Asteroid, reason: 'impact' | 'shield' | 'combat') {
     const pos = a.mesh.position.clone()
 
+    if (reason === 'impact') {
+      this.emitAudio({ type: 'asteroid_impact' })
+    } else if (reason === 'shield') {
+      this.emitAudio({ type: 'asteroid_destroyed', variant: a.variant, reason: 'shield' })
+    } else {
+      this.emitAudio({ type: 'asteroid_destroyed', variant: a.variant, reason: 'combat' })
+    }
+
     // Player-caused kills grant credits by asteroid type.
     if (reason !== 'impact') {
       this.credits += Math.round(this.getAsteroidKillReward(a) * (1 + this.wave * 0.025))
@@ -4224,6 +4330,7 @@ export class BaseDefenseGame {
     if (a.variant === 'explosive' && reason !== 'impact') {
       if (reason === 'combat') {
         this.spawnExplosion(pos, 3.0, 0xff8a80)
+        this.emitAudio({ type: 'aoe_pop' })
       }
       this.applyAoeDamage(pos, a.impactRadius, a.impactDamage)
     }
@@ -4240,6 +4347,7 @@ export class BaseDefenseGame {
         if (Math.hypot(cx - pos.x, cz - pos.z) <= empRadius) hitCount += 1
       }
       this.powerStored = Math.max(0, this.powerStored - hitCount * drainPerBuilding)
+      this.emitAudio({ type: 'emp_pulse' })
       this.spawnExplosion(pos, 4.8, 0x67e8f9)
     }
   }
@@ -4385,14 +4493,14 @@ export class BaseDefenseGame {
       }
     }
 
-    // Stronger scaling: gets significantly harder over time.
-    const wavePow = Math.max(0, this.wave - 1)
+    // Stronger scaling: gets significantly harder over time (rate depends on difficulty via getEnemyScalingWave).
+    const { adj, powT } = this.getEnemyScalingWave()
     const diff = this.getDifficultyScale()
     // Global asteroid health nerf to keep waves killable.
     const ASTEROID_HP_GLOBAL_MUL = 0.78
-    const baseHp = Math.round((100 + this.wave * 26 + Math.pow(wavePow, 1.3) * 14) * diff.hpMul * ASTEROID_HP_GLOBAL_MUL)
-    const baseDamage = Math.round((360 + this.wave * 42 + Math.pow(wavePow, 1.22) * 16) * diff.damageMul)
-    const baseSpeed = (15 + this.wave * 0.9 + Math.pow(wavePow, 1.08) * 0.18) * diff.speedMul
+    const baseHp = Math.round((100 + adj * 26 + Math.pow(powT, 1.3) * 14) * diff.hpMul * ASTEROID_HP_GLOBAL_MUL)
+    const baseDamage = Math.round((360 + adj * 42 + Math.pow(powT, 1.22) * 16) * diff.damageMul)
+    const baseSpeed = (15 + adj * 0.9 + Math.pow(powT, 1.08) * 0.18) * diff.speedMul
 
     let sizeMul = 1
     let hpMul = 1
@@ -4531,6 +4639,7 @@ export class BaseDefenseGame {
     this.discoveredAsteroidVariants.add(variant)
     this.activeAsteroidDiscovery = variant
     this.asteroidDiscoveryTimerSec = 5
+    this.emitAudio({ type: 'asteroid_discovery', variant })
   }
 
   private getAsteroidVariantInfo(variant: AsteroidVariant): { name: string; description: string; color: number } {
@@ -4572,7 +4681,8 @@ export class BaseDefenseGame {
         a.spawnCooldown -= dt
         if (a.spawnCooldown <= 0) {
           this.spawnMeteorFromSpawner(a)
-          const next = Math.max(2.2, 5.2 - this.wave * 0.12)
+          const { adj } = this.getEnemyScalingWave()
+          const next = Math.max(2.2, 5.2 - adj * 0.12)
           a.spawnCooldown += next
         }
       }
@@ -4609,17 +4719,19 @@ export class BaseDefenseGame {
       a.mesh.rotation.x += dt * 1.1
       a.mesh.rotation.y += dt * 1.3
 
-      // Shield interception
+      // Shield interception: symmetrical HP trade; asteroid may survive and pass through.
       const shield = this.getActiveShieldHit(a.mesh.position)
       if (shield) {
-        // destroy asteroid and drain extra power based on damage
-        this.handleAsteroidDeath(a, 'shield')
-        a.alive = false
-        this.world.remove(a.mesh)
-        this.world.remove(a.healthBar.group)
         const prevShieldHp = shield.hp
-        shield.hp = Math.max(0, shield.hp - a.impactDamage)
-        const genB = this.buildings.find((x) => x.id === shield.generatorId)
+        const transfer = Math.min(a.impactDamage, shield.hp, a.hp)
+        shield.hp = Math.max(0, shield.hp - transfer)
+        a.hp -= transfer
+
+        const isUniversal = shield.generatorId === '__universal__'
+        const genB = isUniversal
+          ? this.buildings.find((x) => x.hp > 0 && x.defId === 'nova_universal_forcefield')
+          : this.buildings.find((x) => x.id === shield.generatorId)
+
         if (
           this.purchasedUpgradeIds.has('hero_nova_shield_implosion') &&
           genB &&
@@ -4629,13 +4741,25 @@ export class BaseDefenseGame {
           prevShieldHp > 0.001 &&
           shield.hp <= 0.001
         ) {
-          const gcx = genB.origin.x + (genB.def.size.w - 1) / 2
-          const gcz = genB.origin.z + (genB.def.size.h - 1) / 2
+          const gcx = isUniversal ? 0 : genB.origin.x + (genB.def.size.w - 1) / 2
+          const gcz = isUniversal ? 0 : genB.origin.z + (genB.def.size.h - 1) / 2
           this.explodeAt(new THREE.Vector3(gcx, 1.2, gcz), 52, 34, 0xc084fc)
         }
-        shield.disabled = shield.hp < shield.maxHp
-        shield.bubble.visible = shield.hp > 0 && !shield.disabled
-        this.spawnExplosion(a.mesh.position, 2.2, 0x38bdf8)
+
+        if (shield.hp < shield.maxHp * 0.1) shield.lowHpOffline = true
+        if (shield.hp >= shield.maxHp - 0.001) shield.lowHpOffline = false
+        shield.bubble.visible = !shield.noPower && shield.hp > 0.001 && !shield.lowHpOffline
+        if (transfer > 0.001) {
+          this.emitAudio({ type: 'shield_hit' })
+        }
+        this.spawnExplosion(a.mesh.position, 1.5, 0x38bdf8)
+
+        if (a.hp <= 0) {
+          this.handleAsteroidDeath(a, 'shield')
+          a.alive = false
+          this.world.remove(a.mesh)
+          this.world.remove(a.healthBar.group)
+        }
         continue
       }
 
@@ -5209,14 +5333,15 @@ export class BaseDefenseGame {
     const speed = d.projectileSpeed ?? 13
     const vel = dir.clone().multiplyScalar(speed)
     const hitDamage = (d.damage ?? 220) * damageMul
-    const travelDps = 48 * damageMul
+    const travelDps = 360 * damageMul
+    const travelRadius = Math.max(16, (d.aoeRadius ?? 14) * 1.35)
     this.novaPhotons.push({
       mesh,
       velocity: vel,
       ttl: 5.1,
       hitDamage,
       travelDps,
-      travelRadius: 3.2,
+      travelRadius,
       pierceHitIds: new Set(),
       fissionOnExpire: this.purchasedUpgradeIds.has('hero_nova_fission_blast'),
       fissionRadius: (d.aoeRadius ?? 14) * 1.35,
@@ -5232,7 +5357,7 @@ export class BaseDefenseGame {
       for (const a of this.asteroids) {
         if (!a.alive) continue
         if (pos.distanceTo(a.mesh.position) <= o.travelRadius) {
-          a.hp -= o.travelDps * dt * 0.28
+          a.hp -= o.travelDps * dt
           if (a.hp <= 0) {
             a.alive = false
             this.handleAsteroidDeath(a, 'combat')
@@ -5589,42 +5714,163 @@ export class BaseDefenseGame {
       }
     }
 
-    // Shield field maintenance + recharge.
+  }
+
+  /** Shield upkeep/regen runs during active waves (grid power ticks then too). */
+  private updateShieldLayers(dt: number) {
+    if (!this.waveInProgress) return
     for (const b of this.buildings) {
       if (b.hp <= 0) continue
-      if (b.defId !== 'shield_generator_m' && b.defId !== 'shield_generator_l' && b.defId !== 'nova_universal_forcefield')
-        continue
+      if (b.defId !== 'shield_generator_m' && b.defId !== 'shield_generator_l') continue
       const sf = this.shieldFields.get(b.id)
       if (!sf) continue
-      const effective = this.getEffectiveDef(b.defId) ?? b.def
-      const capMul = effective.shieldCapacityMul ?? 1
-      const rechargeMul = effective.shieldRechargeMul ?? 1
-
-      // Allow upgrades purchased mid-run to affect shield capacity/recharge immediately.
-      const desiredMaxHp =
-        b.defId === 'nova_universal_forcefield' ? b.def.maxHp * 5.8 * capMul : b.def.maxHp * 2.2 * capMul
+      const eff = this.getEffectiveDef(b.defId) ?? b.def
+      const capMul = eff.shieldCapacityMul ?? 1
+      const rechargeMul = eff.shieldRechargeMul ?? 1
+      const desiredMaxHp = b.def.maxHp * 2.2 * capMul
       const ratio = sf.maxHp > 0 ? sf.hp / sf.maxHp : 1
       sf.maxHp = desiredMaxHp
       sf.hp = clamp(ratio * sf.maxHp, 0, sf.maxHp)
-      sf.radius = effective.range ?? sf.radius
-      sf.bubble.scale.setScalar(sf.radius)
+      sf.radius = eff.range ?? sf.radius
+      const cx = b.origin.x + (b.def.size.w - 1) / 2
+      const cz = b.origin.z + (b.def.size.h - 1) / 2
+      sf.bubble.position.set(cx, 0, cz)
+      sf.bubble.scale.set(sf.radius, sf.radius * sf.scaleY, sf.radius)
 
-      const rechargePerSec = sf.maxHp * 0.24 * rechargeMul
-      const want = rechargePerSec * dt
-      const missing = sf.maxHp - sf.hp
-      if (missing > 0.001) {
-        const used = Math.min(missing, want)
-        const powerCost = used * 0.06 * VARS.P
-        const can = Math.min(used, powerCost > 0 ? this.powerStored / powerCost * used : used)
-        if (can > 0.0001) {
-          const actualPower = powerCost > 0 ? (can / used) * powerCost : 0
-          this.powerStored = Math.max(0, this.powerStored - actualPower)
-          sf.hp = Math.min(sf.maxHp, sf.hp + can)
-        }
+      const mul = this.getShieldPowerDrainMul(b.defId)
+      const upkeepCost = (eff.shieldUpkeepPowerPerSec ?? 0) * mul * dt
+      if (upkeepCost <= 0 || this.powerStored >= upkeepCost) {
+        if (upkeepCost > 0) this.powerStored -= upkeepCost
+        sf.noPower = false
+      } else {
+        sf.noPower = true
       }
-      if (sf.disabled && sf.hp >= sf.maxHp - 0.001) sf.disabled = false
-      sf.bubble.visible = !sf.disabled && sf.hp > 0.001 && this.powerStored > 0.001
+
+      if (!sf.noPower && sf.hp < sf.maxHp - 0.001) {
+        const regenHpPerSec = sf.maxHp * 0.24 * rechargeMul
+        const wantHp = regenHpPerSec * dt
+        const regenCost = (eff.shieldRegenPowerPerSec ?? 0) * mul * dt
+        const frac = regenCost <= 0 ? 1 : Math.min(1, this.powerStored / regenCost)
+        const heal = wantHp * frac
+        if (heal > 0) this.powerStored = Math.max(0, this.powerStored - regenCost * frac)
+        sf.hp = Math.min(sf.maxHp, sf.hp + heal)
+      }
+
+      if (sf.hp < sf.maxHp * 0.1) sf.lowHpOffline = true
+      if (sf.hp >= sf.maxHp - 0.001) sf.lowHpOffline = false
+      sf.bubble.visible = !sf.noPower && sf.hp > 0.001 && !sf.lowHpOffline
     }
+
+    this.tickUniversalShield(dt)
+  }
+
+  /** Upgrade `powerDrainMul` also scales shield upkeep and regen draw. */
+  private getShieldPowerDrainMul(defId: BuildingId): number {
+    let mul = 1
+    for (const upId of this.purchasedUpgradeIds) {
+      const up = UPGRADES.find((u) => u.id === upId)
+      const m = up?.modifiers?.[defId]?.powerDrainMul
+      if (m) mul *= m
+    }
+    return mul
+  }
+
+  /** First Universal Forcefield placement creates the shared HQ-centered bubble. */
+  private syncUniversalShieldFromBuildings() {
+    const gens = this.buildings.filter((b) => b.hp > 0 && b.defId === 'nova_universal_forcefield')
+    if (gens.length === 0) return
+    if (this.universalShield) return
+
+    let maxHp = 0
+    let radius = 0
+    let barW = 6
+    for (const b of gens) {
+      const eff = this.getEffectiveDef(b.defId) ?? b.def
+      maxHp += b.def.maxHp * 5.8 * (eff.shieldCapacityMul ?? 1) * this.universalShieldMaxHpMul
+      radius = Math.max(radius, eff.range ?? 86)
+      barW = Math.max(barW, eff.shieldBarWidth ?? 8.5)
+    }
+    const scaleY = 0.5
+    const bubble = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 28, 20),
+      new THREE.MeshBasicMaterial({ color: 0xd8b4fe, transparent: true, opacity: 0.065, depthWrite: false }),
+    )
+    bubble.position.set(0, 0, 0)
+    this.world.add(bubble)
+    const shieldBar = this.createHealthBar(barW, 0.28)
+    shieldBar.group.position.set(0, 8.5, 0)
+    this.world.add(shieldBar.group)
+    this.universalShield = {
+      generatorId: '__universal__',
+      hp: maxHp,
+      maxHp,
+      radius,
+      bubble,
+      noPower: false,
+      lowHpOffline: false,
+      shieldBar,
+      scaleY,
+    }
+    this.universalShield.bubble.scale.set(radius, radius * scaleY, radius)
+  }
+
+  private tickUniversalShield(dt: number) {
+    const gens = this.buildings.filter((b) => b.hp > 0 && b.defId === 'nova_universal_forcefield')
+    if (gens.length === 0) {
+      if (this.universalShield) {
+        this.world.remove(this.universalShield.bubble)
+        this.world.remove(this.universalShield.shieldBar.group)
+        this.universalShield = null
+      }
+      return
+    }
+    if (!this.universalShield) this.syncUniversalShieldFromBuildings()
+    if (!this.universalShield) return
+
+    let maxHp = 0
+    let radius = 0
+    let maxRecharge = 1
+    let upkeep = 0
+    let regenPow = 0
+    for (const b of gens) {
+      const eff = this.getEffectiveDef(b.defId) ?? b.def
+      const mul = this.getShieldPowerDrainMul(b.defId)
+      maxHp += b.def.maxHp * 5.8 * (eff.shieldCapacityMul ?? 1) * this.universalShieldMaxHpMul
+      radius = Math.max(radius, eff.range ?? 86)
+      maxRecharge = Math.max(maxRecharge, eff.shieldRechargeMul ?? 1)
+      upkeep += (eff.shieldUpkeepPowerPerSec ?? 0) * mul
+      regenPow += (eff.shieldRegenPowerPerSec ?? 0) * mul
+    }
+
+    const u = this.universalShield
+    const ratio = u.maxHp > 0 ? u.hp / u.maxHp : 1
+    u.maxHp = maxHp
+    u.hp = clamp(ratio * maxHp, 0, maxHp)
+    u.radius = radius
+    u.bubble.scale.set(u.radius, u.radius * u.scaleY, u.radius)
+
+    const upkeepCost = upkeep * dt
+    if (upkeepCost <= 0 || this.powerStored >= upkeepCost) {
+      if (upkeepCost > 0) this.powerStored -= upkeepCost
+      u.noPower = false
+    } else {
+      u.noPower = true
+    }
+
+    if (!u.noPower && u.hp < u.maxHp - 0.001) {
+      // Slower fractional regen than dome shields (0.24); max HP is reduced via universalShieldMaxHpMul.
+      const regenHpPerSec = u.maxHp * 0.192 * maxRecharge
+      const wantHp = regenHpPerSec * dt
+      const regenCost = regenPow * dt
+      const frac = regenCost <= 0 ? 1 : Math.min(1, this.powerStored / regenCost)
+      const heal = wantHp * frac
+      if (heal > 0) this.powerStored = Math.max(0, this.powerStored - regenCost * frac)
+      u.hp = Math.min(u.maxHp, u.hp + heal)
+    }
+
+    if (u.hp < u.maxHp * 0.1) u.lowHpOffline = true
+    if (u.hp >= u.maxHp - 0.001) u.lowHpOffline = false
+    u.bubble.visible = !u.noPower && u.hp > 0.001 && !u.lowHpOffline
   }
 
   private spawnRepairDrone(bay: PlacedBuilding, targetId: string): RepairDrone {
@@ -5789,7 +6035,10 @@ export class BaseDefenseGame {
 
     // lose if all command centers dead
     const anyCC = this.buildings.some((b) => b.hp > 0 && b.defId === 'command_center')
-    if (!anyCC) this.isLost = true
+    if (!anyCC) {
+      this.isLost = true
+      this.emitAudio({ type: 'game_over' })
+    }
   }
 
   private destroyBuilding(b: PlacedBuilding) {
@@ -5828,7 +6077,19 @@ export class BaseDefenseGame {
     const sf = this.shieldFields.get(b.id)
     if (sf) {
       sf.bubble.removeFromParent()
+      this.world.remove(sf.shieldBar.group)
       this.shieldFields.delete(b.id)
+    }
+    if (destroyedDef.id === 'nova_universal_forcefield') {
+      const stillHas =
+        this.buildings.some(
+          (x) => x.id !== b.id && x.hp > 0 && x.defId === 'nova_universal_forcefield',
+        ) || false
+      if (!stillHas && this.universalShield) {
+        this.world.remove(this.universalShield.bubble)
+        this.world.remove(this.universalShield.shieldBar.group)
+        this.universalShield = null
+      }
     }
 
     // Reconstruction Yard: auto-rebuild nearby destroyed buildings at 50% cost.
@@ -5885,6 +6146,7 @@ export class BaseDefenseGame {
     // 100% refund for buildings placed this inactive phase, otherwise 50%.
     const fullRefund = !this.waveInProgress && top.builtInInactivePhase === this.currentInactivePhase
     this.credits += fullRefund ? top.def.creditCost : Math.floor(top.def.creditCost * 0.5)
+    this.emitAudio({ type: 'build_sell' })
     top.hp = 0
     this.destroyBuilding(top)
   }
@@ -5928,11 +6190,10 @@ export class BaseDefenseGame {
     // Enforce a 1-cell gap so buildings cannot be directly adjacent.
     if (!this.isAreaClearWithPadding(ox, oz, def.size.w, def.size.h, 1)) return
 
-    if (def.id === 'nova_universal_forcefield' && this.buildings.some((x) => x.hp > 0 && x.defId === 'nova_universal_forcefield')) return
-
     // commit
     this.credits -= def.creditCost
     this.placeBuilding(def, ox, oz, false)
+    this.emitAudio({ type: 'build_place' })
     this.emitState()
   }
 
@@ -5968,61 +6229,39 @@ export class BaseDefenseGame {
       mesh.add(refundSprite)
     }
 
-    // Shield field entity (not a building hitbox)
+    // Shield field entity (bubble is not selectable — buildingId cleared on bubble only)
     if (def.id === 'shield_generator_m' || def.id === 'shield_generator_l') {
       const effective = this.getEffectiveDef(def.id) ?? def
       const radius = effective.range ?? (def.range ?? 8)
       const capMul = effective.shieldCapacityMul ?? 1
+      const barW = effective.shieldBarWidth ?? 3.2
+      const gcx = ox + (def.size.w - 1) / 2
+      const gcz = oz + (def.size.h - 1) / 2
       const bubble = new THREE.Mesh(
-        // geometry radius = 1; scale by the shield radius so upgrades can change it at runtime.
         new THREE.SphereGeometry(1, 26, 18),
         new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.09, depthWrite: false }),
       )
-      const anchor = (mesh.userData as any)?.shieldBubbleAnchor as THREE.Object3D | undefined
-      if (anchor) {
-        anchor.add(bubble)
-        bubble.position.set(0, 0, 0)
-      } else {
-        bubble.position.y = 4.0
-        mesh.add(bubble)
-      }
-      bubble.scale.setScalar(radius)
+      bubble.position.set(gcx, 0, gcz)
+      bubble.scale.set(radius, radius, radius)
+      this.world.add(bubble)
+      const shieldBar = this.createHealthBar(barW, 0.24)
+      shieldBar.group.position.set(gcx, 5.2 + radius * 0.08, gcz)
+      this.world.add(shieldBar.group)
       this.shieldFields.set(id, {
         generatorId: id,
         hp: def.maxHp * 2.2 * capMul,
         maxHp: def.maxHp * 2.2 * capMul,
         radius,
         bubble,
-        disabled: false,
+        noPower: false,
+        lowHpOffline: false,
+        shieldBar,
+        scaleY: 1,
       })
     }
 
     if (def.id === 'nova_universal_forcefield') {
-      const effective = this.getEffectiveDef(def.id) ?? def
-      const radius = effective.range ?? (def.range ?? 86)
-      const capMul = effective.shieldCapacityMul ?? 1
-      const bubble = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 28, 20),
-        new THREE.MeshBasicMaterial({ color: 0xd8b4fe, transparent: true, opacity: 0.065, depthWrite: false }),
-      )
-      const anchor = (mesh.userData as any)?.shieldBubbleAnchor as THREE.Object3D | undefined
-      if (anchor) {
-        anchor.add(bubble)
-        bubble.position.set(0, 0, 0)
-      } else {
-        bubble.position.y = 2.5
-        mesh.add(bubble)
-      }
-      bubble.scale.setScalar(radius)
-      const hpBase = def.maxHp * 5.8 * capMul
-      this.shieldFields.set(id, {
-        generatorId: id,
-        hp: hpBase,
-        maxHp: hpBase,
-        radius,
-        bubble,
-        disabled: false,
-      })
+      this.syncUniversalShieldFromBuildings()
     }
 
     const effMaxHp = (this.getEffectiveDef(def.id) ?? def).maxHp
@@ -6931,10 +7170,6 @@ export class BaseDefenseGame {
       const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 0), mkEmat(def.color, 0.45, 0.3))
       core.position.y = baseH + 2.05
       group.add(core)
-      const anchor = new THREE.Object3D()
-      anchor.position.set(0, 0, 0)
-      group.add(anchor)
-      group.userData.shieldBubbleAnchor = anchor
       return group
     }
 
@@ -6991,11 +7226,6 @@ export class BaseDefenseGame {
       return
     }
     if (this.supplyUsed + def.supplyCost > this.supplyCap) {
-      this.hoverValid = false
-      return
-    }
-
-    if (def.id === 'nova_universal_forcefield' && this.buildings.some((b) => b.hp > 0 && b.defId === 'nova_universal_forcefield')) {
       this.hoverValid = false
       return
     }
@@ -7062,6 +7292,18 @@ export class BaseDefenseGame {
     group.add(bg)
     group.add(fill)
     return { group, fill, bg }
+  }
+
+  /** Shield bubbles always show their own HP bar while the field has capacity. */
+  private setShieldHealthBar(bar: HealthBar, hp: number, maxHp: number) {
+    const t = Math.max(0, Math.min(1, maxHp <= 0 ? 0 : hp / maxHp))
+    bar.group.visible = maxHp > 0 && hp > 0
+    bar.fill.scale.x = t
+    bar.fill.position.x = (t - 1) * 0.5
+    const mat = bar.fill.material as THREE.MeshBasicMaterial
+    mat.color.setHex(t > 0.6 ? 0x38bdf8 : t > 0.3 ? 0xfbbf24 : 0xf97316)
+    ;(bar.bg.material as THREE.MeshBasicMaterial).opacity = hp <= 0 ? 0 : 0.88
+    mat.opacity = hp <= 0 ? 0 : 0.95
   }
 
   private setHealthBar(bar: HealthBar, hp: number, maxHp: number) {
@@ -7144,6 +7386,22 @@ export class BaseDefenseGame {
       this.setHealthBar(a.healthBar, a.hp, a.maxHp)
       a.healthBar.group.position.copy(a.mesh.position).add(new THREE.Vector3(0, 3.1, 0))
       a.healthBar.group.quaternion.copy(this.camera.quaternion)
+    }
+    for (const [, sf] of this.shieldFields) {
+      this.setShieldHealthBar(sf.shieldBar, sf.hp, sf.maxHp)
+      const b = this.buildings.find((x) => x.id === sf.generatorId && x.hp > 0)
+      if (b) {
+        const cx = b.origin.x + (b.def.size.w - 1) / 2
+        const cz = b.origin.z + (b.def.size.h - 1) / 2
+        sf.shieldBar.group.position.set(cx, 5.85 + sf.radius * 0.12, cz)
+      }
+      sf.shieldBar.group.quaternion.copy(this.camera.quaternion)
+    }
+    if (this.universalShield) {
+      const u = this.universalShield
+      this.setShieldHealthBar(u.shieldBar, u.hp, u.maxHp)
+      u.shieldBar.group.position.set(0, 9.4 + u.radius * 0.05, 0)
+      u.shieldBar.group.quaternion.copy(this.camera.quaternion)
     }
     if (this.heroId === 'archangel') {
       for (const p of this.archangelPlanes) {
@@ -7312,16 +7570,29 @@ export class BaseDefenseGame {
   }
 
   private getActiveShieldHit(pos: THREE.Vector3): ShieldField | null {
-    if (this.powerStored <= 0.001) return null
-    for (const [genId, sf] of this.shieldFields) {
-      const b = this.buildings.find((x) => x.id === genId && x.hp > 0)
+    if (this.universalShield) {
+      const u = this.universalShield
+      if (!u.noPower && !u.lowHpOffline && u.hp > 0.001) {
+        const rx = u.radius
+        const ry = u.radius * u.scaleY
+        const rz = u.radius
+        const dx = pos.x / rx
+        const dy = pos.y / ry
+        const dz = pos.z / rz
+        if (dx * dx + dy * dy + dz * dz <= 1) return u
+      }
+    }
+    for (const [, sf] of this.shieldFields) {
+      const b = this.buildings.find((x) => x.id === sf.generatorId && x.hp > 0)
       if (!b) continue
-      if (sf.disabled || sf.hp <= 0.001) continue
-      const radius = sf.radius
+      if (sf.noPower || sf.lowHpOffline || sf.hp <= 0.001) continue
       const cx = b.origin.x + (b.def.size.w - 1) / 2
       const cz = b.origin.z + (b.def.size.h - 1) / 2
-      const dist = Math.hypot(pos.x - cx, pos.z - cz)
-      if (dist <= radius) return sf
+      const dx = pos.x - cx
+      const dy = pos.y
+      const dz = pos.z - cz
+      const r = sf.radius
+      if ((dx * dx + dy * dy + dz * dz) / (r * r) <= 1) return sf
     }
     return null
   }
