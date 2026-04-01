@@ -49,10 +49,16 @@ export type BuildingId =
   | 'dominion_defensive_bunker'
   | 'dominion_laser_drill'
   | 'dominion_support_bay'
+  | 'nova_gravity_well'
+  | 'nova_photon_projector_s'
+  | 'nova_photon_projector_l'
+  | 'nova_shockwave_pulsar'
+  | 'nova_universal_forcefield'
+  | 'nova_power_bank'
 
 export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'energy' | 'hero'
 export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'brutal' | 'deadly'
-export type HeroId = 'archangel' | 'dominion'
+export type HeroId = 'archangel' | 'dominion' | 'nova'
 
 type BuildingDef = {
   id: BuildingId
@@ -134,6 +140,10 @@ type Asteroid = {
   velocity: THREE.Vector3
   impactRadius: number
   impactDamage: number
+  /** Shockwave Pulsar slow; movement scaled while > 0. */
+  pulsarSlowTimer: number
+  /** Shockwave upgrade: brief full movement stop. */
+  stasisTimer: number
 }
 
 type Missile = {
@@ -162,6 +172,21 @@ type PendingMissileBurst = {
   mode: 'death_location' | 'retarget'
   noSplash: boolean
   volleyId: string | null
+  powerSite?: { x: number; z: number }
+  damageScale?: number
+}
+
+type NovaPhotonOrb = {
+  mesh: THREE.Mesh
+  velocity: THREE.Vector3
+  ttl: number
+  hitDamage: number
+  travelDps: number
+  travelRadius: number
+  pierceHitIds: Set<string>
+  fissionOnExpire: boolean
+  fissionRadius: number
+  fissionDamage: number
 }
 
 type ShieldField = {
@@ -365,6 +390,25 @@ export type UpgradeId =
   | 'hero_dominion_turret_range_2'
   | 'hero_dominion_turret_rof_1'
   | 'hero_dominion_turret_rof_2'
+  | 'hero_nova_core'
+  | 'hero_nova_unlock_advanced_weaponry'
+  | 'hero_nova_unlock_forcefield'
+  | 'hero_nova_shield_implosion'
+  | 'hero_nova_energized_power_bank'
+  | 'hero_nova_fission_blast'
+  | 'hero_nova_stasis_surge'
+  | 'hero_nova_gravity_well_mk2'
+  | 'hero_nova_photon_s_mk2'
+  | 'hero_nova_photon_l_mk2'
+  | 'hero_nova_shockwave_mk2'
+  | 'hero_nova_forcefield_mk2'
+  | 'hero_nova_power_bank_mk2'
+  | 'hero_nova_energy_damage_1'
+  | 'hero_nova_energy_damage_2'
+  | 'hero_nova_energy_range_1'
+  | 'hero_nova_energy_range_2'
+  | 'hero_nova_energy_cycle_1'
+  | 'hero_nova_energy_cycle_2'
 
 type BuildingModifier = {
   rangeAdd?: number
@@ -979,7 +1023,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Airfield',
     heroId: 'archangel',
     category: 'hero',
-    color: 0xc084fc,
+    color: 0xa855f7,
     size: { w: 3, h: 3 },
     maxHp: 920,
     creditCost: Math.round(780 * VARS.C),
@@ -1014,7 +1058,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Fueling Station',
     heroId: 'archangel',
     category: 'hero',
-    color: 0xe9d5ff,
+    color: 0xa855f7,
     size: { w: 2, h: 2 },
     maxHp: 420,
     creditCost: Math.round(340 * VARS.C),
@@ -1027,7 +1071,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Bulk Fueling Station',
     heroId: 'archangel',
     category: 'hero',
-    color: 0xd8b4fe,
+    color: 0xa855f7,
     size: { w: 4, h: 4 },
     maxHp: 980,
     creditCost: Math.round(820 * VARS.C),
@@ -1040,7 +1084,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Munitions Plant',
     heroId: 'archangel',
     category: 'hero',
-    color: 0xf0abfc,
+    color: 0xa855f7,
     size: { w: 2, h: 2 },
     maxHp: 400,
     creditCost: Math.round(290 * VARS.C),
@@ -1052,7 +1096,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Missile Factory',
     heroId: 'archangel',
     category: 'hero',
-    color: 0xe879f9,
+    color: 0xa855f7,
     size: { w: 2, h: 2 },
     maxHp: 440,
     creditCost: Math.round(360 * VARS.C),
@@ -1064,24 +1108,24 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Orbital Cannon',
     heroId: 'dominion',
     category: 'hero',
-    color: 0x8b5cf6,
+    color: 0xa855f7,
     size: { w: 5, h: 5 },
     maxHp: 2400,
     creditCost: Math.round(2400 * VARS.C),
     supplyCost: 24,
-    range: 125,
+    range: 9999,
     fireRate: 0.2,
     damage: 560,
     aoeRadius: 15,
     kind: 'hitscan',
-    wheelDetails: () => ['Huge single shot every 5s', 'Power-hungry; main blast + shrapnel'],
+    wheelDetails: () => ['Huge single shot every 5s', 'Global reach; power-hungry blast + shrapnel'],
   },
   {
     id: 'dominion_flak_gun',
     label: 'Flak Gun',
     heroId: 'dominion',
     category: 'hero',
-    color: 0xa78bfa,
+    color: 0xa855f7,
     size: { w: 2, h: 2 },
     maxHp: 520,
     creditCost: Math.round(420 * VARS.C),
@@ -1099,7 +1143,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Seeker Drone Spawner',
     heroId: 'dominion',
     category: 'hero',
-    color: 0xc4b5fd,
+    color: 0xa855f7,
     size: { w: 3, h: 3 },
     maxHp: 720,
     creditCost: Math.round(680 * VARS.C),
@@ -1115,7 +1159,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Defensive Bunker',
     heroId: 'dominion',
     category: 'hero',
-    color: 0x64748b,
+    color: 0xa855f7,
     size: { w: 3, h: 3 },
     maxHp: 1950,
     creditCost: Math.round(720 * VARS.C),
@@ -1132,7 +1176,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Laser Drill',
     heroId: 'dominion',
     category: 'hero',
-    color: 0xf472b6,
+    color: 0xa855f7,
     size: { w: 2, h: 2 },
     maxHp: 480,
     creditCost: Math.round(590 * VARS.C),
@@ -1149,7 +1193,7 @@ export const BUILDINGS: BuildingDef[] = [
     label: 'Support Bay',
     heroId: 'dominion',
     category: 'hero',
-    color: 0x34d399,
+    color: 0xa855f7,
     size: { w: 3, h: 3 },
     maxHp: 920,
     creditCost: Math.round(820 * VARS.C),
@@ -1159,6 +1203,104 @@ export const BUILDINGS: BuildingDef[] = [
     fireRate: 0.143,
     projectileSpeed: 11,
     wheelDetails: () => ['One dropship (two with upgrade)', 'Large-area heal, faster than drones'],
+  },
+  {
+    id: 'nova_gravity_well',
+    label: 'Gravity Well',
+    heroId: 'nova',
+    category: 'hero',
+    color: 0xa855f7,
+    size: { w: 5, h: 5 },
+    maxHp: 1420,
+    creditCost: Math.round(980 * VARS.C),
+    supplyCost: 10,
+    powerDrainPerSec: 0.38 * VARS.P,
+    wheelDetails: () => ['Each well rolls to pull new asteroids toward it', 'Floating spear + orbiting energy'],
+  },
+  {
+    id: 'nova_photon_projector_s',
+    label: 'Photon Projector (S)',
+    heroId: 'nova',
+    category: 'hero',
+    color: 0xa855f7,
+    size: { w: 2, h: 2 },
+    maxHp: 520,
+    creditCost: Math.round(720 * VARS.C),
+    supplyCost: 6,
+    powerDrainPerSec: 0.95 * VARS.P,
+    range: 58,
+    fireRate: 0.13,
+    damage: 220,
+    projectileSpeed: 13,
+    aoeRadius: 14,
+    kind: 'hitscan',
+    wheelDetails: () => ['Slow piercing plasma orb + trail burn', 'Long range, low cadence'],
+  },
+  {
+    id: 'nova_photon_projector_l',
+    label: 'Photon Projector (L)',
+    heroId: 'nova',
+    category: 'hero',
+    color: 0xa855f7,
+    size: { w: 3, h: 3 },
+    maxHp: 780,
+    creditCost: Math.round(940 * VARS.C),
+    supplyCost: 8,
+    powerDrainPerSec: 1.1 * VARS.P,
+    range: 72,
+    fireRate: 0.1,
+    damage: 310,
+    projectileSpeed: 11,
+    aoeRadius: 17,
+    kind: 'hitscan',
+    wheelDetails: () => ['Larger variant: heavier orb and trail', 'Pierces all targets along the path'],
+  },
+  {
+    id: 'nova_shockwave_pulsar',
+    label: 'Shockwave Pulsar',
+    heroId: 'nova',
+    category: 'hero',
+    color: 0xa855f7,
+    size: { w: 3, h: 3 },
+    maxHp: 680,
+    creditCost: Math.round(760 * VARS.C),
+    supplyCost: 7,
+    powerDrainPerSec: 0.52 * VARS.P,
+    range: 34,
+    fireRate: 0.17,
+    damage: 16,
+    aoeRadius: 24,
+    kind: 'hitscan',
+    wheelDetails: () => ['Periodic wide shockwave', 'Slows struck asteroids; upgrade can stasis'],
+  },
+  {
+    id: 'nova_universal_forcefield',
+    label: 'Universal Forcefield',
+    heroId: 'nova',
+    category: 'hero',
+    color: 0xa855f7,
+    size: { w: 5, h: 5 },
+    maxHp: 2200,
+    creditCost: Math.round(1680 * VARS.C),
+    supplyCost: 14,
+    powerDrainPerSec: 1.35 * VARS.P,
+    range: 86,
+    kind: 'shield',
+    wheelDetails: () => ['Only one on the field', 'Map-wide shield bubble, very high capacity'],
+  },
+  {
+    id: 'nova_power_bank',
+    label: 'Power Bank',
+    heroId: 'nova',
+    category: 'hero',
+    color: 0xa855f7,
+    size: { w: 2, h: 2 },
+    maxHp: 420,
+    creditCost: Math.round(520 * VARS.C),
+    supplyCost: 4,
+    powerDrainPerSec: 0.12 * VARS.P,
+    range: 12,
+    wheelDetails: () => ['Aura: weapons nearby pay less shot power', 'Upgrade adds a small damage boost'],
   },
 ]
 
@@ -2293,6 +2435,8 @@ const UPGRADES_RAW: UpgradeDef[] = [
       dominion_flak_gun: { damageAdd: 14 },
       dominion_defensive_bunker: { damageAdd: 8 },
       dominion_laser_drill: { damageAdd: 12 },
+      dominion_seeker_drone_spawner: { damageAdd: 0.5 },
+      dominion_support_bay: { damageAdd: 12 },
     },
   },
   {
@@ -2495,6 +2639,252 @@ const UPGRADES_RAW: UpgradeDef[] = [
       railgun: { fireRateMul: 1.06 },
     },
   },
+  {
+    id: 'hero_nova_core',
+    label: 'Nova Command Mandate',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 0,
+    description: 'Unlocks Gravity Well, Photon Projector (S), and Power Bank.',
+    unlockBuildingIds: ['nova_gravity_well', 'nova_photon_projector_s', 'nova_power_bank'],
+  },
+  {
+    id: 'hero_nova_unlock_advanced_weaponry',
+    label: 'Unlock Advanced Weaponry',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 640,
+    description: 'Unlocks Photon Projector (L) and the Shockwave Pulsar.',
+    prereqIds: ['hero_nova_core'],
+    unlockBuildingIds: ['nova_photon_projector_l', 'nova_shockwave_pulsar'],
+  },
+  {
+    id: 'hero_nova_unlock_forcefield',
+    label: 'Unlock Universal Forcefield',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 1180,
+    description: 'Unlocks the map-wide Universal Forcefield (one per run).',
+    prereqIds: ['hero_nova_core'],
+    unlockBuildingIds: ['nova_universal_forcefield'],
+  },
+  {
+    id: 'hero_nova_shield_implosion',
+    label: 'Shield Implosion',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 720,
+    description:
+      'When a shield generator or Universal Forcefield bubble is fully depleted by an asteroid, it releases a huge low-damage pulse.',
+    prereqIds: ['hero_nova_core'],
+  },
+  {
+    id: 'hero_nova_energized_power_bank',
+    label: 'Energized Power Bank',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 560,
+    description: 'Power Banks also grant a small damage bonus to weapons in their aura.',
+    prereqIds: ['hero_nova_core'],
+  },
+  {
+    id: 'hero_nova_fission_blast',
+    label: 'Fission Blast',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 680,
+    description: 'Photon orbs detonate in a large blast when their flight time ends.',
+    prereqIds: ['hero_nova_unlock_advanced_weaponry'],
+  },
+  {
+    id: 'hero_nova_stasis_surge',
+    label: 'Stasis Surge',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 620,
+    description: 'Shockwave Pulsar hits briefly lock asteroids in place.',
+    prereqIds: ['hero_nova_unlock_advanced_weaponry'],
+  },
+  {
+    id: 'hero_nova_gravity_well_mk2',
+    label: 'Gravity Well Level 2',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 980,
+    description: 'Sturdier well core; slightly lower idle power draw.',
+    prereqIds: ['hero_nova_core'],
+    modifiers: {
+      nova_gravity_well: { maxHpMul: 1.14, powerDrainMul: 0.9 },
+    },
+  },
+  {
+    id: 'hero_nova_photon_s_mk2',
+    label: 'Photon Projector (S) Level 2',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 860,
+    description: 'Tighter emitter cycle, harder hits, and longer reach for the small projector.',
+    prereqIds: ['hero_nova_core'],
+    modifiers: {
+      nova_photon_projector_s: { damageAdd: 38, rangeAdd: 6, fireRateMul: 1.1, projectileSpeedMul: 1.08 },
+    },
+  },
+  {
+    id: 'hero_nova_photon_l_mk2',
+    label: 'Photon Projector (L) Level 2',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 1020,
+    description: 'Heavy orb variant: more damage, wider trail burn, and punch-through speed.',
+    prereqIds: ['hero_nova_unlock_advanced_weaponry'],
+    modifiers: {
+      nova_photon_projector_l: { damageAdd: 55, rangeAdd: 8, fireRateMul: 1.08, aoeRadiusMul: 1.1, projectileSpeedMul: 1.06 },
+    },
+  },
+  {
+    id: 'hero_nova_shockwave_mk2',
+    label: 'Shockwave Pulsar Level 2',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 920,
+    description: 'Wider concussion front with a faster pulse cadence.',
+    prereqIds: ['hero_nova_unlock_advanced_weaponry'],
+    modifiers: {
+      nova_shockwave_pulsar: { damageAdd: 6, aoeRadiusMul: 1.12, fireRateMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_nova_forcefield_mk2',
+    label: 'Universal Forcefield Level 2',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 1380,
+    description: 'Raises global barrier capacity and slightly extends coverage.',
+    prereqIds: ['hero_nova_unlock_forcefield'],
+    modifiers: {
+      nova_universal_forcefield: { maxHpMul: 1.12, rangeAdd: 6, shieldCapacityMul: 1.12, powerDrainMul: 0.94 },
+    },
+  },
+  {
+    id: 'hero_nova_power_bank_mk2',
+    label: 'Power Bank Level 2',
+    heroId: 'nova',
+    category: 'hero',
+    creditCost: 720,
+    description: 'Larger coupling field: wider efficiency aura and tougher hardware.',
+    prereqIds: ['hero_nova_core'],
+    modifiers: {
+      nova_power_bank: { maxHpMul: 1.15, rangeAdd: 3, powerDrainMul: 0.88 },
+    },
+  },
+  {
+    id: 'hero_nova_energy_damage_1',
+    label: 'Energy Doctrine: Yield I',
+    heroId: 'nova',
+    category: 'energy',
+    creditCost: 540,
+    description: 'Boosts output from Tesla towers, plasma lasers, and Nova energy weapons.',
+    prereqIds: ['hero_nova_core'],
+    modifiers: {
+      tesla_tower: { damageAdd: 7 },
+      plasma_laser_s: { damageAdd: 22 },
+      plasma_laser_m: { damageAdd: 32 },
+      plasma_laser_l: { damageAdd: 44 },
+      nova_photon_projector_s: { damageAdd: 28 },
+      nova_photon_projector_l: { damageAdd: 36 },
+      nova_shockwave_pulsar: { damageAdd: 4 },
+    },
+  },
+  {
+    id: 'hero_nova_energy_damage_2',
+    label: 'Energy Doctrine: Yield II',
+    heroId: 'nova',
+    category: 'energy',
+    creditCost: 920,
+    description: 'Further raises energy-weapon damage across the grid.',
+    prereqIds: ['hero_nova_energy_damage_1'],
+    modifiers: {
+      tesla_tower: { damageAdd: 9 },
+      plasma_laser_s: { damageAdd: 28 },
+      plasma_laser_m: { damageAdd: 40 },
+      plasma_laser_l: { damageAdd: 55 },
+      nova_photon_projector_s: { damageAdd: 34 },
+      nova_photon_projector_l: { damageAdd: 44 },
+      nova_shockwave_pulsar: { damageAdd: 5 },
+    },
+  },
+  {
+    id: 'hero_nova_energy_range_1',
+    label: 'Energy Doctrine: Reach I',
+    heroId: 'nova',
+    category: 'energy',
+    creditCost: 580,
+    description: 'Extends range on standard energy turrets and Nova emitters.',
+    prereqIds: ['hero_nova_core'],
+    modifiers: {
+      tesla_tower: { rangeAdd: 5 },
+      plasma_laser_s: { rangeAdd: 6 },
+      plasma_laser_m: { rangeAdd: 7 },
+      plasma_laser_l: { rangeAdd: 8 },
+      nova_photon_projector_s: { rangeAdd: 7 },
+      nova_photon_projector_l: { rangeAdd: 9 },
+      nova_shockwave_pulsar: { rangeAdd: 4 },
+    },
+  },
+  {
+    id: 'hero_nova_energy_range_2',
+    label: 'Energy Doctrine: Reach II',
+    heroId: 'nova',
+    category: 'energy',
+    creditCost: 980,
+    description: 'Additional reach for Tesla, plasma, and Nova platforms.',
+    prereqIds: ['hero_nova_energy_range_1'],
+    modifiers: {
+      tesla_tower: { rangeAdd: 6 },
+      plasma_laser_s: { rangeAdd: 7 },
+      plasma_laser_m: { rangeAdd: 9 },
+      plasma_laser_l: { rangeAdd: 10 },
+      nova_photon_projector_s: { rangeAdd: 9 },
+      nova_photon_projector_l: { rangeAdd: 11 },
+      nova_shockwave_pulsar: { rangeAdd: 5 },
+    },
+  },
+  {
+    id: 'hero_nova_energy_cycle_1',
+    label: 'Energy Doctrine: Cycle I',
+    heroId: 'nova',
+    category: 'energy',
+    creditCost: 620,
+    description: 'Improves fire rate on directed energy and shock systems.',
+    prereqIds: ['hero_nova_core'],
+    modifiers: {
+      tesla_tower: { fireRateMul: 1.08 },
+      plasma_laser_s: { fireRateMul: 1.1 },
+      plasma_laser_m: { fireRateMul: 1.1 },
+      plasma_laser_l: { fireRateMul: 1.08 },
+      nova_photon_projector_s: { fireRateMul: 1.08 },
+      nova_photon_projector_l: { fireRateMul: 1.06 },
+      nova_shockwave_pulsar: { fireRateMul: 1.1 },
+    },
+  },
+  {
+    id: 'hero_nova_energy_cycle_2',
+    label: 'Energy Doctrine: Cycle II',
+    heroId: 'nova',
+    category: 'energy',
+    creditCost: 1040,
+    description: 'Further tightens energy-weapon cadence.',
+    prereqIds: ['hero_nova_energy_cycle_1'],
+    modifiers: {
+      tesla_tower: { fireRateMul: 1.1 },
+      plasma_laser_s: { fireRateMul: 1.12 },
+      plasma_laser_m: { fireRateMul: 1.12 },
+      plasma_laser_l: { fireRateMul: 1.1 },
+      nova_photon_projector_s: { fireRateMul: 1.1 },
+      nova_photon_projector_l: { fireRateMul: 1.08 },
+      nova_shockwave_pulsar: { fireRateMul: 1.12 },
+    },
+  },
 ]
 
 // Globally reduce upgrade credit costs (5-10% target).
@@ -2596,6 +2986,7 @@ export class BaseDefenseGame {
   private readonly dominionSeekerDrones: DominionSeekerDrone[] = []
   private readonly dominionDropships: DominionDropship[] = []
   private readonly archangelPlanes: ArchangelPlane[] = []
+  private readonly novaPhotons: NovaPhotonOrb[] = []
   private planeIdSeed = 0
   private readonly occupied = new Map<string, string>() // cell -> placedBuilding.id
 
@@ -2817,6 +3208,8 @@ export class BaseDefenseGame {
     for (const s of this.dominionShrapnel) this.projectiles.remove(s.mesh)
     for (const d of this.dominionSeekerDrones) this.world.remove(d.mesh)
     for (const d of this.dominionDropships) this.world.remove(d.mesh)
+    for (const o of this.novaPhotons) this.projectiles.remove(o.mesh)
+    this.novaPhotons.length = 0
     this.dominionShrapnel.length = 0
     this.dominionSeekerDrones.length = 0
     this.dominionDropships.length = 0
@@ -2853,10 +3246,12 @@ export class BaseDefenseGame {
     this.purchasedUpgradeIds.add('core_protocol')
     if (this.heroId === 'archangel') this.purchasedUpgradeIds.add('hero_archangel_core')
     if (this.heroId === 'dominion') this.purchasedUpgradeIds.add('hero_dominion_core')
+    if (this.heroId === 'nova') this.purchasedUpgradeIds.add('hero_nova_core')
     this.purchasedUpgradePhase.clear()
     this.purchasedUpgradePhase.set('core_protocol', -1)
     if (this.heroId === 'archangel') this.purchasedUpgradePhase.set('hero_archangel_core', -1)
     if (this.heroId === 'dominion') this.purchasedUpgradePhase.set('hero_dominion_core', -1)
+    if (this.heroId === 'nova') this.purchasedUpgradePhase.set('hero_nova_core', -1)
     this.recomputeUnlockedBuildingIds()
     this.asteroidIdSeed = 0
     this.volleyIdSeed = 0
@@ -3086,6 +3481,7 @@ export class BaseDefenseGame {
     this.updateSupportSystems(dt)
     this.updateArchangelPlanes(dt)
     this.updateProjectiles(dt)
+    this.updateNovaGravityWells(dt)
     this.updateHealthBars()
     if (this.asteroidDiscoveryTimerSec > 0) {
       this.asteroidDiscoveryTimerSec -= dt
@@ -3189,11 +3585,71 @@ export class BaseDefenseGame {
     // Turrets/missiles only draw when firing; railgun draws while charging.
     if (def.kind === 'railgun') return 0
     if (def.category === 'turrets' || def.category === 'missile') return 0
+    // Nova photon / pulsar bill per shot in defense logic, not as passive drain.
+    if (def.id === 'nova_photon_projector_s' || def.id === 'nova_photon_projector_l' || def.id === 'nova_shockwave_pulsar') return 0
     return def.powerDrainPerSec ?? 0
   }
 
-  private tryConsumeShotPower(def: BuildingDef, scale: number = 1): boolean {
-    const cost = Math.max(0, (def.powerDrainPerSec ?? 0) * POWER_DRAIN_GLOBAL_MUL * scale)
+  private weaponFootprintCenter(b: PlacedBuilding): { x: number; z: number } {
+    return { x: b.origin.x + (b.def.size.w - 1) / 2, z: b.origin.z + (b.def.size.h - 1) / 2 }
+  }
+
+  /** Per-bank multipliers stack: each Power Bank in aura reduces shot power cost. */
+  private getNovaPowerBankShotMulAt(wx: number, wz: number): number {
+    if (this.heroId !== 'nova') return 1
+    let mul = 1
+    for (const pb of this.buildings) {
+      if (pb.hp <= 0 || pb.defId !== 'nova_power_bank') continue
+      const ed = this.getEffectiveDef(pb.defId) ?? pb.def
+      const r = ed.range ?? 12
+      const cx = pb.origin.x + (pb.def.size.w - 1) / 2
+      const cz = pb.origin.z + (pb.def.size.h - 1) / 2
+      if (Math.hypot(wx - cx, wz - cz) <= r) mul *= 0.74
+    }
+    return mul
+  }
+
+  private isNovaBankDamageEligible(b: PlacedBuilding): boolean {
+    if (this.heroId !== 'nova') return false
+    if (b.defId === 'nova_power_bank' || b.defId === 'nova_gravity_well') return false
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if (d.kind === 'shield') return false
+    if (d.category === 'turrets' || d.category === 'missile' || d.category === 'energy') return true
+    if (d.category !== 'hero') return false
+    if (
+      b.defId === 'dominion_support_bay' ||
+      b.defId === 'archangel_airfield' ||
+      b.defId === 'archangel_starport' ||
+      b.defId === 'archangel_munitions_plant' ||
+      b.defId === 'archangel_missile_factory' ||
+      b.defId === 'archangel_fueling_station' ||
+      b.defId === 'archangel_bulk_fueling_station'
+    )
+      return false
+    if (b.defId === 'dominion_seeker_drone_spawner') return true
+    if (b.defId === 'nova_photon_projector_s' || b.defId === 'nova_photon_projector_l' || b.defId === 'nova_shockwave_pulsar') return true
+    return (d.damage ?? 0) > 0 && (d.kind === 'hitscan' || d.kind === 'missiles' || d.kind === 'ballistic' || d.kind === 'railgun')
+  }
+
+  private getNovaWeaponDamageMul(b: PlacedBuilding): number {
+    if (!this.purchasedUpgradeIds.has('hero_nova_energized_power_bank') || !this.isNovaBankDamageEligible(b)) return 1
+    const wx = b.origin.x + (b.def.size.w - 1) / 2
+    const wz = b.origin.z + (b.def.size.h - 1) / 2
+    let mul = 1
+    for (const pb of this.buildings) {
+      if (pb.hp <= 0 || pb.defId !== 'nova_power_bank') continue
+      const ed = this.getEffectiveDef(pb.defId) ?? pb.def
+      const r = ed.range ?? 12
+      const cx = pb.origin.x + (pb.def.size.w - 1) / 2
+      const cz = pb.origin.z + (pb.def.size.h - 1) / 2
+      if (Math.hypot(wx - cx, wz - cz) <= r) mul *= 1.07
+    }
+    return mul
+  }
+
+  private tryConsumeShotPower(def: BuildingDef, scale: number = 1, weaponSite?: { x: number; z: number }): boolean {
+    let cost = Math.max(0, (def.powerDrainPerSec ?? 0) * POWER_DRAIN_GLOBAL_MUL * scale)
+    if (weaponSite) cost *= this.getNovaPowerBankShotMulAt(weaponSite.x, weaponSite.z)
     if (cost <= 0) return true
     if (this.powerStored < cost) return false
     this.powerStored -= cost
@@ -3421,29 +3877,29 @@ export class BaseDefenseGame {
           const fuelSmall = this.countActiveArchangelSuppliers('archangel_fueling_station')
           const fuelBulk = this.countActiveArchangelSuppliers('archangel_bulk_fueling_station')
           const fuelPerSec =
-            fuelSmall * 0.34 * m.fuelRestockMul * m.fuelStationMul +
-            fuelBulk * 0.92 * m.fuelRestockMul * m.bulkStationMul
+            fuelSmall * 0.58 * m.fuelRestockMul * m.fuelStationMul +
+            fuelBulk * 1.55 * m.fuelRestockMul * m.bulkStationMul
           if (p.fuel < p.maxFuel - 1e-3 && fuelPerSec > 0) {
             p.fuel = Math.min(p.maxFuel, p.fuel + fuelPerSec * dt)
           }
           if (p.role === 'gunship') {
             const plants = this.countActiveArchangelSuppliers('archangel_munitions_plant')
             if (plants > 0 && p.bullets < p.maxBullets - 1e-3 && this.credits > 1e-4) {
-              const creditBudget = 0.48 * plants * dt * m.munitionsMul
+              const creditBudget = 0.82 * plants * dt * m.munitionsMul
               const spend = Math.min(creditBudget, this.credits)
               this.credits -= spend
               const room = p.maxBullets - p.bullets
-              p.bullets = Math.min(p.maxBullets, p.bullets + Math.min(room, spend * 1.08))
+              p.bullets = Math.min(p.maxBullets, p.bullets + Math.min(room, spend * 1.42))
             }
           } else {
             const factories = this.countActiveArchangelSuppliers('archangel_missile_factory')
             // Starport bombers: blue (missile) bar fills slightly faster than gunship bullet loading.
             if (factories > 0 && p.missiles < p.maxMissiles - 1e-4 && this.credits > 1e-4) {
-              const creditBudget = 0.67 * factories * dt * m.missileFactoryMul
+              const creditBudget = 1.05 * factories * dt * m.missileFactoryMul
               const spend = Math.min(creditBudget, this.credits)
               this.credits -= spend
               const room = p.maxMissiles - p.missiles
-              p.missiles = Math.min(p.maxMissiles, p.missiles + Math.min(room, spend * 0.036))
+              p.missiles = Math.min(p.maxMissiles, p.missiles + Math.min(room, spend * 0.056))
             }
           }
         }
@@ -3820,6 +4276,8 @@ export class BaseDefenseGame {
       velocity,
       impactRadius: 0.95,
       impactDamage: Math.round(parent.impactDamage * 0.8),
+      pulsarSlowTimer: 0,
+      stasisTimer: 0,
     })
     this.registerAsteroidDiscovery('meteor')
   }
@@ -3870,6 +4328,8 @@ export class BaseDefenseGame {
       velocity,
       impactRadius: parent.impactRadius * radiusMul,
       impactDamage: parent.impactDamage * dmgMul,
+      pulsarSlowTimer: 0,
+      stasisTimer: 0,
     })
     this.registerAsteroidDiscovery('splitter')
   }
@@ -3909,6 +4369,20 @@ export class BaseDefenseGame {
       const tx = Math.round((Math.random() * 2 - 1) * HALF)
       const tz = Math.round((Math.random() * 2 - 1) * HALF)
       target = new THREE.Vector3(tx, 0, tz)
+    }
+
+    const gravityWells = this.buildings.filter((b) => b.hp > 0 && b.defId === 'nova_gravity_well')
+    if (gravityWells.length > 0) {
+      const pulled: PlacedBuilding[] = []
+      for (const w of gravityWells) {
+        if (Math.random() < 0.058) pulled.push(w)
+      }
+      if (pulled.length > 0) {
+        const w = pulled[Math.floor(Math.random() * pulled.length)]
+        const gx = w.origin.x + (w.def.size.w - 1) / 2
+        const gz = w.origin.z + (w.def.size.h - 1) / 2
+        target.set(gx, 0, gz)
+      }
     }
 
     // Stronger scaling: gets significantly harder over time.
@@ -4046,6 +4520,8 @@ export class BaseDefenseGame {
       velocity,
       impactRadius,
       impactDamage,
+      pulsarSlowTimer: 0,
+      stasisTimer: 0,
     })
     this.registerAsteroidDiscovery(pick.variant)
   }
@@ -4086,8 +4562,13 @@ export class BaseDefenseGame {
     for (const a of this.asteroids) {
       if (!a.alive) continue
 
+      a.stasisTimer = Math.max(0, a.stasisTimer - dt)
+      a.pulsarSlowTimer = Math.max(0, a.pulsarSlowTimer - dt)
+      const frozen = a.stasisTimer > 0
+      const slowMul = a.pulsarSlowTimer > 0 ? 0.52 : 1
+
       // Spawner asteroids periodically spawn fast blue meteors.
-      if (a.variant === 'spawner') {
+      if (a.variant === 'spawner' && !frozen) {
         a.spawnCooldown -= dt
         if (a.spawnCooldown <= 0) {
           this.spawnMeteorFromSpawner(a)
@@ -4097,7 +4578,7 @@ export class BaseDefenseGame {
       }
 
       // Seekers constantly steer toward the closest live building.
-      if (a.variant === 'seeker') {
+      if (a.variant === 'seeker' && !frozen) {
         let best: PlacedBuilding | null = null
         let bestD = Infinity
         for (const b of this.buildings) {
@@ -4122,7 +4603,9 @@ export class BaseDefenseGame {
         }
       }
 
-      a.mesh.position.addScaledVector(a.velocity, dt)
+      if (!frozen) {
+        a.mesh.position.addScaledVector(a.velocity, dt * slowMul)
+      }
       a.mesh.rotation.x += dt * 1.1
       a.mesh.rotation.y += dt * 1.3
 
@@ -4134,7 +4617,22 @@ export class BaseDefenseGame {
         a.alive = false
         this.world.remove(a.mesh)
         this.world.remove(a.healthBar.group)
+        const prevShieldHp = shield.hp
         shield.hp = Math.max(0, shield.hp - a.impactDamage)
+        const genB = this.buildings.find((x) => x.id === shield.generatorId)
+        if (
+          this.purchasedUpgradeIds.has('hero_nova_shield_implosion') &&
+          genB &&
+          (genB.defId === 'shield_generator_m' ||
+            genB.defId === 'shield_generator_l' ||
+            genB.defId === 'nova_universal_forcefield') &&
+          prevShieldHp > 0.001 &&
+          shield.hp <= 0.001
+        ) {
+          const gcx = genB.origin.x + (genB.def.size.w - 1) / 2
+          const gcz = genB.origin.z + (genB.def.size.h - 1) / 2
+          this.explodeAt(new THREE.Vector3(gcx, 1.2, gcz), 52, 34, 0xc084fc)
+        }
         shield.disabled = shield.hp < shield.maxHp
         shield.bubble.visible = shield.hp > 0 && !shield.disabled
         this.spawnExplosion(a.mesh.position, 2.2, 0x38bdf8)
@@ -4180,6 +4678,14 @@ export class BaseDefenseGame {
         this.tickDominionLaserDrill(b, dt)
         continue
       }
+      if (b.defId === 'nova_photon_projector_s' || b.defId === 'nova_photon_projector_l') {
+        this.tickNovaPhotonProjector(b, dt)
+        continue
+      }
+      if (b.defId === 'nova_shockwave_pulsar') {
+        this.tickNovaShockwavePulsar(b, dt)
+        continue
+      }
       if (b.defId === 'tesla_tower') {
         const anchor = (b.mesh.userData as any)?.teslaAnchor as THREE.Object3D | undefined
         const origin = anchor
@@ -4195,10 +4701,12 @@ export class BaseDefenseGame {
         }
         if (targets.length === 0) continue
         // Energy weapons: constant drain handled in resources, plus extra while firing.
-        if (!this.tryConsumeShotPower(d, dt)) continue
+        const wc = this.weaponFootprintCenter(b)
+        if (!this.tryConsumeShotPower(d, dt, wc)) continue
+        const novaMul = this.getNovaWeaponDamageMul(b)
         let hitAny = false
         for (const a of targets) {
-          a.hp -= dps * dt
+          a.hp -= dps * dt * novaMul
           this.spawnShot(origin, a.mesh.position, 0x67e8f9)
           hitAny = true
           if (a.hp <= 0) {
@@ -4270,6 +4778,9 @@ export class BaseDefenseGame {
       }
       if (!target) continue
 
+      const wc = this.weaponFootprintCenter(b)
+      const novaMul = this.getNovaWeaponDamageMul(b)
+
       if (d.kind !== 'railgun' && !isPlasma) b.cooldown = 1 / (d.fireRate ?? 1)
       const origin = baseOrigin.clone()
       if (aim?.muzzle) origin.copy(aim.muzzle.getWorldPosition(this.tmpAimPos))
@@ -4299,8 +4810,8 @@ export class BaseDefenseGame {
       if (d.kind === 'hitscan') {
         if (isPlasma) {
           // Energy weapons: constant drain handled in resources, plus extra while firing.
-          if (!this.tryConsumeShotPower(d, dt)) continue
-          target.hp -= (d.damage ?? 0) * dt
+          if (!this.tryConsumeShotPower(d, dt, wc)) continue
+          target.hp -= (d.damage ?? 0) * dt * novaMul
           this.spawnShot(origin, target.mesh.position, 0x22d3ee)
           if (target.hp <= 0) {
             target.alive = false
@@ -4313,12 +4824,12 @@ export class BaseDefenseGame {
           }
           continue
         }
-        if (!this.tryConsumeShotPower(d)) continue
+        if (!this.tryConsumeShotPower(d, 1, wc)) continue
         if ((d.aoeRadius ?? 0) > 0.01) {
-          this.explodeAt(target.mesh.position, d.aoeRadius ?? 2, d.damage, d.color)
+          this.explodeAt(target.mesh.position, d.aoeRadius ?? 2, (d.damage ?? 0) * novaMul, d.color)
           this.spawnShot(origin, target.mesh.position, d.color)
         } else {
-          target.hp -= d.damage
+          target.hp -= (d.damage ?? 0) * novaMul
           this.spawnShot(origin, target.mesh.position, d.color)
           if (target.hp <= 0) {
             target.alive = false
@@ -4345,12 +4856,14 @@ export class BaseDefenseGame {
             mode,
             noSplash: true,
             volleyId,
+            powerSite: wc,
+            damageScale: novaMul,
           })
         } else {
-          this.spawnMissile(origin, target, d, mode, false, null)
+          this.spawnMissile(origin, target, d, mode, false, null, wc, novaMul)
         }
       } else if (d.kind === 'ballistic') {
-        this.spawnBallistic(origin, target.mesh.position, d)
+        this.spawnBallistic(origin, target.mesh.position, d, wc, novaMul)
       } else if (d.kind === 'railgun') {
         const chargeCap = 120
         const maxDrawPerSec = 24
@@ -4359,7 +4872,7 @@ export class BaseDefenseGame {
         b.charge += drawn
         if (b.charge < chargeCap) continue
         b.charge = 0
-        this.fireRailgun(origin, target.mesh.position, d.range, d.damage)
+        this.fireRailgun(origin, target.mesh.position, d.range, (d.damage ?? 600) * novaMul)
       }
     }
   }
@@ -4461,7 +4974,6 @@ export class BaseDefenseGame {
     for (const a of this.asteroids) {
       if (!a.alive) continue
       const dist = origin.distanceTo(a.mesh.position)
-      if (dist > (d.range ?? 125)) continue
       if (dist < bestD) {
         bestD = dist
         target = a
@@ -4478,7 +4990,7 @@ export class BaseDefenseGame {
       const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
       aim.yaw.rotation.y = yaw
     }
-    const dmg = d.damage ?? 560
+    const dmg = (d.damage ?? 560) * this.getNovaWeaponDamageMul(b)
     const aoe = d.aoeRadius ?? 15
     this.explodeAt(target.mesh.position, aoe, dmg, 0xa78bfa)
     const n = this.getDominionShrapnelCount(true)
@@ -4509,14 +5021,16 @@ export class BaseDefenseGame {
       const len = to.length()
       if (len < 0.001) continue
       to.multiplyScalar(1 / len)
-      if (to.y < 0.707) continue
+      // Wider sky cone than 45° from vertical (~0.707): ~65° half-angle (cos ≈ 0.42).
+      if (to.y < 0.42) continue
       if (len < best) {
         best = len
         target = a
       }
     }
     if (!target) return
-    if (!this.tryConsumeShotPower(d)) return
+    const wc = this.weaponFootprintCenter(b)
+    if (!this.tryConsumeShotPower(d, 1, wc)) return
     b.cooldown = 1 / Math.max(0.2, d.fireRate ?? 9)
     if (aim?.yaw && aim?.pitch) {
       this.tmpAimVec.copy(target.mesh.position).sub(origin)
@@ -4529,7 +5043,7 @@ export class BaseDefenseGame {
       this.tmpAimVec.copy(target.mesh.position).sub(origin)
       aim.yaw.rotation.y = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
     }
-    const mainDmg = d.damage ?? 108
+    const mainDmg = (d.damage ?? 108) * this.getNovaWeaponDamageMul(b)
     target.hp -= mainDmg
     this.spawnShot(origin, target.mesh.position, d.color)
     if (target.hp <= 0) {
@@ -4580,7 +5094,8 @@ export class BaseDefenseGame {
       b.plasmaTargetId = target.id
     }
 
-    if (!this.tryConsumeShotPower(d, dt)) return
+    const wc = this.weaponFootprintCenter(b)
+    if (!this.tryConsumeShotPower(d, dt, wc)) return
     if (aim?.yaw && aim?.pitch) {
       this.tmpAimVec.copy(target.mesh.position).sub(origin)
       const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
@@ -4589,7 +5104,7 @@ export class BaseDefenseGame {
       const pitch = Math.atan2(this.tmpAimVec.y, pitchDist)
       aim.pitch.rotation.x = -clamp(pitch, -Math.PI / 2.5, Math.PI / 2.5)
     }
-    const dmg = (d.damage ?? 52) * dt
+    const dmg = (d.damage ?? 52) * dt * this.getNovaWeaponDamageMul(b)
     target.hp -= dmg
     this.credits += dmg * 0.092
     this.spawnShot(origin, target.mesh.position, 0xf472b6)
@@ -4600,6 +5115,164 @@ export class BaseDefenseGame {
       this.world.remove(target.healthBar.group)
       b.plasmaTargetId = undefined
       b.econTimer = 1
+    }
+  }
+
+  private tickNovaPhotonProjector(b: PlacedBuilding, dt: number) {
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
+    b.cooldown -= dt
+    if (b.cooldown > 0) return
+    const baseOrigin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 2.2, b.origin.z + (d.size.h - 1) / 2)
+    const aim = (b.mesh.userData as any)?.aim as WeaponAim | undefined
+    const origin = baseOrigin.clone()
+    if (aim?.muzzle) aim.muzzle.getWorldPosition(this.tmpAimPos), origin.copy(this.tmpAimPos)
+    let target: Asteroid | null = null
+    let best = Infinity
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const dist = origin.distanceTo(a.mesh.position)
+      if (dist > (d.range ?? 60)) continue
+      if (dist < best) {
+        best = dist
+        target = a
+      }
+    }
+    if (!target) return
+    const wc = this.weaponFootprintCenter(b)
+    if (!this.tryConsumeShotPower(d, 1, wc)) return
+    b.cooldown = 1 / Math.max(0.05, d.fireRate ?? 0.12)
+    if (aim?.yaw && aim?.pitch) {
+      this.tmpAimVec.copy(target.mesh.position).sub(origin)
+      const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+      aim.yaw.rotation.y = yaw
+      const pitchDist = Math.hypot(this.tmpAimVec.x, this.tmpAimVec.z)
+      const pitch = Math.atan2(this.tmpAimVec.y, pitchDist)
+      aim.pitch.rotation.x = -clamp(pitch, -Math.PI / 2.2, Math.PI / 2.2)
+    } else if (aim?.yaw) {
+      this.tmpAimVec.copy(target.mesh.position).sub(origin)
+      aim.yaw.rotation.y = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+    }
+    const dir = new THREE.Vector3().subVectors(target.mesh.position, origin)
+    if (dir.lengthSq() < 0.0001) return
+    dir.normalize()
+    this.spawnNovaPhotonOrb(origin, dir, d, this.getNovaWeaponDamageMul(b))
+  }
+
+  private tickNovaShockwavePulsar(b: PlacedBuilding, dt: number) {
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
+    b.cooldown -= dt
+    if (b.cooldown > 0) return
+    const cx = b.origin.x + (d.size.w - 1) / 2
+    const cz = b.origin.z + (d.size.h - 1) / 2
+    const wc = this.weaponFootprintCenter(b)
+    if (!this.tryConsumeShotPower(d, 1, wc)) return
+    b.cooldown = 1 / Math.max(0.06, d.fireRate ?? 0.17)
+    const radius = Math.max(d.aoeRadius ?? 24, d.range ?? 0)
+    const baseDmg = (d.damage ?? 16) * this.getNovaWeaponDamageMul(b)
+    const center = new THREE.Vector3(cx, 1.0, cz)
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const ap = a.mesh.position
+      const dist = Math.hypot(ap.x - cx, ap.z - cz)
+      if (dist > radius) continue
+      const falloff = 1 - dist / radius
+      a.hp -= baseDmg * (0.5 + 0.5 * falloff)
+      a.pulsarSlowTimer = Math.max(a.pulsarSlowTimer, 2.8)
+      if (this.purchasedUpgradeIds.has('hero_nova_stasis_surge')) {
+        a.stasisTimer = Math.max(a.stasisTimer, 0.52)
+      }
+      if (a.hp <= 0) {
+        a.alive = false
+        this.handleAsteroidDeath(a, 'combat')
+        this.world.remove(a.mesh)
+        this.world.remove(a.healthBar.group)
+      }
+    }
+    this.spawnExplosion(center, Math.min(14, radius * 0.45), 0xa78bfa)
+  }
+
+  private spawnNovaPhotonOrb(muzzle: THREE.Vector3, dir: THREE.Vector3, d: BuildingDef, damageMul: number) {
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0x22d3ee,
+      emissiveIntensity: 1.1,
+      roughness: 0.35,
+      transparent: true,
+      opacity: 0.92,
+    })
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.72, 16, 12), mat)
+    mesh.position.copy(muzzle)
+    mesh.castShadow = true
+    this.projectiles.add(mesh)
+    const speed = d.projectileSpeed ?? 13
+    const vel = dir.clone().multiplyScalar(speed)
+    const hitDamage = (d.damage ?? 220) * damageMul
+    const travelDps = 48 * damageMul
+    this.novaPhotons.push({
+      mesh,
+      velocity: vel,
+      ttl: 5.1,
+      hitDamage,
+      travelDps,
+      travelRadius: 3.2,
+      pierceHitIds: new Set(),
+      fissionOnExpire: this.purchasedUpgradeIds.has('hero_nova_fission_blast'),
+      fissionRadius: (d.aoeRadius ?? 14) * 1.35,
+      fissionDamage: hitDamage * 0.55,
+    })
+  }
+
+  private updateNovaPhotons(dt: number) {
+    for (const o of [...this.novaPhotons]) {
+      o.ttl -= dt
+      o.mesh.position.addScaledVector(o.velocity, dt)
+      const pos = o.mesh.position
+      for (const a of this.asteroids) {
+        if (!a.alive) continue
+        if (pos.distanceTo(a.mesh.position) <= o.travelRadius) {
+          a.hp -= o.travelDps * dt * 0.28
+          if (a.hp <= 0) {
+            a.alive = false
+            this.handleAsteroidDeath(a, 'combat')
+            this.world.remove(a.mesh)
+            this.world.remove(a.healthBar.group)
+          }
+        }
+      }
+      for (const a of this.asteroids) {
+        if (!a.alive || o.pierceHitIds.has(a.id)) continue
+        if (pos.distanceTo(a.mesh.position) < 1.22) {
+          o.pierceHitIds.add(a.id)
+          a.hp -= o.hitDamage
+          this.spawnExplosion(a.mesh.position, 0.95, 0x67e8f9)
+          if (a.hp <= 0) {
+            a.alive = false
+            this.handleAsteroidDeath(a, 'combat')
+            this.world.remove(a.mesh)
+            this.world.remove(a.healthBar.group)
+          }
+        }
+      }
+      if (o.ttl <= 0) {
+        if (o.fissionOnExpire) {
+          this.explodeAt(pos.clone(), o.fissionRadius, o.fissionDamage, 0xe879f9)
+        }
+        this.projectiles.remove(o.mesh)
+        const mat = o.mesh.material as THREE.MeshStandardMaterial
+        mat.dispose()
+        o.mesh.geometry.dispose()
+        this.novaPhotons.splice(this.novaPhotons.indexOf(o), 1)
+      }
+    }
+  }
+
+  private updateNovaGravityWells(dt: number) {
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'nova_gravity_well') continue
+      const ring = (b.mesh.userData as any)?.novaGravitySpin as THREE.Group | undefined
+      if (ring) ring.rotation.y += dt * 1.85
     }
   }
 
@@ -4919,7 +5592,8 @@ export class BaseDefenseGame {
     // Shield field maintenance + recharge.
     for (const b of this.buildings) {
       if (b.hp <= 0) continue
-      if (b.defId !== 'shield_generator_m' && b.defId !== 'shield_generator_l') continue
+      if (b.defId !== 'shield_generator_m' && b.defId !== 'shield_generator_l' && b.defId !== 'nova_universal_forcefield')
+        continue
       const sf = this.shieldFields.get(b.id)
       if (!sf) continue
       const effective = this.getEffectiveDef(b.defId) ?? b.def
@@ -4927,7 +5601,8 @@ export class BaseDefenseGame {
       const rechargeMul = effective.shieldRechargeMul ?? 1
 
       // Allow upgrades purchased mid-run to affect shield capacity/recharge immediately.
-      const desiredMaxHp = b.def.maxHp * 2.2 * capMul
+      const desiredMaxHp =
+        b.defId === 'nova_universal_forcefield' ? b.def.maxHp * 5.8 * capMul : b.def.maxHp * 2.2 * capMul
       const ratio = sf.maxHp > 0 ? sf.hp / sf.maxHp : 1
       sf.maxHp = desiredMaxHp
       sf.hp = clamp(ratio * sf.maxHp, 0, sf.maxHp)
@@ -4982,11 +5657,12 @@ export class BaseDefenseGame {
   }
 
   private updateProjectiles(dt: number) {
+    this.updateNovaPhotons(dt)
     this.updateDominionShrapnel(dt)
     for (const p of [...this.pendingMissileBursts]) {
       p.timer -= dt
       while (p.remaining > 0 && p.timer <= 0) {
-        this.spawnMissile(p.origin, p.target, p.def, p.mode, p.noSplash, p.volleyId)
+        this.spawnMissile(p.origin, p.target, p.def, p.mode, p.noSplash, p.volleyId, p.powerSite, p.damageScale ?? 1)
         p.remaining -= 1
         p.timer += p.interval
       }
@@ -5252,6 +5928,8 @@ export class BaseDefenseGame {
     // Enforce a 1-cell gap so buildings cannot be directly adjacent.
     if (!this.isAreaClearWithPadding(ox, oz, def.size.w, def.size.h, 1)) return
 
+    if (def.id === 'nova_universal_forcefield' && this.buildings.some((x) => x.hp > 0 && x.defId === 'nova_universal_forcefield')) return
+
     // commit
     this.credits -= def.creditCost
     this.placeBuilding(def, ox, oz, false)
@@ -5313,6 +5991,34 @@ export class BaseDefenseGame {
         generatorId: id,
         hp: def.maxHp * 2.2 * capMul,
         maxHp: def.maxHp * 2.2 * capMul,
+        radius,
+        bubble,
+        disabled: false,
+      })
+    }
+
+    if (def.id === 'nova_universal_forcefield') {
+      const effective = this.getEffectiveDef(def.id) ?? def
+      const radius = effective.range ?? (def.range ?? 86)
+      const capMul = effective.shieldCapacityMul ?? 1
+      const bubble = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 28, 20),
+        new THREE.MeshBasicMaterial({ color: 0xd8b4fe, transparent: true, opacity: 0.065, depthWrite: false }),
+      )
+      const anchor = (mesh.userData as any)?.shieldBubbleAnchor as THREE.Object3D | undefined
+      if (anchor) {
+        anchor.add(bubble)
+        bubble.position.set(0, 0, 0)
+      } else {
+        bubble.position.y = 2.5
+        mesh.add(bubble)
+      }
+      bubble.scale.setScalar(radius)
+      const hpBase = def.maxHp * 5.8 * capMul
+      this.shieldFields.set(id, {
+        generatorId: id,
+        hp: hpBase,
+        maxHp: hpBase,
         radius,
         bubble,
         disabled: false,
@@ -5956,7 +6662,7 @@ export class BaseDefenseGame {
       const gantry = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.1, 0.2), mkMat(0xe2e8f0, 0.22, 0.5))
       gantry.position.set(w * 0.28, baseH + 1.05, 0)
       group.add(gantry)
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.12), mkEmat(0xc026d3, 0.35, 0.4))
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.12), mkEmat(def.color, 0.35, 0.4))
       arm.position.set(0, baseH + 1.85, 0)
       group.add(arm)
       return group
@@ -5964,10 +6670,10 @@ export class BaseDefenseGame {
 
     if (def.id === 'archangel_fueling_station') {
       const { baseH } = addBase(1.65, def.color)
-      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 1.1, 14), mkMat(0xfde047, 0.18, 0.48))
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 1.1, 14), mkMat(def.color, 0.18, 0.48))
       tank.position.set(0, baseH + 0.55, 0)
       group.add(tank)
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), mkEmat(0xfde047, 0.4, 0.35))
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), mkEmat(def.color, 0.4, 0.35))
       cap.position.set(0, baseH + 1.15, 0)
       group.add(cap)
       return group
@@ -5977,7 +6683,7 @@ export class BaseDefenseGame {
       const { baseH } = addBase(1.9, def.color)
       for (let i = 0; i < 3; i++) {
         const tx = (i - 1) * w * 0.22
-        const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.35, 14), mkMat(0xfacc15, 0.16, 0.46))
+        const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.35, 14), mkMat(def.color, 0.16, 0.46))
         tank.position.set(tx, baseH + 0.68, 0)
         group.add(tank)
       }
@@ -5989,10 +6695,10 @@ export class BaseDefenseGame {
 
     if (def.id === 'archangel_munitions_plant') {
       const { baseH } = addBase(1.55, def.color)
-      const belt = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.1, h * 0.85), mkMat(0x475569, 0.12, 0.55))
+      const belt = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.1, h * 0.85), mkMat(def.color, 0.12, 0.55))
       belt.position.y = baseH + 0.05
       group.add(belt)
-      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.5), mkMat(0xf97316, 0.15, 0.52))
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.5), mkMat(def.color, 0.15, 0.52))
       crate.position.set(-0.25, baseH + 0.35, 0.2)
       group.add(crate)
       return group
@@ -6000,11 +6706,11 @@ export class BaseDefenseGame {
 
     if (def.id === 'archangel_missile_factory') {
       const { baseH } = addBase(1.7, def.color)
-      const rack = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.4, w * 0.75), mkMat(0x94a3b8, 0.14, 0.5))
+      const rack = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.4, w * 0.75), mkMat(def.color, 0.14, 0.5))
       rack.position.set(0, baseH + 0.7, 0)
       group.add(rack)
       for (let i = -2; i <= 2; i++) {
-        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 10), mkEmat(0xc026d3, 0.25, 0.42))
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 10), mkEmat(def.color, 0.25, 0.42))
         m.rotation.z = Math.PI / 2
         m.position.set(i * 0.22, baseH + 0.9, 0.35)
         group.add(m)
@@ -6015,7 +6721,7 @@ export class BaseDefenseGame {
     if (def.id === 'dominion_orbital_cannon') {
       const { baseH } = addBase(2.4, def.color)
       const scale = Math.max(w, h)
-      const sphere = new THREE.Mesh(new THREE.SphereGeometry(scale * 0.3, 22, 18), mkMat(0x7c3aed, 0.2, 0.38))
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(scale * 0.3, 22, 18), mkMat(def.color, 0.2, 0.38))
       sphere.position.set(0, baseH + scale * 0.34, 0)
       group.add(sphere)
       const yaw = new THREE.Group()
@@ -6023,7 +6729,7 @@ export class BaseDefenseGame {
       group.add(yaw)
       const pitch = new THREE.Group()
       yaw.add(pitch)
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.42, scale * 1.1, 14), mkEmat(0xa855f7, 0.3, 0.36))
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.42, scale * 1.1, 14), mkEmat(def.color, 0.3, 0.36))
       barrel.rotation.x = Math.PI / 2
       barrel.position.set(0, 0, scale * 0.55)
       pitch.add(barrel)
@@ -6044,7 +6750,7 @@ export class BaseDefenseGame {
       group.add(yaw)
       const pitch = new THREE.Group()
       yaw.add(pitch)
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.95, 10), mkMat(0xc4b5fd, 0.28, 0.42))
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.95, 10), mkMat(def.color, 0.28, 0.42))
       barrel.rotation.x = Math.PI / 2
       barrel.position.z = 0.98
       pitch.add(barrel)
@@ -6060,27 +6766,27 @@ export class BaseDefenseGame {
 
     if (def.id === 'dominion_seeker_drone_spawner') {
       const { baseH } = addBase(2.05, def.color)
-      const pad = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.42, w * 0.48, 0.14, 18), mkMat(0x6366f1, 0.14, 0.48))
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.42, w * 0.48, 0.14, 18), mkMat(def.color, 0.14, 0.48))
       pad.position.y = baseH + 0.07
       group.add(pad)
-      const tower = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.55, 0.5), mkMat(0x3730a3, 0.12, 0.52))
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.55, 0.5), mkMat(def.color, 0.12, 0.52))
       tower.position.set(0, baseH + 0.9, 0)
       group.add(tower)
-      const dish = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.22, 12, 1, true), mkMat(0x818cf8, 0.2, 0.4))
+      const dish = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.22, 12, 1, true), mkMat(def.color, 0.2, 0.4))
       dish.position.set(0, baseH + 1.55, 0)
       group.add(dish)
       return group
     }
 
     if (def.id === 'dominion_defensive_bunker') {
-      const { baseH } = addBase(3.0, 0x334155)
+      const { baseH } = addBase(3.0, def.color)
       const slab = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.35, h * 0.55), mkMat(def.color, 0.16, 0.55))
       slab.position.set(0, baseH + 0.2, -h * 0.12)
       group.add(slab)
       const yaw = new THREE.Group()
       yaw.position.set(0, baseH + 1.35, h * 0.28)
       group.add(yaw)
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.55, 9), mkMat(0x94a3b8, 0.35, 0.42))
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.55, 9), mkMat(def.color, 0.35, 0.42))
       barrel.rotation.x = Math.PI / 2
       barrel.position.z = 0.78
       yaw.add(barrel)
@@ -6100,7 +6806,7 @@ export class BaseDefenseGame {
       group.add(yaw)
       const pitch = new THREE.Group()
       yaw.add(pitch)
-      const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.42, 12), mkEmat(0xf472b6, 0.6, 0.32))
+      const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.42, 12), mkEmat(def.color, 0.6, 0.32))
       lens.rotation.x = Math.PI / 2
       lens.position.z = 0.55
       pitch.add(lens)
@@ -6116,15 +6822,136 @@ export class BaseDefenseGame {
 
     if (def.id === 'dominion_support_bay') {
       const { baseH } = addBase(2.65, def.color)
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.12, h * 0.95), mkMat(0x059669, 0.12, 0.55))
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.12, h * 0.95), mkMat(def.color, 0.12, 0.55))
       roof.position.y = baseH + 1.35
       group.add(roof)
-      const bay = new THREE.Mesh(new THREE.BoxGeometry(w * 0.75, 0.9, h * 0.55), mkMat(0x10b981, 0.08, 0.58))
+      const bay = new THREE.Mesh(new THREE.BoxGeometry(w * 0.75, 0.9, h * 0.55), mkMat(def.color, 0.08, 0.58))
       bay.position.set(0, baseH + 0.65, h * 0.15)
       group.add(bay)
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.08, 0.12), mkMat(0xfbbf24, 0.25, 0.45))
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.08, 0.12), mkEmat(def.color, 0.35, 0.45))
       stripe.position.set(0, baseH + 0.45, h * 0.46)
       group.add(stripe)
+      return group
+    }
+
+    if (def.id === 'nova_gravity_well') {
+      const { baseH } = addBase(1.0, def.color)
+      const magStem = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.1, w * 0.16, 0.5, 12), mkMat(def.color, 0.18, 0.5))
+      magStem.position.y = baseH + 0.25
+      group.add(magStem)
+      const spear = new THREE.Group()
+      spear.position.set(0, baseH + 2.65, 0)
+      group.add(spear)
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 2.35, 10), mkEmat(def.color, 0.5, 0.32))
+      shaft.rotation.x = Math.PI / 2
+      shaft.rotation.z = -0.22
+      shaft.position.set(0, 0.35, 0.15)
+      spear.add(shaft)
+      const blade = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.55, 8), mkEmat(def.color, 0.82, 0.26))
+      blade.rotation.x = -Math.PI / 2
+      blade.position.set(0, 0.35, 1.35)
+      spear.add(blade)
+      const spin = new THREE.Group()
+      const orbitR = Math.max(w, h) * 0.36
+      spin.position.y = baseH + 1.45
+      group.add(spin)
+      group.userData.novaGravitySpin = spin
+      const pMat = mkEmat(def.color, 1.0, 0.22)
+      const nOrb = 16
+      for (let i = 0; i < nOrb; i++) {
+        const t = (i / nOrb) * Math.PI * 2
+        const bob = Math.sin(i * 1.13) * 0.22
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), pMat)
+        orb.position.set(Math.cos(t) * orbitR, bob, Math.sin(t) * orbitR)
+        spin.add(orb)
+      }
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(orbitR * 0.92, 0.04, 8, 40), mkMat(def.color, 0.2, 0.48))
+      halo.rotation.x = Math.PI / 2
+      spin.add(halo)
+      return group
+    }
+
+    if (def.id === 'nova_photon_projector_s' || def.id === 'nova_photon_projector_l') {
+      const large = def.id === 'nova_photon_projector_l'
+      const { baseH } = addBase(large ? 2.1 : 1.75, def.color)
+      const yawPivot = new THREE.Group()
+      yawPivot.position.set(0, baseH + 0.3, 0)
+      group.add(yawPivot)
+      const pitchPivot = new THREE.Group()
+      pitchPivot.position.set(0, 0.18, 0)
+      yawPivot.add(pitchPivot)
+      const housing = new THREE.Mesh(new THREE.SphereGeometry(large ? 0.52 : 0.4, 16, 12), mkEmat(def.color, 0.55, 0.28))
+      pitchPivot.add(housing)
+      const iris = new THREE.Mesh(
+        new THREE.TorusGeometry(large ? 0.58 : 0.45, 0.055, 10, 28),
+        mkMat(def.color, 0.22, 0.42),
+      )
+      iris.rotation.x = Math.PI / 2
+      iris.position.z = 0.06
+      pitchPivot.add(iris)
+      const muzzle = new THREE.Object3D()
+      muzzle.position.set(0, 0, large ? 0.58 : 0.46)
+      pitchPivot.add(muzzle)
+      aim.yaw = yawPivot
+      aim.pitch = pitchPivot
+      aim.muzzle = muzzle
+      group.userData.aim = aim
+      return group
+    }
+
+    if (def.id === 'nova_shockwave_pulsar') {
+      const { baseH } = addBase(2.05, def.color)
+      const stage = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.4, w * 0.46, 0.22, 18), mkMat(def.color, 0.14, 0.52))
+      stage.position.y = baseH + 0.11
+      group.add(stage)
+      const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.52, 0.55, 16), mkEmat(def.color, 0.4, 0.34))
+      bell.position.y = baseH + 0.55
+      group.add(bell)
+      const emitter = new THREE.Mesh(new THREE.SphereGeometry(0.38, 14, 12), mkEmat(def.color, 0.65, 0.28))
+      emitter.position.y = baseH + 1.05
+      group.add(emitter)
+      const ribs = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.05, 8, 32), mkMat(def.color, 0.18, 0.48))
+      ribs.position.y = baseH + 0.92
+      ribs.rotation.x = Math.PI / 2
+      group.add(ribs)
+      return group
+    }
+
+    if (def.id === 'nova_universal_forcefield') {
+      const { baseH } = addBase(2.35, def.color)
+      for (let i = 0; i < 3; i++) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.85, 0.22), mkMat(def.color, 0.16, 0.5))
+        const ox = (i - 1) * w * 0.26
+        leg.position.set(ox, baseH + 0.92, 0)
+        group.add(leg)
+      }
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(w * 0.88, 0.14, h * 0.35), mkMat(def.color, 0.14, 0.52))
+      bridge.position.y = baseH + 1.65
+      group.add(bridge)
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 0), mkEmat(def.color, 0.45, 0.3))
+      core.position.y = baseH + 2.05
+      group.add(core)
+      const anchor = new THREE.Object3D()
+      anchor.position.set(0, 0, 0)
+      group.add(anchor)
+      group.userData.shieldBubbleAnchor = anchor
+      return group
+    }
+
+    if (def.id === 'nova_power_bank') {
+      const { baseH } = addBase(1.45, def.color)
+      const spine = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.14, 0.32), mkMat(def.color, 0.12, 0.55))
+      spine.position.y = baseH + 0.07
+      group.add(spine)
+      for (let i = 0; i < 3; i++) {
+        const stack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.42), mkEmat(def.color, 0.4, 0.38))
+        stack.position.set((i - 1) * 0.48, baseH + 0.42, 0)
+        group.add(stack)
+      }
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 10, 24), mkMat(def.color, 0.2, 0.45))
+      coil.position.y = baseH + 0.82
+      coil.rotation.x = Math.PI / 2
+      group.add(coil)
       return group
     }
 
@@ -6164,6 +6991,11 @@ export class BaseDefenseGame {
       return
     }
     if (this.supplyUsed + def.supplyCost > this.supplyCap) {
+      this.hoverValid = false
+      return
+    }
+
+    if (def.id === 'nova_universal_forcefield' && this.buildings.some((b) => b.hp > 0 && b.defId === 'nova_universal_forcefield')) {
       this.hoverValid = false
       return
     }
@@ -6347,8 +7179,10 @@ export class BaseDefenseGame {
     mode: 'death_location' | 'retarget',
     noSplash: boolean,
     volleyId: string | null,
+    powerSite?: { x: number; z: number },
+    damageScale: number = 1,
   ) {
-    if (!this.tryConsumeShotPower(def)) return
+    if (!this.tryConsumeShotPower(def, 1, powerSite)) return
     const geo = new THREE.ConeGeometry(0.15, 0.7, 10)
     const mat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, emissive: 0xf59e0b, emissiveIntensity: 0.4 })
     const mesh = new THREE.Mesh(geo, mat)
@@ -6369,7 +7203,7 @@ export class BaseDefenseGame {
       launchUpSpeed: 26,
       speed: def.projectileSpeed ?? 44,
       ttl: 4.5,
-      damage: def.damage ?? 30,
+      damage: (def.damage ?? 30) * damageScale,
       aoeRadius: def.aoeRadius ?? 3,
     })
   }
@@ -6430,8 +7264,14 @@ export class BaseDefenseGame {
     return best
   }
 
-  private spawnBallistic(origin: THREE.Vector3, targetPos: THREE.Vector3, def: BuildingDef) {
-    if (!this.tryConsumeShotPower(def)) return
+  private spawnBallistic(
+    origin: THREE.Vector3,
+    targetPos: THREE.Vector3,
+    def: BuildingDef,
+    powerSite?: { x: number; z: number },
+    damageScale: number = 1,
+  ) {
+    if (!this.tryConsumeShotPower(def, 1, powerSite)) return
     const geo = new THREE.CylinderGeometry(0.22, 0.22, 1.2, 10)
     const mat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, emissive: 0xef4444, emissiveIntensity: 0.35 })
     const mesh = new THREE.Mesh(geo, mat)
@@ -6446,7 +7286,7 @@ export class BaseDefenseGame {
       end: new THREE.Vector3(targetPos.x, 0, targetPos.z),
       t: 0,
       duration: 3.2,
-      damage: def.damage ?? 800,
+      damage: (def.damage ?? 800) * damageScale,
       aoeRadius: def.aoeRadius ?? 10,
     })
   }

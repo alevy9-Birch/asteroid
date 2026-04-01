@@ -120,6 +120,7 @@ function App() {
   const heroLabel: Record<HeroId, string> = {
     archangel: 'Archangel',
     dominion: 'Dominion',
+    nova: 'Nova',
   }
   const categoryLabel: Record<BuildingCategory, string> = {
     structural: 'Structural',
@@ -476,9 +477,9 @@ function App() {
     if (id === 'archangel_missile_factory')
       return 'During waves, on the starport pad: loads bomber missiles a bit faster than munitions load gunships. More factories = faster.'
     if (id === 'dominion_orbital_cannon')
-      return '5x5 spherical battery: one devastating blast every ~5s for heavy power cost; huge AoE plus shrapnel (more with Lead Rounds).'
+      return '5x5 spherical battery: one devastating blast every ~5s for heavy power cost; unlimited range on the nearest rock, huge AoE plus shrapnel (more with Lead Rounds).'
     if (id === 'dominion_flak_gun')
-      return 'Cheap long-range flak: very high damage, fast fire. Only targets in a cone above the gun; cannot fire within 15 tiles ground range. Spawns shrapnel on hit.'
+      return 'Cheap long-range flak: very high damage, fast fire. Wide sky cone above the gun; cannot fire within 15 tiles ground range. Spawns shrapnel on hit.'
     if (id === 'dominion_seeker_drone_spawner')
       return 'Every 4s launches a drone to the nearest asteroid; slows and pushes it based on size, with light damage-over-time. Drone dies with the rock.'
     if (id === 'dominion_defensive_bunker')
@@ -985,7 +986,7 @@ function App() {
                       left: `${n.sx}px`,
                       top: `${n.sy}px`,
                       transform: `translate(-50%, -50%) scale(${nodeScale})`,
-                      ['--node-color' as string]: categoryColor[up.category],
+                      ['--node-color' as string]: up.heroId ? categoryColor.hero : categoryColor[up.category],
                     }}
                   >
                     {refundable && <div className="skill-node-refund">$</div>}
@@ -1146,6 +1147,7 @@ function App() {
                 [
                   ['archangel', 'Archangel'],
                   ['dominion', 'Dominion'],
+                  ['nova', 'Nova'],
                 ] as Array<[HeroId, string]>
               ).map(([id, label]) => (
                 <button
