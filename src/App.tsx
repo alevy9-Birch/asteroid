@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BaseDefenseGame, BUILDINGS, UPGRADES, type BuildingCategory, type BuildingId, type GameDifficulty, type UpgradeId } from './game/BaseDefenseGame'
+import { BaseDefenseGame, BUILDINGS, UPGRADES, type BuildingCategory, type BuildingId, type GameDifficulty, type HeroId, type UpgradeId } from './game/BaseDefenseGame'
 
 type State = {
   credits: number
@@ -15,6 +15,7 @@ type State = {
   inactiveTimeLeftSec: number
   asteroidsRemaining: number
   asteroidDiscovery: { variant: string; name: string; description: string; color: number } | null
+  heroId: HeroId
   unlockedBuildingIds: BuildingId[]
   purchasedUpgradeIds: UpgradeId[]
   refundableUpgradeIds: UpgradeId[]
@@ -36,6 +37,7 @@ const INITIAL_STATE: State = {
   inactiveTimeLeftSec: 0,
   asteroidsRemaining: 0,
   asteroidDiscovery: null,
+  heroId: 'archangel',
   unlockedBuildingIds: [
     'command_center',
     'supply_depot_s',
@@ -72,6 +74,8 @@ function App() {
   const wheelOpenStateRef = useRef(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const upgradeOpenRef = useRef(false)
+  const [researchOpen, setResearchOpen] = useState(false)
+  const researchOpenRef = useRef(false)
   const [skillCam, setSkillCam] = useState({ x: 0, y: 0, zoom: 1 })
   const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight })
   const hoveredUpgradeRef = useRef<UpgradeId | undefined>(undefined)
@@ -82,11 +86,14 @@ function App() {
   const [virtualCursor, setVirtualCursor] = useState({ x: 0, y: -118 })
   const virtualCursorLiveRef = useRef(virtualCursor)
   const pendingLockedWheelSelectionRef = useRef<BuildingId | undefined>(undefined)
+  const pendingUpgradeFocusRef = useRef<UpgradeId | undefined>(undefined)
   const categorySelectionRef = useRef<Partial<Record<BuildingCategory, BuildingId>>>({})
   const [selectedDifficulty, setSelectedDifficulty] = useState<GameDifficulty>('hard')
-  const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty }>({
+  const [selectedHero, setSelectedHero] = useState<HeroId>('archangel')
+  const runConfigRef = useRef<{ mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty; heroId?: HeroId }>({
     mode: 'normal',
     difficulty: 'hard',
+    heroId: 'archangel',
   })
 
   useEffect(() => {
@@ -109,7 +116,10 @@ function App() {
     }
   }, [phase, sessionId])
 
-  const categoryOrder: BuildingCategory[] = ['structural', 'economy', 'electrical', 'turrets', 'missile', 'energy']
+  const categoryOrder: BuildingCategory[] = ['structural', 'economy', 'electrical', 'turrets', 'missile', 'energy', 'hero']
+  const heroLabel: Record<HeroId, string> = {
+    archangel: 'Archangel',
+  }
   const categoryLabel: Record<BuildingCategory, string> = {
     structural: 'Structural',
     economy: 'Economy',
@@ -117,6 +127,7 @@ function App() {
     turrets: 'Turrets',
     missile: 'Missile',
     energy: 'Energy',
+    hero: heroLabel[state.heroId],
   }
   const categoryColor: Record<BuildingCategory, string> = {
     structural: '#60a5fa',
@@ -125,16 +136,19 @@ function App() {
     turrets: '#f97316',
     missile: '#ef4444',
     energy: '#22d3ee',
+    hero: '#a855f7',
   }
 
   const buildingDefs = useMemo(() => {
     const order = new Map(categoryOrder.map((c, i) => [c, i]))
-    return [...BUILDINGS].sort((a, b) => {
+    return [...BUILDINGS]
+      .filter((b) => b.category !== 'hero' || (b as any).heroId === state.heroId)
+      .sort((a, b) => {
       const ca = order.get(a.category) ?? 0
       const cb = order.get(b.category) ?? 0
       return ca - cb
     })
-  }, [])
+  }, [state.heroId])
   const unlockedSet = useMemo(() => new Set(state.unlockedBuildingIds), [state.unlockedBuildingIds])
   const selectedDef = buildingDefs.find((b) => b.id === state.selected) ?? buildingDefs[0]
   const selectedCategory = selectedDef?.category ?? 'structural'
@@ -189,6 +203,9 @@ function App() {
   const selectedStat = buildDesc(selectedDef)
   const purchasedUpgrades = useMemo(() => new Set(state.purchasedUpgradeIds), [state.purchasedUpgradeIds])
   const refundableUpgrades = useMemo(() => new Set(state.refundableUpgradeIds), [state.refundableUpgradeIds])
+  const normalUpgradeDefs = useMemo(() => UPGRADES.filter((u) => !u.heroId), [])
+  const heroResearchDefs = useMemo(() => UPGRADES.filter((u) => u.heroId === state.heroId), [state.heroId])
+  const activeTreeDefs = researchOpen ? heroResearchDefs : normalUpgradeDefs
   const skillHexLayout = useMemo(() => {
     type Hex = { q: number; r: number }
     const dirs: Hex[] = [
@@ -199,11 +216,13 @@ function App() {
       { q: -1, r: 1 },
       { q: 0, r: 1 },
     ]
-    const byId = new Map(UPGRADES.map((u) => [u.id, u]))
+    const roots = activeTreeDefs.filter((u) => !u.prereqIds || u.prereqIds.length === 0)
+    const rootUpgradeId: UpgradeId = researchOpen ? roots[0]?.id ?? 'core_protocol' : 'core_protocol'
+    const byId = new Map(activeTreeDefs.map((u) => [u.id, u]))
     const catOrder = new Map(categoryOrder.map((c, i) => [c, i]))
     const memo = new Map<UpgradeId, number>()
     const depthOf = (id: UpgradeId): number => {
-      if (id === 'core_protocol') return 0
+      if (id === rootUpgradeId) return 0
       const cached = memo.get(id)
       if (cached !== undefined) return cached
       const up = byId.get(id)
@@ -215,7 +234,9 @@ function App() {
       memo.set(id, d)
       return d
     }
-    const upgrades = UPGRADES.filter((u) => u.id !== 'core_protocol').sort((a, b) => {
+    const upgrades = activeTreeDefs
+      .filter((u) => u.id !== rootUpgradeId)
+      .sort((a, b) => {
       const da = depthOf(a.id)
       const db = depthOf(b.id)
       if (da !== db) return da - db
@@ -226,7 +247,7 @@ function App() {
     })
 
     const coordById = new Map<UpgradeId, Hex>()
-    coordById.set('core_protocol', { q: 0, r: 0 })
+    coordById.set(rootUpgradeId, { q: 0, r: 0 })
     const occupied = new Set<string>(['0,0'])
     const hasOccupiedNeighbor = (h: Hex) =>
       dirs.some((d) => occupied.has(`${h.q + d.q},${h.r + d.r}`))
@@ -263,6 +284,7 @@ function App() {
       turrets: -Math.PI / 3,
       missile: 0,
       energy: Math.PI / 3,
+      hero: Math.PI / 2,
     }
     const remainingCells = [...chosenCells]
     for (const up of upgrades) {
@@ -287,7 +309,7 @@ function App() {
 
     const cellSize = 150
     const nodes: Array<{ id: UpgradeId; x: number; y: number }> = []
-    for (const up of UPGRADES) {
+    for (const up of activeTreeDefs) {
       const c = coordById.get(up.id) ?? { q: 0, r: 0 }
       const x = cellSize * Math.sqrt(3) * (c.q + c.r / 2)
       const y = cellSize * 1.5 * c.r
@@ -297,7 +319,7 @@ function App() {
     const idByCoord = new Map<string, UpgradeId>()
     for (const [id, c] of coordById) idByCoord.set(`${c.q},${c.r}`, id)
     const adj = {} as Record<UpgradeId, UpgradeId[]>
-    for (const u of UPGRADES) {
+    for (const u of activeTreeDefs) {
       const c = coordById.get(u.id) ?? { q: 0, r: 0 }
       const neighbors: UpgradeId[] = []
       for (const d of dirs) {
@@ -321,25 +343,38 @@ function App() {
     })
 
     return { nodes, adj, edges: edgeList }
-  }, [categoryOrder])
+  }, [categoryOrder, activeTreeDefs, researchOpen])
+
+  useEffect(() => {
+    const pid = pendingUpgradeFocusRef.current
+    if (!pid) return
+    const node = skillHexLayout.nodes.find((n) => n.id === pid)
+    if (node) {
+      setSkillCam((prev) => ({ ...prev, x: node.x, y: node.y }))
+      pendingUpgradeFocusRef.current = undefined
+    }
+  }, [skillHexLayout.nodes, upgradeOpen, researchOpen])
   const skillNodes = skillHexLayout.nodes
   const skillAdj = skillHexLayout.adj
   const skillEdges = skillHexLayout.edges
   const unlockedUpgradeSet = useMemo(() => {
-    const s = new Set<UpgradeId>(['core_protocol'])
+    const roots = activeTreeDefs.filter((u) => !u.prereqIds || u.prereqIds.length === 0).map((u) => u.id)
+    const s = new Set<UpgradeId>(roots)
     for (const p of purchasedUpgrades) {
       s.add(p)
       for (const n of skillAdj[p] ?? []) s.add(n)
     }
     return s
-  }, [purchasedUpgrades, skillAdj])
+  }, [purchasedUpgrades, skillAdj, activeTreeDefs])
   const canBuyUpgrade = (id: UpgradeId, cost: number) =>
     unlockedUpgradeSet.has(id) && !purchasedUpgrades.has(id) && state.credits >= cost
 
   const findUnlockUpgradeForBuilding = (id: BuildingId): UpgradeId | undefined => {
-    const candidates = UPGRADES.filter((u) => (u.unlockBuildingIds ?? []).includes(id) && !purchasedUpgrades.has(u.id))
+    const bdef = BUILDINGS.find((b) => b.id === id)
+    const pool = bdef?.heroId ? heroResearchDefs : normalUpgradeDefs
+    const candidates = pool.filter((u) => (u.unlockBuildingIds ?? []).includes(id) && !purchasedUpgrades.has(u.id))
     if (candidates.length === 0) return undefined
-    const byId = new Map(UPGRADES.map((u) => [u.id, u]))
+    const byId = new Map(pool.map((u) => [u.id, u]))
     const memo = new Map<UpgradeId, number>()
     const depth = (uid: UpgradeId): number => {
       const cached = memo.get(uid)
@@ -357,14 +392,22 @@ function App() {
   const openUpgradeForBuilding = (buildingId: BuildingId) => {
     const target = findUnlockUpgradeForBuilding(buildingId)
     if (!target) return
-    const node = skillNodes.find((n) => n.id === target)
-    if (!node) return
+    const upMeta = UPGRADES.find((u) => u.id === target)
+    const isHeroResearch = Boolean(upMeta?.heroId)
     wheelOpenRef.current = false
     setWheelOpen(false)
-    upgradeOpenRef.current = true
-    setUpgradeOpen(true)
-    // Center the target upgrade under the reticle.
-    setSkillCam((prev) => ({ ...prev, x: node.x, y: node.y }))
+    if (isHeroResearch) {
+      upgradeOpenRef.current = false
+      setUpgradeOpen(false)
+      researchOpenRef.current = true
+      setResearchOpen(true)
+    } else {
+      researchOpenRef.current = false
+      setResearchOpen(false)
+      upgradeOpenRef.current = true
+      setUpgradeOpen(true)
+    }
+    pendingUpgradeFocusRef.current = target
   }
 
   const jumpCategory = (dir: 1 | -1) => {
@@ -421,6 +464,16 @@ function App() {
     if (id === 'plasma_laser_s') return 'Small long-range beam turret with high sustained power cost.'
     if (id === 'plasma_laser_m') return 'Medium long-range plasma beam with stronger sustained damage.'
     if (id === 'plasma_laser_l') return 'Large long-range plasma beam platform with highest energy-beam output.'
+    if (id === 'archangel_airfield') return 'Deploys one fast gunship: long-range bullet stream; needs fuel and bullets.'
+    if (id === 'archangel_starport') return 'Deploys one bomber craft: slow heavy missiles with huge blast radius; needs fuel and missiles.'
+    if (id === 'archangel_fueling_station')
+      return 'During an active wave, while a plane is on its pad, each station adds fuel transfer; needs power. More stations = faster.'
+    if (id === 'archangel_bulk_fueling_station')
+      return 'Heavy pad fueling during waves when planes are landed; high power. Unlocked via Archangel research, not the starter core.'
+    if (id === 'archangel_munitions_plant')
+      return 'During waves, on the airfield pad only: spends credits to load gunship magazines. More plants = faster.'
+    if (id === 'archangel_missile_factory')
+      return 'During waves, on the starport pad: loads bomber missiles a bit faster than munitions load gunships. More factories = faster.'
     return ''
   }, [selectedDef])
   const selectedCatIndex = categoryOrder.indexOf(selectedCategory)
@@ -444,9 +497,11 @@ function App() {
     if (phase !== 'playing') return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'c' || e.key === 'C') {
-        if (upgradeOpenRef.current) {
+        if (upgradeOpenRef.current || researchOpenRef.current) {
           upgradeOpenRef.current = false
+          researchOpenRef.current = false
           setUpgradeOpen(false)
+          setResearchOpen(false)
           if (!wheelOpenRef.current) {
             pendingLockedWheelSelectionRef.current = undefined
             wheelOpenRef.current = true
@@ -466,9 +521,27 @@ function App() {
           wheelOpenRef.current = false
           setWheelOpen(false)
         }
+        if (researchOpenRef.current) {
+          researchOpenRef.current = false
+          setResearchOpen(false)
+        }
         const next = !upgradeOpenRef.current
         upgradeOpenRef.current = next
         setUpgradeOpen(next)
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        if (e.repeat) return
+        if (wheelOpenRef.current) {
+          wheelOpenRef.current = false
+          setWheelOpen(false)
+        }
+        if (upgradeOpenRef.current) {
+          upgradeOpenRef.current = false
+          setUpgradeOpen(false)
+        }
+        const next = !researchOpenRef.current
+        researchOpenRef.current = next
+        setResearchOpen(next)
       }
     }
     const onKeyUp = (e: KeyboardEvent) => {
@@ -491,7 +564,7 @@ function App() {
   useEffect(() => {
     if (phase !== 'playing') return
     const onWheel = (e: WheelEvent) => {
-      if (upgradeOpenRef.current) {
+      if (upgradeOpenRef.current || researchOpenRef.current) {
         e.preventDefault()
         const dir = Math.sign(e.deltaY)
         if (dir === 0) return
@@ -532,12 +605,16 @@ function App() {
   }, [upgradeOpen])
 
   useEffect(() => {
+    researchOpenRef.current = researchOpen
+  }, [researchOpen])
+
+  useEffect(() => {
     if (phase !== 'playing') return
     const onMouseMove = (e: MouseEvent) => {
       const dx = e.movementX ?? 0
       const dy = e.movementY ?? 0
       if (dx === 0 && dy === 0) return
-      if (upgradeOpenRef.current) {
+      if (upgradeOpenRef.current || researchOpenRef.current) {
         // Pan direction should feel like "dragging the canvas".
         setSkillCam((prev) => ({ ...prev, x: prev.x + dx / prev.zoom, y: prev.y + dy / prev.zoom }))
         return
@@ -590,7 +667,7 @@ function App() {
   }, [phase])
 
   const tryPurchasePathTo = (targetId: UpgradeId) => {
-    const targetDef = UPGRADES.find((u) => u.id === targetId)
+    const targetDef = activeTreeDefs.find((u) => u.id === targetId)
     if (!targetDef) return
 
     // BFS from "any purchased node" to the target over the adjacency graph.
@@ -626,7 +703,7 @@ function App() {
     const purchasedLocal = new Set(purchasedUpgrades)
     for (const id of path) {
       if (purchasedLocal.has(id)) continue
-      const def = UPGRADES.find((u) => u.id === id)
+      const def = activeTreeDefs.find((u) => u.id === id)
       if (!def) return
       if (creditsLeft < def.creditCost) return
       creditsLeft -= def.creditCost
@@ -636,7 +713,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (phase !== 'playing' || !upgradeOpen) return
+    if (phase !== 'playing' || (!upgradeOpen && !researchOpen)) return
     const onMouseDown = (e: MouseEvent) => {
       if (e.button !== 0) return
       const id = hoveredUpgradeRef.current
@@ -655,19 +732,21 @@ function App() {
     }
     window.addEventListener('mousedown', onMouseDown)
     return () => window.removeEventListener('mousedown', onMouseDown)
-  }, [phase, upgradeOpen, refundableUpgrades, purchasedUpgrades, skillAdj, state.credits])
+  }, [phase, upgradeOpen, researchOpen, refundableUpgrades, purchasedUpgrades, skillAdj, state.credits, activeTreeDefs])
 
   useEffect(() => {
     if (phase !== 'playing') return
-    gameRef.current?.setWheelOpen(wheelOpen || upgradeOpen)
-  }, [wheelOpen, upgradeOpen, phase])
+    gameRef.current?.setWheelOpen(wheelOpen || upgradeOpen || researchOpen)
+  }, [wheelOpen, upgradeOpen, researchOpen, phase])
 
   const startNewRun = () => {
-    runConfigRef.current = { mode: 'normal', difficulty: selectedDifficulty }
+    runConfigRef.current = { mode: 'normal', difficulty: selectedDifficulty, heroId: selectedHero }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
+    researchOpenRef.current = false
     setWheelOpen(false)
     setUpgradeOpen(false)
+    setResearchOpen(false)
     setState(INITIAL_STATE)
     setLastWave(0)
     categorySelectionRef.current = {}
@@ -676,11 +755,13 @@ function App() {
   }
 
   const startSandbox = () => {
-    runConfigRef.current = { mode: 'sandbox', difficulty: selectedDifficulty }
+    runConfigRef.current = { mode: 'sandbox', difficulty: selectedDifficulty, heroId: selectedHero }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
+    researchOpenRef.current = false
     setWheelOpen(false)
     setUpgradeOpen(false)
+    setResearchOpen(false)
     setState(INITIAL_STATE)
     setLastWave(0)
     categorySelectionRef.current = {}
@@ -691,8 +772,10 @@ function App() {
   const goToMenu = () => {
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
+    researchOpenRef.current = false
     setWheelOpen(false)
     setUpgradeOpen(false)
+    setResearchOpen(false)
     setPhase('menu')
   }
 
@@ -730,7 +813,7 @@ function App() {
     }
     return bestDist <= 30 * nodeScale ? best : undefined
   }, [renderedSkillNodes, treeCx, treeCy, nodeScale])
-  const hoveredUpgradeDef = UPGRADES.find((u) => u.id === hoveredUpgradeId)
+  const hoveredUpgradeDef = activeTreeDefs.find((u) => u.id === hoveredUpgradeId)
   const hoveredNodeCanBuy = hoveredUpgradeDef ? canBuyUpgrade(hoveredUpgradeDef.id, hoveredUpgradeDef.creditCost) : false
 
   useEffect(() => {
@@ -846,7 +929,7 @@ function App() {
         </div>
       )}
 
-      {phase === 'playing' && upgradeOpen && (
+      {phase === 'playing' && (upgradeOpen || researchOpen) && (
         <div
           className="upgrade-overlay"
           aria-hidden="true"
@@ -856,9 +939,9 @@ function App() {
           }}
         >
           <div className="upgrade-panel">
-            <div className="upgrade-title">Skill Tree</div>
+            <div className="upgrade-title">{researchOpen ? 'Hero Research' : 'Skill Tree'}</div>
             <div className="upgrade-subtitle">
-              Hold <b>U</b> to keep open. Move mouse to pan, scroll to zoom, center reticle hovers.
+              Press <b>{researchOpen ? 'R' : 'U'}</b> to toggle. Move mouse to pan, scroll to zoom, center reticle hovers.
             </div>
             <div className="skilltree-canvas" style={{ width: treeW, height: treeH }}>
               <svg className="skilltree-lines" viewBox={`0 0 ${treeW} ${treeH}`} aria-hidden="true">
@@ -871,7 +954,7 @@ function App() {
               </svg>
 
               {renderedSkillNodes.map((n) => {
-                const up = UPGRADES.find((u) => u.id === n.id)!
+                const up = activeTreeDefs.find((u) => u.id === n.id)!
                 const purchased = purchasedUpgrades.has(n.id)
                 const refundable = refundableUpgrades.has(n.id)
                 const unlocked = unlockedUpgradeSet.has(n.id)
@@ -915,7 +998,7 @@ function App() {
                         ? 'Left click to purchase'
                         : unlockedUpgradeSet.has(hoveredUpgradeDef.id)
                           ? 'Insufficient credits'
-                          : 'Locked: purchase adjacent upgrade first'}
+                          : 'Locked: purchase adjacent research first'}
                   </div>
                 </>
               ) : (
@@ -1043,8 +1126,20 @@ function App() {
             <h2>Meteor Base Defense</h2>
             <p>Defend your command center(s) against massive meteor impacts.</p>
             <p className="small">
-              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, press U for skill tree, RMB sell, Space starts next wave.
+              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, press U for skill tree, press R for hero research, RMB sell, Space starts next wave.
             </p>
+            <div className="difficulty-picker">
+              {([['archangel', 'Archangel']] as Array<[HeroId, string]>).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={selectedHero === id ? 'secondary-btn active' : 'secondary-btn'}
+                  onClick={() => setSelectedHero(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="difficulty-picker">
               {([
                 ['easy', 'Easy'],

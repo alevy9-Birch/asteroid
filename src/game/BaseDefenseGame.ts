@@ -37,14 +37,22 @@ export type BuildingId =
   | 'plasma_laser_s'
   | 'plasma_laser_m'
   | 'plasma_laser_l'
+  | 'archangel_airfield'
+  | 'archangel_starport'
+  | 'archangel_fueling_station'
+  | 'archangel_bulk_fueling_station'
+  | 'archangel_munitions_plant'
+  | 'archangel_missile_factory'
 
-export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'energy'
+export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'energy' | 'hero'
 export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'brutal' | 'deadly'
+export type HeroId = 'archangel'
 
 type BuildingDef = {
   id: BuildingId
   label: string
   category: BuildingCategory
+  heroId?: HeroId
   color: number
   size: { w: number; h: number } // cells (x,z)
   maxHp: number
@@ -176,6 +184,39 @@ type RepairDrone = {
   state: 'to_target' | 'healing' | 'returning'
 }
 
+type ArchangelPlaneHud = {
+  group: THREE.Group
+  fuelFill: THREE.Mesh
+  ammoFill: THREE.Mesh
+}
+
+type ArchangelPlane = {
+  id: string
+  mesh: THREE.Group
+  homeId: string
+  /** 0 = primary, 1 = second wingman when Tight Shift is purchased. */
+  slot: 0 | 1
+  role: 'gunship' | 'bomber'
+  state: 'refuel' | 'patrol' | 'return'
+  fuel: number
+  maxFuel: number
+  /** Gunship only: rounds loaded on the craft (replenished on the pad from Munitions Plants). */
+  bullets: number
+  maxBullets: number
+  /** Bomber only: air-launched missiles on the craft (replenished on the pad from Missile Factories). */
+  missiles: number
+  maxMissiles: number
+  targetId: string | null
+  evadeTimer: number
+  /** Bomber: missiles remaining in current volley (0 = idle between volleys). */
+  bomberBurstLeft: number
+  /** Bomber: seconds until next missile in volley. */
+  bomberBurstGapTimer: number
+  /** Bomber: seconds until a new 4-missile volley can begin after the last ends. */
+  bomberBurstRestTimer: number
+  hud: ArchangelPlaneHud
+}
+
 export type UpgradeId =
   | 'core_protocol'
   | 'unlock_factory'
@@ -257,6 +298,25 @@ export type UpgradeId =
   | 'plasma_laser_s_mk2'
   | 'plasma_laser_m_mk2'
   | 'plasma_laser_l_mk2'
+  | 'hero_archangel_core'
+  | 'hero_archangel_unlock_bulk_fueling'
+  | 'hero_archangel_fuel_efficiency_1'
+  | 'hero_archangel_fuel_efficiency_2'
+  | 'hero_archangel_armor_piercing'
+  | 'hero_archangel_quick_reload'
+  | 'hero_archangel_tight_shift'
+  | 'hero_archangel_airfield_mk2'
+  | 'hero_archangel_starport_mk2'
+  | 'hero_archangel_fueling_mk2'
+  | 'hero_archangel_bulk_fueling_mk2'
+  | 'hero_archangel_munitions_mk2'
+  | 'hero_archangel_missile_factory_mk2'
+  | 'hero_archangel_missile_damage_1'
+  | 'hero_archangel_missile_damage_2'
+  | 'hero_archangel_missile_range_1'
+  | 'hero_archangel_missile_range_2'
+  | 'hero_archangel_missile_payload_1'
+  | 'hero_archangel_missile_payload_2'
 
 type BuildingModifier = {
   rangeAdd?: number
@@ -264,6 +324,7 @@ type BuildingModifier = {
   fireRateMul?: number
   creditPayoutMul?: number
   powerGenMul?: number
+  projectileSpeedMul?: number
 
   powerDrainMul?: number
   aoeRadiusMul?: number
@@ -279,6 +340,7 @@ export type UpgradeDef = {
   id: UpgradeId
   label: string
   category: BuildingCategory
+  heroId?: HeroId
   creditCost: number
   description: string
   prereqIds?: UpgradeId[]
@@ -862,6 +924,91 @@ export const BUILDINGS: BuildingDef[] = [
     fireRate: 18,
     damage: 182,
     wheelDetails: () => ['Large beam platform', 'Highest energy-beam throughput'],
+  },
+  {
+    id: 'archangel_airfield',
+    label: 'Airfield',
+    heroId: 'archangel',
+    category: 'hero',
+    color: 0xc084fc,
+    size: { w: 3, h: 3 },
+    maxHp: 920,
+    creditCost: Math.round(780 * VARS.C),
+    supplyCost: 14,
+    powerDrainPerSec: 0.15 * VARS.P,
+    range: 42,
+    fireRate: 14,
+    damage: 5.8,
+    projectileSpeed: 24,
+    wheelDetails: () => ['Deploys gunships (two with Tight Shift)', 'Long-range bullet stream; needs fuel & bullets'],
+  },
+  {
+    id: 'archangel_starport',
+    label: 'Starport',
+    heroId: 'archangel',
+    category: 'hero',
+    color: 0xa855f7,
+    size: { w: 3, h: 3 },
+    maxHp: 1050,
+    creditCost: Math.round(1020 * VARS.C),
+    supplyCost: 16,
+    powerDrainPerSec: 0.2 * VARS.P,
+    range: 36,
+    fireRate: 0.19,
+    damage: 238,
+    aoeRadius: 13.5,
+    projectileSpeed: 56,
+    wheelDetails: () => ['Deploys bombers (two with Tight Shift)', 'Slow huge missiles; needs fuel & missile ordnance'],
+  },
+  {
+    id: 'archangel_fueling_station',
+    label: 'Fueling Station',
+    heroId: 'archangel',
+    category: 'hero',
+    color: 0xe9d5ff,
+    size: { w: 2, h: 2 },
+    maxHp: 420,
+    creditCost: Math.round(340 * VARS.C),
+    supplyCost: 6,
+    powerDrainPerSec: 0.48 * VARS.P,
+    wheelDetails: () => ['Fuels planes on pad during active waves', 'More stations = faster; needs power'],
+  },
+  {
+    id: 'archangel_bulk_fueling_station',
+    label: 'Bulk Fueling Station',
+    heroId: 'archangel',
+    category: 'hero',
+    color: 0xd8b4fe,
+    size: { w: 4, h: 4 },
+    maxHp: 980,
+    creditCost: Math.round(820 * VARS.C),
+    supplyCost: 14,
+    powerDrainPerSec: 1.15 * VARS.P,
+    wheelDetails: () => ['Heavy pad fueling during waves', 'Unlock via research; high power draw'],
+  },
+  {
+    id: 'archangel_munitions_plant',
+    label: 'Munitions Plant',
+    heroId: 'archangel',
+    category: 'hero',
+    color: 0xf0abfc,
+    size: { w: 2, h: 2 },
+    maxHp: 400,
+    creditCost: Math.round(290 * VARS.C),
+    supplyCost: 5,
+    wheelDetails: () => ['Loads gunships on pad during waves', 'More plants = faster bullet transfer'],
+  },
+  {
+    id: 'archangel_missile_factory',
+    label: 'Missile Factory',
+    heroId: 'archangel',
+    category: 'hero',
+    color: 0xe879f9,
+    size: { w: 2, h: 2 },
+    maxHp: 440,
+    creditCost: Math.round(360 * VARS.C),
+    supplyCost: 6,
+    wheelDetails: () => ['Arms bombers on pad during waves', 'Slightly faster load than munitions plants'],
   },
 ]
 
@@ -1709,6 +1856,242 @@ const UPGRADES_RAW: UpgradeDef[] = [
     prereqIds: ['plasma_focus_2'],
     modifiers: { plasma_laser_l: { rangeAdd: 5, damageAdd: 48 } },
   },
+  {
+    id: 'hero_archangel_core',
+    label: 'Archangel Logistic Core',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 0,
+    description:
+      'Unlocks Airfield, Starport, Fueling Station, Munitions Plant, and Missile Factory. Bulk Fueling requires a separate unlock.',
+    unlockBuildingIds: [
+      'archangel_airfield',
+      'archangel_starport',
+      'archangel_fueling_station',
+      'archangel_munitions_plant',
+      'archangel_missile_factory',
+    ],
+  },
+  {
+    id: 'hero_archangel_unlock_bulk_fueling',
+    label: 'Unlock Bulk Fueling Station',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 520,
+    description: 'Unlocks the large Bulk Fueling Station for faster pad refueling.',
+    prereqIds: ['hero_archangel_core'],
+    unlockBuildingIds: ['archangel_bulk_fueling_station'],
+  },
+  {
+    id: 'hero_archangel_fuel_efficiency_1',
+    label: 'Increase Fuel Efficiency I',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 420,
+    description: 'Fueling stations transfer aviation fuel to landed planes faster.',
+    prereqIds: ['hero_archangel_core'],
+  },
+  {
+    id: 'hero_archangel_fuel_efficiency_2',
+    label: 'Increase Fuel Efficiency II',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 620,
+    description: 'Further improves fuel transfer rate to aircraft on the pad.',
+    prereqIds: ['hero_archangel_fuel_efficiency_1'],
+  },
+  {
+    id: 'hero_archangel_armor_piercing',
+    label: 'Armor Piercing Rounds',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 520,
+    description: 'Increases Airfield gunship damage.',
+    prereqIds: ['hero_archangel_core'],
+    modifiers: {
+      archangel_airfield: { damageAdd: 1.4 },
+    },
+  },
+  {
+    id: 'hero_archangel_quick_reload',
+    label: 'Quick Reload',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 560,
+    description: 'Starport bombers reload volleys faster (shorter gap between missiles and between volleys).',
+    prereqIds: ['hero_archangel_core'],
+  },
+  {
+    id: 'hero_archangel_tight_shift',
+    label: 'Tight Shift',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 780,
+    description: 'Each Airfield and Starport runs two planes: more sorties and overlapping refuel cycles.',
+    prereqIds: ['hero_archangel_core'],
+  },
+  {
+    id: 'hero_archangel_airfield_mk2',
+    label: 'Airfield Level 2',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 720,
+    description: 'Gunship platform: more range, damage, and rate of fire.',
+    prereqIds: ['hero_archangel_core'],
+    modifiers: {
+      archangel_airfield: { rangeAdd: 4, damageAdd: 0.9, fireRateMul: 1.08, projectileSpeedMul: 1.06 },
+    },
+  },
+  {
+    id: 'hero_archangel_starport_mk2',
+    label: 'Starport Level 2',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 880,
+    description: 'Bomber platform: heavier warheads and slightly faster launches.',
+    prereqIds: ['hero_archangel_core'],
+    modifiers: {
+      archangel_starport: { damageAdd: 38, aoeRadiusMul: 1.1, fireRateMul: 1.06 },
+    },
+  },
+  {
+    id: 'hero_archangel_fueling_mk2',
+    label: 'Fueling Station Level 2',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 480,
+    description: 'Small fuel stations fuel landed aircraft faster.',
+    prereqIds: ['hero_archangel_core'],
+  },
+  {
+    id: 'hero_archangel_bulk_fueling_mk2',
+    label: 'Bulk Fueling Level 2',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 920,
+    description: 'Bulk fuel stations fuel landed aircraft faster.',
+    prereqIds: ['hero_archangel_unlock_bulk_fueling'],
+  },
+  {
+    id: 'hero_archangel_munitions_mk2',
+    label: 'Munitions Plant Level 2',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 460,
+    description: 'Munitions plants convert credits into gunship rounds faster while planes are on the pad.',
+    prereqIds: ['hero_archangel_core'],
+  },
+  {
+    id: 'hero_archangel_missile_factory_mk2',
+    label: 'Missile Factory Level 2',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 540,
+    description: 'Missile factories load bomber ordnance faster while bombers are on the pad.',
+    prereqIds: ['hero_archangel_core'],
+  },
+  {
+    id: 'hero_archangel_missile_damage_1',
+    label: 'Missile Doctrine: Damage I',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 580,
+    description: 'Increases damage for standard missile buildings (S/M silos, portable, silo, nuclear, Hydra).',
+    prereqIds: ['hero_archangel_core'],
+    modifiers: {
+      missile_launcher_s: { damageAdd: 10 },
+      missile_launcher_m: { damageAdd: 14 },
+      portable_silo: { damageAdd: 28 },
+      missile_silo: { damageAdd: 42 },
+      nuclear_silo: { damageAdd: 95 },
+      hydra_launcher: { damageAdd: 8 },
+    },
+  },
+  {
+    id: 'hero_archangel_missile_damage_2',
+    label: 'Missile Doctrine: Damage II',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 980,
+    description: 'Further increases missile damage across the missile line.',
+    prereqIds: ['hero_archangel_missile_damage_1'],
+    modifiers: {
+      missile_launcher_s: { damageAdd: 14 },
+      missile_launcher_m: { damageAdd: 20 },
+      portable_silo: { damageAdd: 40 },
+      missile_silo: { damageAdd: 62 },
+      nuclear_silo: { damageAdd: 140 },
+      hydra_launcher: { damageAdd: 12 },
+    },
+  },
+  {
+    id: 'hero_archangel_missile_range_1',
+    label: 'Missile Doctrine: Range I',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 520,
+    description: 'Increases engagement range for missile platforms.',
+    prereqIds: ['hero_archangel_core'],
+    modifiers: {
+      missile_launcher_s: { rangeAdd: 3 },
+      missile_launcher_m: { rangeAdd: 4 },
+      portable_silo: { rangeAdd: 4 },
+      missile_silo: { rangeAdd: 5 },
+      nuclear_silo: { rangeAdd: 6 },
+      hydra_launcher: { rangeAdd: 2 },
+    },
+  },
+  {
+    id: 'hero_archangel_missile_range_2',
+    label: 'Missile Doctrine: Range II',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 900,
+    description: 'Further increases missile range.',
+    prereqIds: ['hero_archangel_missile_range_1'],
+    modifiers: {
+      missile_launcher_s: { rangeAdd: 4 },
+      missile_launcher_m: { rangeAdd: 5 },
+      portable_silo: { rangeAdd: 5 },
+      missile_silo: { rangeAdd: 6 },
+      nuclear_silo: { rangeAdd: 8 },
+      hydra_launcher: { rangeAdd: 3 },
+    },
+  },
+  {
+    id: 'hero_archangel_missile_payload_1',
+    label: 'Missile Doctrine: Payload I',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 560,
+    description: 'Improves blast radius for missile buildings (Hydra gains fire rate).',
+    prereqIds: ['hero_archangel_core'],
+    modifiers: {
+      missile_launcher_s: { aoeRadiusMul: 1.12 },
+      missile_launcher_m: { aoeRadiusMul: 1.12 },
+      portable_silo: { aoeRadiusMul: 1.1 },
+      missile_silo: { aoeRadiusMul: 1.1 },
+      nuclear_silo: { aoeRadiusMul: 1.08 },
+      hydra_launcher: { fireRateMul: 1.08 },
+    },
+  },
+  {
+    id: 'hero_archangel_missile_payload_2',
+    label: 'Missile Doctrine: Payload II',
+    heroId: 'archangel',
+    category: 'hero',
+    creditCost: 940,
+    description: 'Further improves payload radius and adds a touch of damage.',
+    prereqIds: ['hero_archangel_missile_payload_1'],
+    modifiers: {
+      missile_launcher_s: { aoeRadiusMul: 1.12, damageAdd: 8 },
+      missile_launcher_m: { aoeRadiusMul: 1.12, damageAdd: 12 },
+      portable_silo: { aoeRadiusMul: 1.1, damageAdd: 22 },
+      missile_silo: { aoeRadiusMul: 1.1, damageAdd: 35 },
+      nuclear_silo: { aoeRadiusMul: 1.08, damageAdd: 70 },
+      hydra_launcher: { fireRateMul: 1.1, damageAdd: 10 },
+    },
+  },
 ]
 
 // Globally reduce upgrade credit costs (5-10% target).
@@ -1721,6 +2104,7 @@ export class BaseDefenseGame {
   private readonly canvas: HTMLCanvasElement
   private readonly mode: 'normal' | 'sandbox'
   private readonly difficulty: GameDifficulty
+  private readonly heroId: HeroId
   private renderer!: THREE.WebGLRenderer
   private scene!: THREE.Scene
   private camera!: THREE.PerspectiveCamera
@@ -1805,6 +2189,8 @@ export class BaseDefenseGame {
   private readonly shieldFields = new Map<string, ShieldField>()
   private readonly ballistics: Ballistic[] = []
   private readonly repairDrones: RepairDrone[] = []
+  private readonly archangelPlanes: ArchangelPlane[] = []
+  private planeIdSeed = 0
   private readonly occupied = new Map<string, string>() // cell -> placedBuilding.id
 
   private isLost = false
@@ -1843,6 +2229,7 @@ export class BaseDefenseGame {
     inactiveTimeLeftSec: number
     asteroidsRemaining: number
     asteroidDiscovery: { variant: AsteroidVariant; name: string; description: string; color: number } | null
+    heroId: HeroId
     unlockedBuildingIds: BuildingId[]
     purchasedUpgradeIds: UpgradeId[]
     refundableUpgradeIds: UpgradeId[]
@@ -1850,10 +2237,11 @@ export class BaseDefenseGame {
     gameOver: boolean
   }) => void
 
-  constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty }) {
+  constructor(canvas: HTMLCanvasElement, opts?: { mode?: 'normal' | 'sandbox'; difficulty?: GameDifficulty; heroId?: HeroId }) {
     this.canvas = canvas
     this.mode = opts?.mode ?? 'normal'
     this.difficulty = opts?.difficulty ?? 'hard'
+    this.heroId = opts?.heroId ?? 'archangel'
   }
 
   private getDifficultyScale() {
@@ -1902,6 +2290,7 @@ export class BaseDefenseGame {
     if (this.isLost) return
     const up = UPGRADES.find((u) => u.id === id)
     if (!up) return
+    if (up.heroId && up.heroId !== this.heroId) return
     if (this.purchasedUpgradeIds.has(id)) return
     if (this.credits < up.creditCost) return
 
@@ -2050,8 +2439,10 @@ export class BaseDefenseGame {
     this.currentInactivePhase = 0
     this.purchasedUpgradeIds.clear()
     this.purchasedUpgradeIds.add('core_protocol')
+    if (this.heroId === 'archangel') this.purchasedUpgradeIds.add('hero_archangel_core')
     this.purchasedUpgradePhase.clear()
     this.purchasedUpgradePhase.set('core_protocol', -1)
+    if (this.heroId === 'archangel') this.purchasedUpgradePhase.set('hero_archangel_core', -1)
     this.recomputeUnlockedBuildingIds()
     this.asteroidIdSeed = 0
     this.volleyIdSeed = 0
@@ -2279,6 +2670,7 @@ export class BaseDefenseGame {
     this.updateAsteroids(dt)
     this.updateDefenses(dt)
     this.updateSupportSystems(dt)
+    this.updateArchangelPlanes(dt)
     this.updateProjectiles(dt)
     this.updateHealthBars()
     if (this.asteroidDiscoveryTimerSec > 0) {
@@ -2363,6 +2755,7 @@ export class BaseDefenseGame {
       if (mod.fireRateMul) out.fireRate = (out.fireRate ?? 0) * mod.fireRateMul
       if (mod.creditPayoutMul) out.creditPayout = (out.creditPayout ?? 0) * mod.creditPayoutMul
       if (mod.powerGenMul) out.powerGenPerSec = (out.powerGenPerSec ?? 0) * mod.powerGenMul
+      if (mod.projectileSpeedMul) out.projectileSpeed = (out.projectileSpeed ?? 0) * mod.projectileSpeedMul
       if (mod.powerDrainMul) out.powerDrainPerSec = (out.powerDrainPerSec ?? 0) * mod.powerDrainMul
       if (mod.aoeRadiusMul) out.aoeRadius = (out.aoeRadius ?? 0) * mod.aoeRadiusMul
       if (mod.shieldCapacityMul) out.shieldCapacityMul = (out.shieldCapacityMul ?? 1) * mod.shieldCapacityMul
@@ -2455,6 +2848,339 @@ export class BaseDefenseGame {
         b.econTimer -= d.creditIntervalSec
         const nextCredits = this.credits + d.creditPayout
         this.credits = Math.max(0, nextCredits)
+      }
+    }
+
+  }
+
+  private getArchangelEconomyMods() {
+    let fuelRestockMul = 1
+    if (this.purchasedUpgradeIds.has('hero_archangel_fuel_efficiency_1')) fuelRestockMul *= 1.14
+    if (this.purchasedUpgradeIds.has('hero_archangel_fuel_efficiency_2')) fuelRestockMul *= 1.14
+    const fuelStationMul = this.purchasedUpgradeIds.has('hero_archangel_fueling_mk2') ? 1.16 : 1
+    const bulkStationMul = this.purchasedUpgradeIds.has('hero_archangel_bulk_fueling_mk2') ? 1.2 : 1
+    const munitionsMul = this.purchasedUpgradeIds.has('hero_archangel_munitions_mk2') ? 1.22 : 1
+    const missileFactoryMul = this.purchasedUpgradeIds.has('hero_archangel_missile_factory_mk2') ? 1.22 : 1
+    return { fuelRestockMul, fuelStationMul, bulkStationMul, munitionsMul, missileFactoryMul }
+  }
+
+  /** Archangel producers that need power are skipped when the grid is empty. */
+  private countActiveArchangelSuppliers(defId: BuildingId): number {
+    let n = 0
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== defId) continue
+      const d = this.getEffectiveDef(b.defId) ?? b.def
+      if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) continue
+      n++
+    }
+    return n
+  }
+
+  private syncArchangelPlanes() {
+    if (this.heroId !== 'archangel') return
+    const tight = this.purchasedUpgradeIds.has('hero_archangel_tight_shift')
+    const slotsPerHome = tight ? 2 : 1
+    const allowed = new Set(
+      this.buildings
+        .filter((b) => b.hp > 0 && (b.defId === 'archangel_airfield' || b.defId === 'archangel_starport'))
+        .map((b) => b.id),
+    )
+    for (const id of allowed) {
+      for (let slot = 0; slot < slotsPerHome; slot++) {
+        const s = slot as 0 | 1
+        if (!this.archangelPlanes.some((p) => p.homeId === id && p.slot === s)) {
+          const home = this.buildings.find((b) => b.id === id)
+          if (home) this.archangelPlanes.push(this.createArchangelPlane(home, s))
+        }
+      }
+    }
+    for (const p of [...this.archangelPlanes]) {
+      if (!allowed.has(p.homeId) || p.slot >= slotsPerHome) {
+        this.world.remove(p.hud.group)
+        this.world.remove(p.mesh)
+        this.archangelPlanes.splice(this.archangelPlanes.indexOf(p), 1)
+      }
+    }
+  }
+
+  private makeArchangelJetMesh(role: 'gunship' | 'bomber'): THREE.Group {
+    const g = new THREE.Group()
+    const mat = new THREE.MeshStandardMaterial({
+      color: role === 'gunship' ? 0xc4b5fd : 0xe879f9,
+      metalness: 0.22,
+      roughness: 0.52,
+    })
+    const fuselage = new THREE.Mesh(new THREE.ConeGeometry(0.34, 1.55, 8), mat)
+    fuselage.rotation.x = Math.PI / 2
+    fuselage.position.z = 0.18
+    g.add(fuselage)
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.07, 0.36), mat)
+    wing.position.y = 0.06
+    g.add(wing)
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.38, 0.24), mat)
+    tail.position.set(0, 0.14, -0.62)
+    g.add(tail)
+    return g
+  }
+
+  private createArchangelPlane(home: PlacedBuilding, slot: 0 | 1): ArchangelPlane {
+    const role = home.defId === 'archangel_airfield' ? 'gunship' : 'bomber'
+    const mesh = this.makeArchangelJetMesh(role)
+    const cx = home.origin.x + (home.def.size.w - 1) / 2
+    const cz = home.origin.z + (home.def.size.h - 1) / 2
+    const ox = slot === 0 ? -0.55 : 0.55
+    const oz = slot === 0 ? 0.32 : -0.32
+    mesh.position.set(cx + ox, 2.1, cz + oz)
+    this.world.add(mesh)
+    const maxFuel = role === 'gunship' ? 19 : 23
+    const maxBullets = role === 'gunship' ? 44 : 0
+    const maxMissiles = role === 'bomber' ? 5 : 0
+    const hud = this.createPlaneHudBars()
+    return {
+      id: `archangel-plane-${++this.planeIdSeed}`,
+      mesh,
+      homeId: home.id,
+      slot,
+      role,
+      state: 'refuel',
+      fuel: 0,
+      maxFuel,
+      bullets: 0,
+      maxBullets,
+      missiles: 0,
+      maxMissiles,
+      targetId: null,
+      evadeTimer: 0,
+      bomberBurstLeft: 0,
+      bomberBurstGapTimer: 0,
+      bomberBurstRestTimer: 0,
+      hud,
+    }
+  }
+
+  private updateArchangelPlanes(dt: number) {
+    if (this.heroId !== 'archangel') return
+    this.syncArchangelPlanes()
+    const waveOn = this.waveInProgress
+    const anyAsteroids = this.asteroids.some((a) => a.alive)
+    const PLANE_ALT = 11.2
+    const GROUND_Y = 2.05
+    const HOME_RZ = 2.35
+    const AVOID_DIST = 5
+    const quickReload = this.purchasedUpgradeIds.has('hero_archangel_quick_reload')
+    const BOMBER_BURST_GAP = 0.5 * (quickReload ? 0.72 : 1)
+    const BOMBER_BURST_REST = 2 * (quickReload ? 0.75 : 1)
+    const m = this.getArchangelEconomyMods()
+
+    for (const p of this.archangelPlanes) {
+      const home = this.buildings.find((b) => b.id === p.homeId && b.hp > 0)
+      if (!home) continue
+      if (!waveOn && p.state === 'patrol') {
+        p.state = 'return'
+        p.targetId = null
+        p.evadeTimer = 0
+      }
+      const eff = this.getEffectiveDef(home.defId) ?? home.def
+      const speed = eff.projectileSpeed ?? 20
+      const cx = home.origin.x + (home.def.size.w - 1) / 2
+      const cz = home.origin.z + (home.def.size.h - 1) / 2
+      const hx = p.slot === 0 ? -0.55 : 0.55
+      const hz = p.slot === 0 ? 0.32 : -0.32
+      const burn = p.role === 'gunship' ? 0.62 : 0.71
+
+      if (waveOn && p.evadeTimer > 0) p.evadeTimer -= dt
+      if (waveOn && p.role === 'bomber') {
+        p.bomberBurstRestTimer = Math.max(0, p.bomberBurstRestTimer - dt)
+      }
+
+      if (p.state === 'refuel') {
+        p.targetId = null
+        p.mesh.position.lerp(new THREE.Vector3(cx + hx, GROUND_Y, cz + hz), 1 - Math.exp(-dt * 5.5))
+        p.mesh.rotation.set(0, p.mesh.rotation.y * Math.max(0, 1 - dt * 4), 0)
+        // Fuel and ordnance transfer only during an active wave (not the inactive build phase).
+        if (waveOn) {
+          const fuelSmall = this.countActiveArchangelSuppliers('archangel_fueling_station')
+          const fuelBulk = this.countActiveArchangelSuppliers('archangel_bulk_fueling_station')
+          const fuelPerSec =
+            fuelSmall * 0.34 * m.fuelRestockMul * m.fuelStationMul +
+            fuelBulk * 0.92 * m.fuelRestockMul * m.bulkStationMul
+          if (p.fuel < p.maxFuel - 1e-3 && fuelPerSec > 0) {
+            p.fuel = Math.min(p.maxFuel, p.fuel + fuelPerSec * dt)
+          }
+          if (p.role === 'gunship') {
+            const plants = this.countActiveArchangelSuppliers('archangel_munitions_plant')
+            if (plants > 0 && p.bullets < p.maxBullets - 1e-3 && this.credits > 1e-4) {
+              const creditBudget = 0.48 * plants * dt * m.munitionsMul
+              const spend = Math.min(creditBudget, this.credits)
+              this.credits -= spend
+              const room = p.maxBullets - p.bullets
+              p.bullets = Math.min(p.maxBullets, p.bullets + Math.min(room, spend * 1.08))
+            }
+          } else {
+            const factories = this.countActiveArchangelSuppliers('archangel_missile_factory')
+            // Starport bombers: blue (missile) bar fills slightly faster than gunship bullet loading.
+            if (factories > 0 && p.missiles < p.maxMissiles - 1e-4 && this.credits > 1e-4) {
+              const creditBudget = 0.67 * factories * dt * m.missileFactoryMul
+              const spend = Math.min(creditBudget, this.credits)
+              this.credits -= spend
+              const room = p.maxMissiles - p.missiles
+              p.missiles = Math.min(p.maxMissiles, p.missiles + Math.min(room, spend * 0.036))
+            }
+          }
+        }
+        const fuelFull = p.fuel >= p.maxFuel - 0.02
+        const ordFull =
+          p.role === 'gunship' ? p.bullets >= p.maxBullets - 0.35 : p.missiles >= p.maxMissiles - 0.04
+        if (fuelFull && ordFull) {
+          p.fuel = p.maxFuel
+          if (p.role === 'gunship') p.bullets = p.maxBullets
+          else p.missiles = p.maxMissiles
+          if (waveOn && anyAsteroids) p.state = 'patrol'
+        }
+        continue
+      }
+
+      p.fuel -= burn * dt
+      if (p.fuel <= 0) {
+        p.fuel = 0
+        p.state = 'return'
+        p.targetId = null
+        if (p.role === 'bomber' && p.bomberBurstLeft > 0) {
+          p.bomberBurstLeft = 0
+          p.bomberBurstGapTimer = 0
+        }
+      }
+
+      if (p.state === 'return') {
+        const dest = new THREE.Vector3(cx + hx, PLANE_ALT, cz + hz)
+        const toHome = this.tmpAimVec.copy(dest).sub(p.mesh.position)
+        const lenHome = toHome.length()
+        if (lenHome < HOME_RZ && Math.abs(p.mesh.position.y - PLANE_ALT) < 1.6) {
+          p.state = 'refuel'
+          continue
+        }
+        const stepHome = Math.min(speed * dt, lenHome)
+        if (lenHome > 0.001) {
+          toHome.normalize().multiplyScalar(stepHome)
+          p.mesh.position.add(toHome)
+          p.mesh.lookAt(dest)
+        }
+        continue
+      }
+
+      if (!waveOn) continue
+
+      const frGun = eff.fireRate ?? 12
+      const outOfAmmo =
+        p.role === 'gunship'
+          ? p.bullets < Math.max(0.15, frGun * dt * 0.5)
+          : p.missiles < 1 && p.bomberBurstLeft <= 0
+      if (outOfAmmo) {
+        p.state = 'return'
+        p.targetId = null
+        continue
+      }
+
+      let target = p.targetId ? this.asteroids.find((a) => a.id === p.targetId && a.alive) : null
+      if (!target && p.evadeTimer <= 0) {
+        target = this.findNearestAliveAsteroid(p.mesh.position)
+        p.targetId = target?.id ?? null
+      }
+      if (p.evadeTimer > 0) {
+        target = null
+      }
+
+      if (target) {
+        const tp = target.mesh.position
+        const toT = this.tmpAimPos.copy(tp).sub(p.mesh.position)
+        const dist = toT.length()
+        if (dist < AVOID_DIST) {
+          if (p.evadeTimer <= 0) p.evadeTimer = 0.42
+          p.targetId = null
+          if (p.role === 'bomber' && p.bomberBurstLeft > 0) {
+            p.bomberBurstLeft = 0
+            p.bomberBurstGapTimer = 0
+            p.bomberBurstRestTimer = Math.max(p.bomberBurstRestTimer, BOMBER_BURST_REST)
+          }
+          if (dist > 0.001) {
+            const stepEv = Math.min(speed * dt, 3.2)
+            toT.normalize().multiplyScalar(-stepEv)
+            p.mesh.position.add(toT)
+            this.tmpV3.copy(toT).normalize().multiplyScalar(3).add(p.mesh.position)
+            p.mesh.lookAt(this.tmpV3)
+          }
+        } else {
+          if (dist > 0.12) {
+            const stepCh = Math.min(speed * dt, dist)
+            toT.normalize().multiplyScalar(stepCh)
+            p.mesh.position.add(toT)
+            p.mesh.lookAt(tp)
+          }
+          const weaponRange = eff.range ?? 32
+          if (dist <= weaponRange) {
+            if (p.role === 'gunship') {
+              const fr = eff.fireRate ?? 12
+              const dmg = eff.damage ?? 5
+              const burstCost = fr * dt
+              if (p.bullets >= burstCost) {
+                p.bullets -= burstCost
+                target.hp -= dmg * fr * dt
+                if (Math.random() < 0.5) this.spawnShot(p.mesh.position.clone(), tp.clone(), 0xfde047)
+                if (target.hp <= 0) {
+                  target.alive = false
+                  this.handleAsteroidDeath(target, 'combat')
+                  this.world.remove(target.mesh)
+                  this.world.remove(target.healthBar.group)
+                  p.targetId = null
+                }
+              }
+            } else {
+              const fireBomberMissile = () => {
+                if (p.missiles < 1) return false
+                p.missiles -= 1
+                this.spawnArchangelPlaneMissile(
+                  p.mesh.position.clone(),
+                  target,
+                  eff.damage ?? 180,
+                  eff.aoeRadius ?? 12,
+                  eff.projectileSpeed ?? 52,
+                )
+                return true
+              }
+              if (p.bomberBurstLeft > 0) {
+                p.bomberBurstGapTimer -= dt
+                while (p.bomberBurstGapTimer <= 0 && p.bomberBurstLeft > 0 && target.alive) {
+                  if (!fireBomberMissile()) {
+                    p.bomberBurstLeft = 0
+                    p.bomberBurstRestTimer = BOMBER_BURST_REST
+                    break
+                  }
+                  p.bomberBurstLeft -= 1
+                  if (p.bomberBurstLeft > 0) p.bomberBurstGapTimer += BOMBER_BURST_GAP
+                  else p.bomberBurstRestTimer = BOMBER_BURST_REST
+                }
+              } else if (p.bomberBurstRestTimer <= 0) {
+                if (fireBomberMissile()) {
+                  p.bomberBurstLeft = 3
+                  p.bomberBurstGapTimer = BOMBER_BURST_GAP
+                }
+              }
+            }
+          }
+        }
+      } else if (anyAsteroids) {
+        const wander = this.findNearestAliveAsteroid(p.mesh.position)
+        if (wander) {
+          const wp = wander.mesh.position
+          const toW = this.tmpAimVec.copy(wp).sub(p.mesh.position)
+          const wl = toW.length()
+          if (wl > 0.2) {
+            const stepW = Math.min(speed * 0.7 * dt, wl)
+            toW.normalize().multiplyScalar(stepW)
+            p.mesh.position.add(toW)
+            p.mesh.lookAt(wp)
+          }
+        }
       }
     }
   }
@@ -3582,6 +4308,12 @@ export class BaseDefenseGame {
     }
     const destroyedDef = b.def
     const wasPylon = b.defId === 'pylon'
+    for (const p of [...this.archangelPlanes]) {
+      if (p.homeId !== b.id) continue
+      this.world.remove(p.hud.group)
+      this.world.remove(p.mesh)
+      this.archangelPlanes.splice(this.archangelPlanes.indexOf(p), 1)
+    }
     this.world.remove(b.mesh)
     this.world.remove(b.healthBar.group)
     // free occupancy
@@ -4373,6 +5105,86 @@ export class BaseDefenseGame {
       return group
     }
 
+    if (def.id === 'archangel_airfield') {
+      const { baseH } = addBase(1.5, def.color)
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(w * 0.88, 0.12, h * 0.92), mkMat(0x0b1220, 0.02, 0.95))
+      strip.position.y = baseH + 0.06
+      group.add(strip)
+      for (let i = -1; i <= 1; i++) {
+        const hangar = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.85, 0.7), glass)
+        hangar.position.set(i * w * 0.22, baseH + 0.52, 0)
+        group.add(hangar)
+      }
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 1.1, 10), mkMat(0xe2e8f0, 0.22, 0.5))
+      tower.position.set(-w * 0.32, baseH + 0.55, -h * 0.25)
+      group.add(tower)
+      return group
+    }
+
+    if (def.id === 'archangel_starport') {
+      const { baseH } = addBase(1.55, def.color)
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(w, h) * 0.36, Math.max(w, h) * 0.4, 0.14, 18), mkMat(0x0b1220, 0.02, 0.95))
+      pad.position.y = baseH + 0.08
+      group.add(pad)
+      const gantry = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.1, 0.2), mkMat(0xe2e8f0, 0.22, 0.5))
+      gantry.position.set(w * 0.28, baseH + 1.05, 0)
+      group.add(gantry)
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.12), mkEmat(0xc026d3, 0.35, 0.4))
+      arm.position.set(0, baseH + 1.85, 0)
+      group.add(arm)
+      return group
+    }
+
+    if (def.id === 'archangel_fueling_station') {
+      const { baseH } = addBase(1.65, def.color)
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 1.1, 14), mkMat(0xfde047, 0.18, 0.48))
+      tank.position.set(0, baseH + 0.55, 0)
+      group.add(tank)
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), mkEmat(0xfde047, 0.4, 0.35))
+      cap.position.set(0, baseH + 1.15, 0)
+      group.add(cap)
+      return group
+    }
+
+    if (def.id === 'archangel_bulk_fueling_station') {
+      const { baseH } = addBase(1.9, def.color)
+      for (let i = 0; i < 3; i++) {
+        const tx = (i - 1) * w * 0.22
+        const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.35, 14), mkMat(0xfacc15, 0.16, 0.46))
+        tank.position.set(tx, baseH + 0.68, 0)
+        group.add(tank)
+      }
+      const pipe = new THREE.Mesh(new THREE.BoxGeometry(w * 0.75, 0.1, 0.14), mkMat(0x0b1220, 0.02, 0.95))
+      pipe.position.set(0, baseH + 0.14, 0)
+      group.add(pipe)
+      return group
+    }
+
+    if (def.id === 'archangel_munitions_plant') {
+      const { baseH } = addBase(1.55, def.color)
+      const belt = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.1, h * 0.85), mkMat(0x475569, 0.12, 0.55))
+      belt.position.y = baseH + 0.05
+      group.add(belt)
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.5), mkMat(0xf97316, 0.15, 0.52))
+      crate.position.set(-0.25, baseH + 0.35, 0.2)
+      group.add(crate)
+      return group
+    }
+
+    if (def.id === 'archangel_missile_factory') {
+      const { baseH } = addBase(1.7, def.color)
+      const rack = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.4, w * 0.75), mkMat(0x94a3b8, 0.14, 0.5))
+      rack.position.set(0, baseH + 0.7, 0)
+      group.add(rack)
+      for (let i = -2; i <= 2; i++) {
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 10), mkEmat(0xc026d3, 0.25, 0.42))
+        m.rotation.z = Math.PI / 2
+        m.position.set(i * 0.22, baseH + 0.9, 0.35)
+        group.add(m)
+      }
+      return group
+    }
+
     // Default fallback: simple body
     addBase(2.4, def.color)
     group.userData.aim = aim
@@ -4490,6 +5302,58 @@ export class BaseDefenseGame {
     mat.opacity = hp <= 0 ? 0 : 0.95
   }
 
+  private createPlaneHudBars(): ArchangelPlaneHud {
+    const w = 1.35
+    const h = 0.1
+    const gap = 0.13
+    const group = new THREE.Group()
+    const mkRow = (y: number, fillHex: number) => {
+      const bg = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({ color: 0x0f172a, transparent: true, opacity: 0.88 }),
+      )
+      bg.position.y = y
+      const fill = new THREE.Mesh(
+        new THREE.PlaneGeometry(w - 0.07, h - 0.05),
+        new THREE.MeshBasicMaterial({ color: fillHex, transparent: true, opacity: 0.95 }),
+      )
+      fill.position.y = y
+      bg.renderOrder = 72
+      fill.renderOrder = 73
+      group.add(bg)
+      group.add(fill)
+      return fill
+    }
+    const fuelFill = mkRow(gap * 0.5, 0xfbbf24)
+    const ammoFill = mkRow(-gap * 0.5, 0x38bdf8)
+    this.world.add(group)
+    return { group, fuelFill, ammoFill }
+  }
+
+  private setPlaneHudBarFill(fill: THREE.Mesh, t: number) {
+    const k = clamp(t, 0, 1)
+    fill.scale.x = k
+    fill.position.x = (k - 1) * 0.5
+  }
+
+  private updateArchangelPlaneHud(p: ArchangelPlane) {
+    const fuelT = p.maxFuel > 0 ? p.fuel / p.maxFuel : 0
+    const ammoT =
+      p.role === 'gunship'
+        ? p.maxBullets > 0
+          ? p.bullets / p.maxBullets
+          : 0
+        : p.maxMissiles > 0
+          ? p.missiles / p.maxMissiles
+          : 0
+    this.setPlaneHudBarFill(p.hud.fuelFill, fuelT)
+    this.setPlaneHudBarFill(p.hud.ammoFill, ammoT)
+    const ff = p.hud.fuelFill.material as THREE.MeshBasicMaterial
+    const af = p.hud.ammoFill.material as THREE.MeshBasicMaterial
+    ff.color.setHex(fuelT > 0.35 ? 0xfbbf24 : 0xef4444)
+    af.color.setHex(ammoT > 0.25 ? 0x38bdf8 : 0xf97316)
+  }
+
   private updateHealthBars() {
     for (const b of this.buildings) {
       this.setHealthBar(b.healthBar, b.hp, b.def.maxHp)
@@ -4505,6 +5369,13 @@ export class BaseDefenseGame {
       this.setHealthBar(a.healthBar, a.hp, a.maxHp)
       a.healthBar.group.position.copy(a.mesh.position).add(new THREE.Vector3(0, 3.1, 0))
       a.healthBar.group.quaternion.copy(this.camera.quaternion)
+    }
+    if (this.heroId === 'archangel') {
+      for (const p of this.archangelPlanes) {
+        this.updateArchangelPlaneHud(p)
+        p.hud.group.position.copy(p.mesh.position).add(new THREE.Vector3(0, 1.45, 0))
+        p.hud.group.quaternion.copy(this.camera.quaternion)
+      }
     }
   }
 
@@ -4557,6 +5428,39 @@ export class BaseDefenseGame {
       ttl: 4.5,
       damage: def.damage ?? 30,
       aoeRadius: def.aoeRadius ?? 3,
+    })
+  }
+
+  /** Bomber plane missile: no building shot-power cost; pays from the bomber's on-board magazine. */
+  private spawnArchangelPlaneMissile(
+    origin: THREE.Vector3,
+    target: Asteroid | null,
+    damage: number,
+    aoeRadius: number,
+    speed: number,
+  ) {
+    const geo = new THREE.ConeGeometry(0.22, 1.05, 10)
+    const mat = new THREE.MeshStandardMaterial({ color: 0xf5f3ff, emissive: 0xc026d3, emissiveIntensity: 0.45 })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.position.copy(origin)
+    mesh.position.y += 0.6
+    mesh.rotation.x = Math.PI / 2
+    mesh.castShadow = true
+    this.projectiles.add(mesh)
+    this.missiles.push({
+      mesh,
+      target,
+      targetId: target?.id ?? null,
+      mode: 'retarget',
+      noSplash: false,
+      volleyId: null,
+      lastKnownTargetPos: target ? target.mesh.position.clone() : origin.clone(),
+      launchUpTime: 0.28,
+      launchUpSpeed: 32,
+      speed,
+      ttl: 5.5,
+      damage,
+      aoeRadius,
     })
   }
 
@@ -4687,6 +5591,7 @@ export class BaseDefenseGame {
       inactiveTimeLeftSec: this.inactiveTimeLeftSec,
       asteroidsRemaining,
       asteroidDiscovery,
+      heroId: this.heroId,
       unlockedBuildingIds: [...this.unlockedBuildingIds],
       purchasedUpgradeIds: [...this.purchasedUpgradeIds],
       refundableUpgradeIds,
