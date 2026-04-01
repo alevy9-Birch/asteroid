@@ -222,4 +222,5 @@ Exact **labels, costs, descriptions, prerequisites, unlocks, and numeric modifie
 ## 9. Related docs
 
 - `docs/BALANCE_AND_EXCEL.md` — balance philosophy and external tooling.
+- `docs/BALANCE_PIPELINE.md` — how we can move numbers to data files in safe phases.
 - `docs/PERFORMANCE_PLAN.md` — runtime optimization roadmap.

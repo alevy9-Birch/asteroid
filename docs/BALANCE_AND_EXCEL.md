@@ -161,3 +161,10 @@ Examples (non-exhaustive):
 - **Excel as the literal runtime source:** usually **no** — use **typed JSON/YAML** loaded or imported at build time.
 - **Excel as a designer-friendly editor exporting that data:** often **yes** for large teams.
 - The game already centralizes some globals (`VARS`) but **most balance** sits in **large TS tables + scattered literals**; documenting those (as in this file and **`GDD.md`**) is the first step before any export pipeline.
+
+---
+
+## Related docs
+
+- `docs/GDD.md` — structure and upgrade ID lists (reference for IDs when authoring data).
+- `docs/BALANCE_PIPELINE.md` — phased plan to introduce `balance/*.json` without breaking the game.

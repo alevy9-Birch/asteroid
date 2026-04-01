@@ -4033,6 +4033,13 @@ export class BaseDefenseGame {
   private readonly ballistics: Ballistic[] = []
   private readonly repairDrones: RepairDrone[] = []
   private readonly dominionShrapnel: DominionShrapnel[] = []
+  /** Shared mesh data for Dominion shrapnel (cone projectiles); avoids per-spawn geometry allocation. */
+  private dominionShrapnelConeGeo: THREE.ConeGeometry | null = null
+  private dominionShrapnelMatOrbital: THREE.MeshStandardMaterial | null = null
+  private dominionShrapnelMatFlak: THREE.MeshStandardMaterial | null = null
+  private readonly dominionShrapnelConeAxis = new THREE.Vector3(0, 1, 0)
+  /** Cap active shards so long fights do not accumulate unbounded meshes. */
+  private static readonly DOMINION_SHRAPNEL_MAX_ACTIVE = 96
   private readonly dominionSeekerDrones: DominionSeekerDrone[] = []
   private readonly dominionDropships: DominionDropship[] = []
   private readonly archangelPlanes: ArchangelPlane[] = []
@@ -6794,30 +6801,56 @@ export class BaseDefenseGame {
     return this.purchasedUpgradeIds.has('hero_dominion_lead_rounds') ? Math.round(base * 1.5) : base
   }
 
+  private ensureDominionShrapnelAssets() {
+    if (this.dominionShrapnelConeGeo) return
+    this.dominionShrapnelConeGeo = new THREE.ConeGeometry(0.12, 0.58, 8)
+    this.dominionShrapnelMatOrbital = new THREE.MeshStandardMaterial({
+      color: 0xe879f9,
+      emissive: 0xe879f9,
+      emissiveIntensity: 0.42,
+      roughness: 0.36,
+      metalness: 0.12,
+    })
+    this.dominionShrapnelMatFlak = new THREE.MeshStandardMaterial({
+      color: 0xfbbf24,
+      emissive: 0xfbbf24,
+      emissiveIntensity: 0.42,
+      roughness: 0.36,
+      metalness: 0.12,
+    })
+  }
+
+  /**
+   * Flak / orbital secondary damage: small cone projectiles (missile-like), random azimuth,
+   * shallow elevation — not free-floating “particles” and capped for performance.
+   */
   private spawnDominionShrapnel(origin: THREE.Vector3, damage: number, color: number) {
-    const theta = Math.random() * Math.PI * 2
-    const u = Math.random() * 2 - 1
-    const s = Math.sqrt(Math.max(0.001, 1 - u * u))
-    const dir = new THREE.Vector3(Math.cos(theta) * s, u, Math.sin(theta) * s)
-    const speed = 26 + Math.random() * 24
-    const vel = dir.multiplyScalar(speed)
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.2, 7, 5),
-      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4, roughness: 0.35 }),
-    )
+    this.ensureDominionShrapnelAssets()
+    while (this.dominionShrapnel.length >= BaseDefenseGame.DOMINION_SHRAPNEL_MAX_ACTIVE) {
+      const old = this.dominionShrapnel.shift()!
+      this.projectiles.remove(old.mesh)
+    }
+    const mat =
+      color === 0xe879f9 ? this.dominionShrapnelMatOrbital! : this.dominionShrapnelMatFlak!
+    const mesh = new THREE.Mesh(this.dominionShrapnelConeGeo!, mat)
+    mesh.castShadow = true
+    const azimuth = Math.random() * Math.PI * 2
+    const elevation = 0.04 + Math.random() * 0.14
+    this.tmpAimVec
+      .set(Math.cos(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.sin(azimuth) * Math.cos(elevation))
+      .normalize()
+    const speed = 40 + Math.random() * 18
+    const vel = new THREE.Vector3().copy(this.tmpAimVec).multiplyScalar(speed)
     mesh.position.copy(origin)
-    mesh.position.addScaledVector(
-      new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.3, Math.random() - 0.5),
-      0.6,
-    )
+    mesh.position.y += 0.15
+    mesh.quaternion.setFromUnitVectors(this.dominionShrapnelConeAxis, this.tmpAimVec)
     this.projectiles.add(mesh)
-    this.dominionShrapnel.push({ mesh, velocity: vel, ttl: 2.75, damage })
+    this.dominionShrapnel.push({ mesh, velocity: vel, ttl: 2.5, damage })
   }
 
   private updateDominionShrapnel(dt: number) {
     for (const sh of [...this.dominionShrapnel]) {
       sh.ttl -= dt
-      sh.velocity.y -= 14 * dt
       sh.mesh.position.addScaledVector(sh.velocity, dt)
       let hit = false
       for (const a of this.asteroids) {

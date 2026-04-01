@@ -24,6 +24,17 @@ This document outlines a practical path to improve runtime performance without r
 - **Merge static geometry** where materials allow (e.g., ground tiles, distant decor) into fewer meshes.
 - **LOD (level of detail)**: lower-poly asteroid/building meshes beyond a camera distance; swap or scale detail with distance.
 
+#### Dominion shrapnel (projectile-style, not particle soup)
+
+**Problem:** Orbital and Flak used many small **sphere** meshes per burst, each allocating **new** `SphereGeometry` + `Material` every spawn, plus gravity simulation — easy to **stack hundreds** of objects in long fights.
+
+**Approach (implemented in code):**
+
+- Shrapnel uses **one shared** `ConeGeometry` and **two shared** materials (orbital vs flak colors), like missile visuals — **random horizontal-ish direction**, constant velocity, **no gravity**, cone oriented along flight path.
+- **Hard cap** on concurrent shrapnel pieces (oldest removed when exceeded) so the scene cannot grow without bound.
+
+Further wins later: `InstancedMesh` for shrapnel if counts rise again; same pattern applies to any repeated projectile FX.
+
 ### 2.2 Materials and lights
 
 - Prefer **MeshStandardMaterial** tuning over excessive lights; use capped shadow map size and shadow casters only on key objects.
