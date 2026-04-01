@@ -56,10 +56,30 @@ export type BuildingId =
   | 'nova_shockwave_pulsar'
   | 'nova_universal_forcefield'
   | 'nova_power_bank'
+  | 'citadel_repair_conduit'
+  | 'citadel_construction_conduit'
+  | 'citadel_defense_conduit'
+  | 'citadel_attack_conduit'
+  | 'citadel_efficiency_conduit'
+  | 'citadel_range_conduit'
+  | 'jupiter_mass_relay'
+  | 'jupiter_arc_thrower'
+  | 'jupiter_overclock_augment'
+  | 'jupiter_radar_station'
+  | 'jupiter_recon_drone'
+  | 'jupiter_battery_complex'
+  | 'kingpin_data_array'
+  | 'kingpin_investment_complex'
+  | 'kingpin_cryptographic_decoder'
+  | 'kingpin_indoctrinated_labor'
+  | 'kingpin_mineral_processor'
+  | 'kingpin_slag_cannon'
 
 export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'energy' | 'hero'
 export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'brutal' | 'deadly'
-export type HeroId = 'archangel' | 'dominion' | 'nova'
+export type HeroId = 'archangel' | 'dominion' | 'nova' | 'citadel' | 'jupiter' | 'kingpin'
+
+export type CitadelConduitKind = 'repair' | 'construction' | 'defense' | 'attack' | 'efficiency' | 'range'
 
 type BuildingDef = {
   id: BuildingId
@@ -102,6 +122,11 @@ type BuildingDef = {
   projectileSpeed?: number
   kind?: 'hitscan' | 'missiles' | 'ballistic' | 'shield' | 'railgun'
   auraDamagePerSec?: number
+  /** Kingpin Slag Cannon: credits spent per shot (in addition to power draw). */
+  shotCreditCost?: number
+
+  /** Citadel Conduits: field effects from structure center (cell units). */
+  citadelConduit?: { kind: CitadelConduitKind; radius: number; strength: number }
 
   wheelDetails: () => [string, string]
 }
@@ -151,6 +176,8 @@ type Asteroid = {
   pulsarSlowTimer: number
   /** Shockwave upgrade: brief full movement stop. */
   stasisTimer: number
+  /** Jupiter Radar Station: bonus damage taken + energy on death while > 0. */
+  radarMarkTimer: number
 }
 
 type Missile = {
@@ -422,6 +449,67 @@ export type UpgradeId =
   | 'hero_nova_energy_range_2'
   | 'hero_nova_energy_cycle_1'
   | 'hero_nova_energy_cycle_2'
+  | 'hero_citadel_core'
+  | 'hero_citadel_struct_grid_1'
+  | 'hero_citadel_struct_grid_2'
+  | 'hero_citadel_command_fortress'
+  | 'hero_citadel_conduit_integrity'
+  | 'hero_citadel_supply_lines'
+  | 'hero_citadel_industrial_shell'
+  | 'hero_citadel_repair_conduit_mk2'
+  | 'hero_citadel_construction_conduit_mk2'
+  | 'hero_citadel_defense_conduit_mk2'
+  | 'hero_citadel_attack_conduit_mk2'
+  | 'hero_citadel_efficiency_conduit_mk2'
+  | 'hero_citadel_range_conduit_mk2'
+  | 'hero_citadel_defense_centers'
+  | 'hero_citadel_enhanced_conductivity'
+  | 'hero_citadel_sophisticated_repairs'
+  | 'hero_citadel_last_stand'
+  | 'hero_citadel_focused_power'
+  | 'hero_citadel_unlock_advanced_conduits'
+  | 'hero_jupiter_core'
+  | 'hero_jupiter_unlock_support_machines'
+  | 'hero_jupiter_unlock_advanced_electrical'
+  | 'hero_jupiter_unlock_arc_thrower'
+  | 'hero_jupiter_grid_tuning_1'
+  | 'hero_jupiter_grid_tuning_2'
+  | 'hero_jupiter_capacitance_1'
+  | 'hero_jupiter_capacitance_2'
+  | 'hero_jupiter_transmission_lines'
+  | 'hero_jupiter_emergency_shunts'
+  | 'hero_jupiter_induction_weave'
+  | 'hero_jupiter_mass_relay_mk2'
+  | 'hero_jupiter_arc_thrower_mk2'
+  | 'hero_jupiter_overclock_mk2'
+  | 'hero_jupiter_radar_mk2'
+  | 'hero_jupiter_recon_drone_mk2'
+  | 'hero_jupiter_battery_complex_mk2'
+  | 'hero_jupiter_enhanced_pinging'
+  | 'hero_jupiter_emergency_generator'
+  | 'hero_jupiter_arc_supercharge'
+  | 'hero_kingpin_core'
+  | 'hero_kingpin_unlock_advanced_economic_solutions'
+  | 'hero_kingpin_unlock_production_enhancements'
+  | 'hero_kingpin_unlock_slag_cannon'
+  | 'hero_kingpin_factory_dividends_1'
+  | 'hero_kingpin_factory_dividends_2'
+  | 'hero_kingpin_refinery_contracts_1'
+  | 'hero_kingpin_refinery_contracts_2'
+  | 'hero_kingpin_venture_capital'
+  | 'hero_kingpin_energy_arbitrage'
+  | 'hero_kingpin_data_array_mk2'
+  | 'hero_kingpin_investment_complex_mk2'
+  | 'hero_kingpin_cryptographic_decoder_mk2'
+  | 'hero_kingpin_indoctrinated_labor_mk2'
+  | 'hero_kingpin_mineral_processor_mk2'
+  | 'hero_kingpin_slag_cannon_mk2'
+  | 'hero_kingpin_hazard_pay'
+  | 'hero_kingpin_insider_discounts'
+  | 'hero_kingpin_scavenging'
+  | 'hero_kingpin_compound_interest'
+  | 'hero_kingpin_signal_amplification'
+  | 'hero_kingpin_scrap_futures'
 
 type BuildingModifier = {
   rangeAdd?: number
@@ -440,6 +528,8 @@ type BuildingModifier = {
 
   supplyCapAddMul?: number
   powerCapAddMul?: number
+  creditIntervalSecMul?: number
+  shotCreditCostMul?: number
 }
 
 export type UpgradeDef = {
@@ -1326,6 +1416,272 @@ export const BUILDINGS: BuildingDef[] = [
     powerDrainPerSec: 0.12 * VARS.P,
     range: 12,
     wheelDetails: () => ['Aura: weapons nearby pay less shot power', 'Upgrade adds a small damage boost'],
+  },
+  {
+    id: 'citadel_repair_conduit',
+    label: 'Repair Conduit',
+    heroId: 'citadel',
+    category: 'hero',
+    color: 0x14b8a6,
+    size: { w: 2, h: 2 },
+    maxHp: 560,
+    creditCost: Math.round(520 * VARS.C),
+    supplyCost: 3,
+    powerDrainPerSec: 0,
+    range: 14,
+    fireRate: 0.25,
+    damage: 38,
+    citadelConduit: { kind: 'repair', radius: 14, strength: 38 },
+    wheelDetails: () => ['Larger support hub', 'Pulse heals allies in radius; costs power per pulse'],
+  },
+  {
+    id: 'citadel_construction_conduit',
+    label: 'Construction Conduit',
+    heroId: 'citadel',
+    category: 'hero',
+    color: 0x0d9488,
+    size: { w: 3, h: 3 },
+    maxHp: 920,
+    creditCost: Math.round(980 * VARS.C),
+    supplyCost: 6,
+    powerDrainPerSec: 0.35 * VARS.P,
+    citadelConduit: { kind: 'construction', radius: 16, strength: 0.14 },
+    wheelDetails: () => ['Industrial coordinator', 'New builds centered in aura pay fewer credits'],
+  },
+  {
+    id: 'citadel_defense_conduit',
+    label: 'Defense Conduit',
+    heroId: 'citadel',
+    category: 'hero',
+    color: 0x5eead4,
+    size: { w: 1, h: 1 },
+    maxHp: 220,
+    creditCost: Math.round(220 * VARS.C),
+    supplyCost: 1,
+    powerDrainPerSec: 0.08 * VARS.P,
+    citadelConduit: { kind: 'defense', radius: 5.5, strength: 0.12 },
+    wheelDetails: () => ['Warding lattice', 'Buildings in aura take less impact damage'],
+  },
+  {
+    id: 'citadel_attack_conduit',
+    label: 'Attack Conduit',
+    heroId: 'citadel',
+    category: 'hero',
+    color: 0x2dd4bf,
+    size: { w: 1, h: 1 },
+    maxHp: 210,
+    creditCost: Math.round(240 * VARS.C),
+    supplyCost: 2,
+    powerDrainPerSec: 0.2 * VARS.P,
+    citadelConduit: { kind: 'attack', radius: 5.5, strength: 0.12 },
+    wheelDetails: () => ['Targeting relay', 'Defenses in aura deal more damage'],
+  },
+  {
+    id: 'citadel_efficiency_conduit',
+    label: 'Efficiency Conduit',
+    heroId: 'citadel',
+    category: 'hero',
+    color: 0x99f6e4,
+    size: { w: 1, h: 1 },
+    maxHp: 200,
+    creditCost: Math.round(260 * VARS.C),
+    supplyCost: 2,
+    powerDrainPerSec: 0.15 * VARS.P,
+    citadelConduit: { kind: 'efficiency', radius: 5.5, strength: 0.12 },
+    wheelDetails: () => ['Cycle harmonizer', 'Defenses in aura fire faster'],
+  },
+  {
+    id: 'citadel_range_conduit',
+    label: 'Range Conduit',
+    heroId: 'citadel',
+    category: 'hero',
+    color: 0xccfbf1,
+    size: { w: 1, h: 1 },
+    maxHp: 200,
+    creditCost: Math.round(230 * VARS.C),
+    supplyCost: 2,
+    powerDrainPerSec: 0.12 * VARS.P,
+    citadelConduit: { kind: 'range', radius: 5.5, strength: 4 },
+    wheelDetails: () => ['Sensor mast', 'Defenses in aura gain reach'],
+  },
+  {
+    id: 'jupiter_mass_relay',
+    label: 'Mass Relay',
+    heroId: 'jupiter',
+    category: 'hero',
+    color: 0xc4b5fd,
+    size: { w: 3, h: 3 },
+    maxHp: 820,
+    creditCost: Math.round(980 * VARS.C),
+    supplyCost: 5,
+    powerGenPerSec: 0,
+    powerDrainPerSec: 0.15 * VARS.P,
+    wheelDetails: () => ['Network hub', 'Shares one health pool across all relays; links relays for power'],
+  },
+  {
+    id: 'jupiter_arc_thrower',
+    label: 'Arc Thrower',
+    heroId: 'jupiter',
+    category: 'hero',
+    color: 0x818cf8,
+    size: { w: 2, h: 2 },
+    maxHp: 640,
+    creditCost: Math.round(1100 * VARS.C),
+    supplyCost: 8,
+    powerDrainPerSec: 0,
+    kind: 'hitscan',
+    range: 56,
+    fireRate: 0.42,
+    damage: 88,
+    wheelDetails: () => ['Chaining lightning', 'Stronger draws chain farther when you have stored energy'],
+  },
+  {
+    id: 'jupiter_overclock_augment',
+    label: 'Overclock Augment',
+    heroId: 'jupiter',
+    category: 'hero',
+    color: 0xfbbf24,
+    size: { w: 1, h: 1 },
+    maxHp: 210,
+    creditCost: Math.round(340 * VARS.C),
+    supplyCost: 2,
+    powerDrainPerSec: 0,
+    wheelDetails: () => ['Burn power', 'Adjacent defenses fire much faster while energized'],
+  },
+  {
+    id: 'jupiter_radar_station',
+    label: 'Radar Station',
+    heroId: 'jupiter',
+    category: 'hero',
+    color: 0x38bdf8,
+    size: { w: 3, h: 3 },
+    maxHp: 780,
+    creditCost: Math.round(860 * VARS.C),
+    supplyCost: 6,
+    powerDrainPerSec: 0,
+    range: 46,
+    wheelDetails: () => ['Paints threats', 'Marked rocks take more hurt and refund energy when destroyed'],
+  },
+  {
+    id: 'jupiter_recon_drone',
+    label: 'Recon Drone',
+    heroId: 'jupiter',
+    category: 'hero',
+    color: 0x94a3b8,
+    size: { w: 1, h: 1 },
+    maxHp: 190,
+    creditCost: Math.round(420 * VARS.C),
+    supplyCost: 3,
+    powerDrainPerSec: 0.42 * VARS.P,
+    kind: 'hitscan',
+    range: 22,
+    fireRate: 12,
+    damage: 4.4,
+    wheelDetails: () => ['High orbit coil', 'Medium-range Tesla-style arcs; boosts power from buildings below'],
+  },
+  {
+    id: 'jupiter_battery_complex',
+    label: 'Battery Complex',
+    heroId: 'jupiter',
+    category: 'hero',
+    color: 0xeab308,
+    size: { w: 4, h: 4 },
+    maxHp: 1100,
+    creditCost: Math.round(1180 * VARS.C),
+    supplyCost: 4,
+    powerCapAdd: Math.round(220 * VARS.P),
+    powerGenPerSec: 2.8 * VARS.P,
+    powerDrainPerSec: 0.08 * VARS.P,
+    wheelDetails: () => ['Strategic reserve', 'Slow trickle charge; stronger when the grid is near empty'],
+  },
+  {
+    id: 'kingpin_data_array',
+    label: 'Data Array',
+    heroId: 'kingpin',
+    category: 'economy',
+    color: 0xa855f7,
+    size: { w: 2, h: 2 },
+    maxHp: 260,
+    creditCost: Math.round(520 * VARS.C),
+    supplyCost: 4,
+    powerDrainPerSec: 0.55 * VARS.P,
+    creditPayout: Math.round(520 * VARS.E),
+    creditIntervalSec: 34,
+    wheelDetails: () => ['Fragile uplink', 'Long batch time, very large credit dump'],
+  },
+  {
+    id: 'kingpin_investment_complex',
+    label: 'Investment Complex',
+    heroId: 'kingpin',
+    category: 'economy',
+    color: 0xc084fc,
+    size: { w: 3, h: 3 },
+    maxHp: 720,
+    creditCost: Math.round(780 * VARS.C),
+    supplyCost: 6,
+    powerDrainPerSec: 0.4 * VARS.P,
+    creditPayout: 12,
+    wheelDetails: () => ['Wealth engine', 'Passive credits; rate rises with banked balance'],
+  },
+  {
+    id: 'kingpin_cryptographic_decoder',
+    label: 'Cryptographic Decoder',
+    heroId: 'kingpin',
+    category: 'hero',
+    color: 0xe879f9,
+    size: { w: 2, h: 2 },
+    maxHp: 520,
+    creditCost: Math.round(640 * VARS.C),
+    supplyCost: 5,
+    powerDrainPerSec: 0.22 * VARS.P,
+    range: 11,
+    wheelDetails: () => ['Refinery aura', 'Nearby refineries export more per tick'],
+  },
+  {
+    id: 'kingpin_indoctrinated_labor',
+    label: 'Indoctrinated Labor',
+    heroId: 'kingpin',
+    category: 'hero',
+    color: 0x7c3aed,
+    size: { w: 2, h: 2 },
+    maxHp: 560,
+    creditCost: Math.round(680 * VARS.C),
+    supplyCost: 5,
+    powerDrainPerSec: 0.28 * VARS.P,
+    range: 11,
+    wheelDetails: () => ['Factory aura', 'Nearby factories draw no idle power'],
+  },
+  {
+    id: 'kingpin_mineral_processor',
+    label: 'Mineral Processor',
+    heroId: 'kingpin',
+    category: 'hero',
+    color: 0xf472b6,
+    size: { w: 3, h: 3 },
+    maxHp: 840,
+    creditCost: Math.round(920 * VARS.C),
+    supplyCost: 7,
+    powerDrainPerSec: 0.35 * VARS.P,
+    range: 13,
+    wheelDetails: () => ['Salvage routing', 'Combat kills near linked turrets pay credits'],
+  },
+  {
+    id: 'kingpin_slag_cannon',
+    label: 'Slag Cannon',
+    heroId: 'kingpin',
+    category: 'turrets',
+    color: 0xf43f5e,
+    size: { w: 3, h: 3 },
+    maxHp: 920,
+    creditCost: Math.round(720 * VARS.C),
+    supplyCost: 11,
+    powerDrainPerSec: 1.25 * VARS.P,
+    kind: 'hitscan',
+    range: 64,
+    fireRate: 0.36,
+    damage: 360,
+    shotCreditCost: Math.round(24 * VARS.C),
+    wheelDetails: () => ['Heavy breacher', 'Faster than siege heavy; each shot spends credits'],
   },
 ]
 
@@ -2910,6 +3266,663 @@ const UPGRADES_RAW: UpgradeDef[] = [
       nova_shockwave_pulsar: { fireRateMul: 1.12 },
     },
   },
+
+  {
+    id: 'hero_citadel_core',
+    label: 'Citadel Mandate',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 0,
+    description: 'Deploy basic conduits: Defense, Attack, and Range.',
+    unlockBuildingIds: ['citadel_defense_conduit', 'citadel_attack_conduit', 'citadel_range_conduit'],
+  },
+  {
+    id: 'hero_citadel_unlock_advanced_conduits',
+    label: 'Unlock Advanced Conduits',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 720,
+    description: 'Unlocks Repair, Construction, and Efficiency Conduits.',
+    prereqIds: ['hero_citadel_core'],
+    unlockBuildingIds: ['citadel_repair_conduit', 'citadel_construction_conduit', 'citadel_efficiency_conduit'],
+  },
+  {
+    id: 'hero_citadel_struct_grid_1',
+    label: 'Citadel Structural Grid I',
+    heroId: 'citadel',
+    category: 'structural',
+    creditCost: 460,
+    description: 'Hardens core support structures.',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: {
+      support_node: { maxHpMul: 1.1 },
+      repair_bay: { maxHpMul: 1.1 },
+      reconstruction_yard: { maxHpMul: 1.1 },
+    },
+  },
+  {
+    id: 'hero_citadel_struct_grid_2',
+    label: 'Citadel Structural Grid II',
+    heroId: 'citadel',
+    category: 'structural',
+    creditCost: 780,
+    description: 'Further reinforces support infrastructure.',
+    prereqIds: ['hero_citadel_struct_grid_1'],
+    modifiers: {
+      support_node: { maxHpMul: 1.12 },
+      repair_bay: { maxHpMul: 1.12 },
+      reconstruction_yard: { maxHpMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_citadel_command_fortress',
+    label: 'Command Fortress',
+    heroId: 'citadel',
+    category: 'structural',
+    creditCost: 620,
+    description: 'Command Centers gain significantly more max health.',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: { command_center: { maxHpMul: 1.15 } },
+  },
+  {
+    id: 'hero_citadel_conduit_integrity',
+    label: 'Conduit Integrity',
+    heroId: 'citadel',
+    category: 'structural',
+    creditCost: 540,
+    description: 'All Citadel Conduits are harder to destroy.',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: {
+      citadel_repair_conduit: { maxHpMul: 1.14 },
+      citadel_construction_conduit: { maxHpMul: 1.14 },
+      citadel_defense_conduit: { maxHpMul: 1.14 },
+      citadel_attack_conduit: { maxHpMul: 1.14 },
+      citadel_efficiency_conduit: { maxHpMul: 1.14 },
+      citadel_range_conduit: { maxHpMul: 1.14 },
+    },
+  },
+  {
+    id: 'hero_citadel_supply_lines',
+    label: 'Supply Lines',
+    heroId: 'citadel',
+    category: 'structural',
+    creditCost: 500,
+    description: 'Improves supply depots for expanded logistics.',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: {
+      supply_depot_s: { supplyCapAddMul: 1.18 },
+      supply_depot_l: { supplyCapAddMul: 1.18 },
+    },
+  },
+  {
+    id: 'hero_citadel_industrial_shell',
+    label: 'Industrial Shell',
+    heroId: 'citadel',
+    category: 'economy',
+    creditCost: 560,
+    description: 'Reinforces early economy buildings.',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: {
+      factory_business: { maxHpMul: 1.12 },
+      factory_factory: { maxHpMul: 1.1 },
+      refinery: { maxHpMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_citadel_repair_conduit_mk2',
+    label: 'Repair Conduit Level 2',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 640,
+    description: 'Repair Conduits pulse faster and heal more per pulse.',
+    prereqIds: ['hero_citadel_unlock_advanced_conduits'],
+    modifiers: { citadel_repair_conduit: { rangeAdd: 2, fireRateMul: 1.18, damageAdd: 14 } },
+  },
+  {
+    id: 'hero_citadel_construction_conduit_mk2',
+    label: 'Construction Conduit Level 2',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 820,
+    description: 'Larger discount aura and wider coordination radius (tuned in conduit logic).',
+    prereqIds: ['hero_citadel_unlock_advanced_conduits'],
+    modifiers: { citadel_construction_conduit: { maxHpMul: 1.08, powerDrainMul: 0.9 } },
+  },
+  {
+    id: 'hero_citadel_defense_conduit_mk2',
+    label: 'Defense Conduit Level 2',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 520,
+    description: 'Stronger damage reduction and wider ward (tuned in conduit logic).',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: { citadel_defense_conduit: { maxHpMul: 1.12 } },
+  },
+  {
+    id: 'hero_citadel_attack_conduit_mk2',
+    label: 'Attack Conduit Level 2',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 540,
+    description: 'Higher damage amp for nearby defenses (tuned in conduit logic).',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: { citadel_attack_conduit: { maxHpMul: 1.1 } },
+  },
+  {
+    id: 'hero_citadel_efficiency_conduit_mk2',
+    label: 'Efficiency Conduit Level 2',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 560,
+    description: 'Faster cadence boost for surrounding weapons (tuned in conduit logic).',
+    prereqIds: ['hero_citadel_unlock_advanced_conduits'],
+    modifiers: { citadel_efficiency_conduit: { maxHpMul: 1.1 } },
+  },
+  {
+    id: 'hero_citadel_range_conduit_mk2',
+    label: 'Range Conduit Level 2',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 510,
+    description: 'Additional reach granted to covered defenses (tuned in conduit logic).',
+    prereqIds: ['hero_citadel_core'],
+    modifiers: { citadel_range_conduit: { maxHpMul: 1.1 } },
+  },
+  {
+    id: 'hero_citadel_defense_centers',
+    label: 'Defense Centers',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 880,
+    description: 'Each Command Center mounts an integrated turret (~2× Auto Turret), no power draw.',
+    prereqIds: ['hero_citadel_core'],
+  },
+  {
+    id: 'hero_citadel_enhanced_conductivity',
+    label: 'Enhanced Conductivity',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 720,
+    description: 'Increases the aura radius of all Citadel Conduits.',
+    prereqIds: ['hero_citadel_core'],
+  },
+  {
+    id: 'hero_citadel_sophisticated_repairs',
+    label: 'Sophisticated Repairs',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 680,
+    description: 'All healing sources are more potent (nodes, conduits, drones, hangar ops).',
+    prereqIds: ['hero_citadel_core'],
+  },
+  {
+    id: 'hero_citadel_last_stand',
+    label: 'Last Stand',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 940,
+    description: 'When only one Command Center remains, it takes less damage and regenerates slowly.',
+    prereqIds: ['hero_citadel_command_fortress'],
+  },
+  {
+    id: 'hero_citadel_focused_power',
+    label: 'Focused Power',
+    heroId: 'citadel',
+    category: 'hero',
+    creditCost: 860,
+    description: 'Multiple conduits of the same type can stack their benefits (capped).',
+    prereqIds: ['hero_citadel_core'],
+  },
+
+  {
+    id: 'hero_jupiter_core',
+    label: 'Jupiter Directive',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 0,
+    description: 'Jupiter structures are gated behind specialized unlock research.',
+  },
+  {
+    id: 'hero_jupiter_unlock_support_machines',
+    label: 'Unlock Support Machines',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 420,
+    description: 'Unlocks Overclock Augment, Radar Station, and Recon Drone.',
+    prereqIds: ['hero_jupiter_core'],
+    unlockBuildingIds: ['jupiter_overclock_augment', 'jupiter_radar_station', 'jupiter_recon_drone'],
+  },
+  {
+    id: 'hero_jupiter_unlock_advanced_electrical',
+    label: 'Unlock Advanced Electrical Solutions',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 620,
+    description: 'Unlocks Mass Relay and Battery Complex.',
+    prereqIds: ['hero_jupiter_core'],
+    unlockBuildingIds: ['jupiter_mass_relay', 'jupiter_battery_complex'],
+  },
+  {
+    id: 'hero_jupiter_unlock_arc_thrower',
+    label: 'Unlock Arc Thrower',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 780,
+    description: 'Unlocks the Arc Thrower.',
+    prereqIds: ['hero_jupiter_core'],
+    unlockBuildingIds: ['jupiter_arc_thrower'],
+  },
+  {
+    id: 'hero_jupiter_grid_tuning_1',
+    label: 'Grid Tuning I',
+    heroId: 'jupiter',
+    category: 'electrical',
+    creditCost: 480,
+    description: 'Generators and Mass Relays run a little cleaner.',
+    prereqIds: ['hero_jupiter_core'],
+    modifiers: {
+      generator_small: { powerGenMul: 1.08 },
+      generator_large: { powerGenMul: 1.08 },
+      jupiter_mass_relay: { powerDrainMul: 0.92 },
+    },
+  },
+  {
+    id: 'hero_jupiter_grid_tuning_2',
+    label: 'Grid Tuning II',
+    heroId: 'jupiter',
+    category: 'electrical',
+    creditCost: 740,
+    description: 'Further improves baseline electrical output.',
+    prereqIds: ['hero_jupiter_grid_tuning_1'],
+    modifiers: {
+      generator_small: { powerGenMul: 1.06 },
+      generator_large: { powerGenMul: 1.06 },
+      nuclear_plant: { powerGenMul: 1.05 },
+    },
+  },
+  {
+    id: 'hero_jupiter_capacitance_1',
+    label: 'Capacitance Matrix I',
+    heroId: 'jupiter',
+    category: 'electrical',
+    creditCost: 460,
+    description: 'Batteries and the Battery Complex store more headroom.',
+    prereqIds: ['hero_jupiter_core'],
+    modifiers: {
+      battery_small: { powerCapAddMul: 1.12 },
+      battery_large: { powerCapAddMul: 1.12 },
+      jupiter_battery_complex: { powerCapAddMul: 1.1 },
+    },
+  },
+  {
+    id: 'hero_jupiter_capacitance_2',
+    label: 'Capacitance Matrix II',
+    heroId: 'jupiter',
+    category: 'electrical',
+    creditCost: 720,
+    description: 'Adds even more grid reserve.',
+    prereqIds: ['hero_jupiter_capacitance_1'],
+    modifiers: {
+      battery_small: { powerCapAddMul: 1.1 },
+      battery_large: { powerCapAddMul: 1.1 },
+      jupiter_battery_complex: { powerCapAddMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_jupiter_transmission_lines',
+    label: 'Transmission Lines',
+    heroId: 'jupiter',
+    category: 'electrical',
+    creditCost: 520,
+    description: 'Pylon network bonus is stronger (global pylon synergy).',
+    prereqIds: ['hero_jupiter_core'],
+    modifiers: { pylon: { powerGenMul: 1.22 } },
+  },
+  {
+    id: 'hero_jupiter_emergency_shunts',
+    label: 'Emergency Shunts',
+    heroId: 'jupiter',
+    category: 'electrical',
+    creditCost: 540,
+    description: 'Radar and Arc Thrower shot draws are slightly cheaper.',
+    prereqIds: ['hero_jupiter_core'],
+    modifiers: {
+      jupiter_radar_station: { powerDrainMul: 0.88 },
+      jupiter_arc_thrower: { maxHpMul: 1.04 },
+    },
+  },
+  {
+    id: 'hero_jupiter_induction_weave',
+    label: 'Induction Weave',
+    heroId: 'jupiter',
+    category: 'electrical',
+    creditCost: 510,
+    description: 'Recon Drone coil is more efficient; Overclock draws a little less.',
+    prereqIds: ['hero_jupiter_core'],
+    modifiers: {
+      jupiter_recon_drone: { powerDrainMul: 0.86 },
+      jupiter_overclock_augment: { maxHpMul: 1.08 },
+    },
+  },
+  {
+    id: 'hero_jupiter_mass_relay_mk2',
+    label: 'Mass Relay Level 2',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 680,
+    description: 'Relays are tougher and idle draw drops further.',
+    prereqIds: ['hero_jupiter_unlock_advanced_electrical'],
+    modifiers: { jupiter_mass_relay: { maxHpMul: 1.15, powerDrainMul: 0.85 } },
+  },
+  {
+    id: 'hero_jupiter_arc_thrower_mk2',
+    label: 'Arc Thrower Level 2',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 860,
+    description: 'Arc thrower reaches farther and hits harder per tier.',
+    prereqIds: ['hero_jupiter_unlock_arc_thrower'],
+    modifiers: { jupiter_arc_thrower: { maxHpMul: 1.12, rangeAdd: 6, damageAdd: 18 } },
+  },
+  {
+    id: 'hero_jupiter_overclock_mk2',
+    label: 'Overclock Augment Level 2',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 560,
+    description: 'Stronger fire-rate boost to neighbors.',
+    prereqIds: ['hero_jupiter_unlock_support_machines'],
+    modifiers: { jupiter_overclock_augment: { maxHpMul: 1.1 } },
+  },
+  {
+    id: 'hero_jupiter_radar_mk2',
+    label: 'Radar Station Level 2',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 740,
+    description: 'Wider scan volume.',
+    prereqIds: ['hero_jupiter_unlock_support_machines'],
+    modifiers: { jupiter_radar_station: { maxHpMul: 1.1, rangeAdd: 5 } },
+  },
+  {
+    id: 'hero_jupiter_recon_drone_mk2',
+    label: 'Recon Drone Level 2',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 620,
+    description: 'More reach and coil damage; stronger induction below.',
+    prereqIds: ['hero_jupiter_unlock_support_machines'],
+    modifiers: { jupiter_recon_drone: { rangeAdd: 4, damageAdd: 2 } },
+  },
+  {
+    id: 'hero_jupiter_battery_complex_mk2',
+    label: 'Battery Complex Level 2',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 920,
+    description: 'Larger reserve and stronger low-power production curve.',
+    prereqIds: ['hero_jupiter_unlock_advanced_electrical'],
+    modifiers: { jupiter_battery_complex: { maxHpMul: 1.12, powerCapAddMul: 1.15, powerGenMul: 1.18 } },
+  },
+  {
+    id: 'hero_jupiter_enhanced_pinging',
+    label: 'Enhanced Pinging Systems',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 780,
+    description: 'Radar Station marks more targets and keeps paint up longer.',
+    prereqIds: ['hero_jupiter_unlock_support_machines'],
+  },
+  {
+    id: 'hero_jupiter_emergency_generator',
+    label: 'Emergency Generator',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 840,
+    description: 'When your stored energy hits empty, Battery Complex output surges briefly.',
+    prereqIds: ['hero_jupiter_unlock_advanced_electrical'],
+  },
+  {
+    id: 'hero_jupiter_arc_supercharge',
+    label: 'Arc Supercharge',
+    heroId: 'jupiter',
+    category: 'hero',
+    creditCost: 920,
+    description: 'Arc Thrower can spend extreme energy for a devastating top-tier chain.',
+    prereqIds: ['hero_jupiter_unlock_arc_thrower'],
+  },
+
+  {
+    id: 'hero_kingpin_core',
+    label: 'Kingpin Directive',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 0,
+    description: 'Syndicate structures are gated behind specialized unlock research.',
+  },
+  {
+    id: 'hero_kingpin_unlock_advanced_economic_solutions',
+    label: 'Unlock Advanced Economic Solutions',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 410,
+    description: 'Unlocks the Data Array and Investment Complex.',
+    prereqIds: ['hero_kingpin_core'],
+    unlockBuildingIds: ['kingpin_data_array', 'kingpin_investment_complex'],
+  },
+  {
+    id: 'hero_kingpin_unlock_production_enhancements',
+    label: 'Unlock Production Enhancements',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 520,
+    description: 'Unlocks the Cryptographic Decoder, Indoctrinated Labor, and Mineral Processor.',
+    prereqIds: ['hero_kingpin_core'],
+    unlockBuildingIds: [
+      'kingpin_cryptographic_decoder',
+      'kingpin_indoctrinated_labor',
+      'kingpin_mineral_processor',
+    ],
+  },
+  {
+    id: 'hero_kingpin_unlock_slag_cannon',
+    label: 'Unlock Slag Cannon',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 690,
+    description: 'Unlocks the Slag Cannon.',
+    prereqIds: ['hero_kingpin_core'],
+    unlockBuildingIds: ['kingpin_slag_cannon'],
+  },
+  {
+    id: 'hero_kingpin_factory_dividends_1',
+    label: 'Preferred Stock I',
+    heroId: 'kingpin',
+    category: 'economy',
+    creditCost: 460,
+    description: 'Factory output adds more credits per payout.',
+    prereqIds: ['hero_kingpin_core'],
+    modifiers: {
+      factory_business: { creditPayoutMul: 1.1 },
+      factory_factory: { creditPayoutMul: 1.1 },
+    },
+  },
+  {
+    id: 'hero_kingpin_factory_dividends_2',
+    label: 'Preferred Stock II',
+    heroId: 'kingpin',
+    category: 'economy',
+    creditCost: 640,
+    description: 'Megacomplex lines and smaller factories scale further.',
+    prereqIds: ['hero_kingpin_factory_dividends_1'],
+    modifiers: {
+      factory_business: { creditPayoutMul: 1.06 },
+      factory_factory: { creditPayoutMul: 1.06 },
+      factory_megacomplex: { creditPayoutMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_kingpin_refinery_contracts_1',
+    label: 'Commodity Futures I',
+    heroId: 'kingpin',
+    category: 'economy',
+    creditCost: 470,
+    description: 'Standard refineries ship more product.',
+    prereqIds: ['hero_kingpin_core'],
+    modifiers: { refinery: { creditPayoutMul: 1.12 } },
+  },
+  {
+    id: 'hero_kingpin_refinery_contracts_2',
+    label: 'Commodity Futures II',
+    heroId: 'kingpin',
+    category: 'economy',
+    creditCost: 630,
+    description: 'Mega refineries catch up to premium contracts.',
+    prereqIds: ['hero_kingpin_refinery_contracts_1'],
+    modifiers: { mega_refinery: { creditPayoutMul: 1.11 } },
+  },
+  {
+    id: 'hero_kingpin_venture_capital',
+    label: 'Venture Capital',
+    heroId: 'kingpin',
+    category: 'economy',
+    creditCost: 590,
+    description: 'Command dividend ticks are stronger.',
+    prereqIds: ['hero_kingpin_core'],
+    modifiers: { command_center: { creditPayoutMul: 1.14 } },
+  },
+  {
+    id: 'hero_kingpin_energy_arbitrage',
+    label: 'Energy Arbitrage',
+    heroId: 'kingpin',
+    category: 'electrical',
+    creditCost: 540,
+    description: 'Generators and pylon networks squeeze out a little more juice.',
+    prereqIds: ['hero_kingpin_core'],
+    modifiers: {
+      generator_small: { powerGenMul: 1.08 },
+      generator_large: { powerGenMul: 1.08 },
+      pylon: { powerGenMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_kingpin_data_array_mk2',
+    label: 'Data Array Level 2',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 620,
+    description: 'Tougher arrays with faster cycles and sharper payouts.',
+    prereqIds: ['hero_kingpin_unlock_advanced_economic_solutions'],
+    modifiers: {
+      kingpin_data_array: { maxHpMul: 1.18, creditPayoutMul: 1.22, creditIntervalSecMul: 0.82 },
+    },
+  },
+  {
+    id: 'hero_kingpin_investment_complex_mk2',
+    label: 'Investment Complex Level 2',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 740,
+    description: 'Larger footprint yields; modest efficiency gain.',
+    prereqIds: ['hero_kingpin_unlock_advanced_economic_solutions'],
+    modifiers: { kingpin_investment_complex: { maxHpMul: 1.12, creditPayoutMul: 1.18, powerDrainMul: 0.88 } },
+  },
+  {
+    id: 'hero_kingpin_cryptographic_decoder_mk2',
+    label: 'Cryptographic Decoder Level 2',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 560,
+    description: 'Wider decoding field with stronger refinery yield.',
+    prereqIds: ['hero_kingpin_unlock_production_enhancements'],
+    modifiers: { kingpin_cryptographic_decoder: { maxHpMul: 1.1, rangeAdd: 2 } },
+  },
+  {
+    id: 'hero_kingpin_indoctrinated_labor_mk2',
+    label: 'Indoctrinated Labor Level 2',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 580,
+    description: 'Labor camps reach farther across the factory floor.',
+    prereqIds: ['hero_kingpin_unlock_production_enhancements'],
+    modifiers: { kingpin_indoctrinated_labor: { maxHpMul: 1.1, rangeAdd: 2 } },
+  },
+  {
+    id: 'hero_kingpin_mineral_processor_mk2',
+    label: 'Mineral Processor Level 2',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 820,
+    description: 'Longer salvage reach for asteroid kills.',
+    prereqIds: ['hero_kingpin_unlock_production_enhancements'],
+    modifiers: { kingpin_mineral_processor: { maxHpMul: 1.1, rangeAdd: 3 } },
+  },
+  {
+    id: 'hero_kingpin_slag_cannon_mk2',
+    label: 'Slag Cannon Level 2',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 860,
+    description: 'Heavier slugs with a touch more cadence; marginally cheaper ammunition.',
+    prereqIds: ['hero_kingpin_unlock_slag_cannon'],
+    modifiers: {
+      kingpin_slag_cannon: { maxHpMul: 1.08, damageAdd: 70, fireRateMul: 1.08, shotCreditCostMul: 0.88 },
+    },
+  },
+  {
+    id: 'hero_kingpin_hazard_pay',
+    label: 'Hazard Pay',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 720,
+    description: 'Clearing waves grants credits; bonus grows with waves completed.',
+    prereqIds: ['hero_kingpin_core'],
+  },
+  {
+    id: 'hero_kingpin_insider_discounts',
+    label: 'Insider Discounts',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 680,
+    description: 'All new construction invoices are slightly reduced.',
+    prereqIds: ['hero_kingpin_core'],
+  },
+  {
+    id: 'hero_kingpin_scavenging',
+    label: 'Scavenging',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 750,
+    description: 'Destroyed structures refund part of their build value (not manual sells).',
+    prereqIds: ['hero_kingpin_core'],
+  },
+  {
+    id: 'hero_kingpin_compound_interest',
+    label: 'Compound Interest',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 780,
+    description: 'Investment Complex scales harder with your credit balance.',
+    prereqIds: ['hero_kingpin_unlock_advanced_economic_solutions'],
+  },
+  {
+    id: 'hero_kingpin_signal_amplification',
+    label: 'Signal Amplification',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 700,
+    description: 'Cryptographic Decoders grant refineries a larger export multiplier.',
+    prereqIds: ['hero_kingpin_unlock_production_enhancements'],
+  },
+  {
+    id: 'hero_kingpin_scrap_futures',
+    label: 'Scrap Futures',
+    heroId: 'kingpin',
+    category: 'hero',
+    creditCost: 760,
+    description: 'Mineral Processor bounty per asteroid kill is increased.',
+    prereqIds: ['hero_kingpin_unlock_production_enhancements'],
+  },
 ]
 
 // Globally reduce upgrade credit costs (5-10% target).
@@ -2929,6 +3942,13 @@ export class BaseDefenseGame {
   private clock = new THREE.Clock()
   private raf = 0
   private ro!: ResizeObserver
+
+  /** Jupiter Mass Relays share this pool HP (sum of per-relay max contributes to maxHp). */
+  private jupiterRelayPool: { hp: number; maxHp: number } | null = null
+  /** Suppress Kingpin Scavenging proc when selling (player already gets a sell refund). */
+  private suppressKingpinScavenge = false
+  /** Brief surge for Battery Complex when grid hits empty (Emergency Generator). */
+  private jupiterBatteryEmergencyTimer = 0
 
   private readonly raycaster = new THREE.Raycaster()
   private readonly pointer = new THREE.Vector2()
@@ -3177,6 +4197,11 @@ export class BaseDefenseGame {
     this.purchasedUpgradeIds.add(id)
     this.purchasedUpgradePhase.set(id, this.currentInactivePhase)
     this.recomputeUnlockedBuildingIds()
+    if (id === 'hero_citadel_defense_centers') {
+      for (const b of this.buildings) {
+        if (b.hp > 0 && b.defId === 'command_center') this.ensureCitadelCcTurretAim(b)
+      }
+    }
     this.emitAudio({ type: 'upgrade_purchase' })
     this.emitState()
   }
@@ -3342,11 +4367,19 @@ export class BaseDefenseGame {
     if (this.heroId === 'archangel') this.purchasedUpgradeIds.add('hero_archangel_core')
     if (this.heroId === 'dominion') this.purchasedUpgradeIds.add('hero_dominion_core')
     if (this.heroId === 'nova') this.purchasedUpgradeIds.add('hero_nova_core')
+    if (this.heroId === 'citadel') this.purchasedUpgradeIds.add('hero_citadel_core')
+    if (this.heroId === 'jupiter') this.purchasedUpgradeIds.add('hero_jupiter_core')
+    if (this.heroId === 'kingpin') this.purchasedUpgradeIds.add('hero_kingpin_core')
     this.purchasedUpgradePhase.clear()
     this.purchasedUpgradePhase.set('core_protocol', -1)
     if (this.heroId === 'archangel') this.purchasedUpgradePhase.set('hero_archangel_core', -1)
     if (this.heroId === 'dominion') this.purchasedUpgradePhase.set('hero_dominion_core', -1)
     if (this.heroId === 'nova') this.purchasedUpgradePhase.set('hero_nova_core', -1)
+    if (this.heroId === 'citadel') this.purchasedUpgradePhase.set('hero_citadel_core', -1)
+    if (this.heroId === 'jupiter') this.purchasedUpgradePhase.set('hero_jupiter_core', -1)
+    if (this.heroId === 'kingpin') this.purchasedUpgradePhase.set('hero_kingpin_core', -1)
+    this.jupiterRelayPool = null
+    this.jupiterBatteryEmergencyTimer = 0
     this.recomputeUnlockedBuildingIds()
     this.asteroidIdSeed = 0
     this.volleyIdSeed = 0
@@ -3570,14 +4603,19 @@ export class BaseDefenseGame {
     this.updateDragBuild(dt)
     this.updateDragSell(dt)
     this.updateResources(dt)
+    if (this.heroId === 'jupiter' && this.waveInProgress && this.jupiterBatteryEmergencyTimer > 0) {
+      this.jupiterBatteryEmergencyTimer = Math.max(0, this.jupiterBatteryEmergencyTimer - dt)
+    }
     this.updateShieldLayers(dt)
     this.updateWave(dt)
     this.updateAsteroids(dt)
     this.updateDefenses(dt)
     this.updateSupportSystems(dt)
+    this.tickCitadelLastStand(dt)
     this.updateArchangelPlanes(dt)
     this.updateProjectiles(dt)
     this.updateNovaGravityWells(dt)
+    this.tickCitadelConduitVisuals(dt)
     this.updateHealthBars()
     if (this.asteroidDiscoveryTimerSec > 0) {
       this.asteroidDiscoveryTimerSec -= dt
@@ -3652,6 +4690,511 @@ export class BaseDefenseGame {
     return (this.getEffectiveDef(b.defId) ?? b.def).maxHp
   }
 
+  private getRadarMarkedDamageMul(a: Asteroid): number {
+    if (this.heroId !== 'jupiter' || a.radarMarkTimer <= 0) return 1
+    return 1.32
+  }
+
+  private cellInsideBuildingFootprint(px: number, pz: number, b: PlacedBuilding): boolean {
+    return (
+      px >= b.origin.x &&
+      px <= b.origin.x + b.def.size.w - 1 &&
+      pz >= b.origin.z &&
+      pz <= b.origin.z + b.def.size.h - 1
+    )
+  }
+
+  private buildingFootprintsEdgeAdjacent(a: PlacedBuilding, b: PlacedBuilding): boolean {
+    const ax0 = a.origin.x
+    const ax1 = a.origin.x + a.def.size.w
+    const az0 = a.origin.z
+    const az1 = a.origin.z + a.def.size.h
+    const bx0 = b.origin.x
+    const bx1 = b.origin.x + b.def.size.w
+    const bz0 = b.origin.z
+    const bz1 = b.origin.z + b.def.size.h
+    const overlap = ax0 < bx1 && ax1 > bx0 && az0 < bz1 && az1 > bz0
+    if (overlap) return false
+    const gapX = Math.max(ax0 - bx1, bx0 - ax1, 0)
+    const gapZ = Math.max(az0 - bz1, bz0 - az1, 0)
+    return Math.max(gapX, gapZ) <= 1
+  }
+
+  private syncJupiterMassRelayHpFromPool() {
+    if (!this.jupiterRelayPool || this.jupiterRelayPool.maxHp <= 0) return
+    const ratio = clamp(this.jupiterRelayPool.hp / this.jupiterRelayPool.maxHp, 0, 1)
+    for (const r of this.buildings) {
+      if (r.hp <= 0 || r.defId !== 'jupiter_mass_relay') continue
+      const cap = this.getBuildingMaxHp(r)
+      r.hp = cap * ratio
+    }
+  }
+
+  private getJupiterReconPowerGenMulForBuilding(target: PlacedBuilding): number {
+    if (this.heroId !== 'jupiter') return 1
+    let mul = 1
+    const per = this.purchasedUpgradeIds.has('hero_jupiter_recon_drone_mk2') ? 1.16 : 1.12
+    for (const d of this.buildings) {
+      if (d.hp <= 0 || d.defId !== 'jupiter_recon_drone') continue
+      if (!this.cellInsideBuildingFootprint(d.origin.x, d.origin.z, target)) continue
+      mul *= per
+    }
+    return Math.min(mul, 1.55)
+  }
+
+  private isJupiterOverclockTarget(b: PlacedBuilding): boolean {
+    if (b.hp <= 0) return false
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if (d.kind === 'shield') return false
+    if ((d.damage ?? 0) <= 0 || !d.range) return false
+    if (d.category === 'turrets' || d.category === 'missile' || d.category === 'energy') return true
+    const hid = b.defId
+    if (
+      hid === 'dominion_orbital_cannon' ||
+      hid === 'dominion_flak_gun' ||
+      hid === 'dominion_laser_drill' ||
+      hid === 'dominion_defensive_bunker'
+    )
+      return true
+    if (hid === 'nova_photon_projector_s' || hid === 'nova_photon_projector_l' || hid === 'nova_shockwave_pulsar') return true
+    return (
+      hid === 'tesla_tower' || hid === 'jupiter_arc_thrower' || hid === 'jupiter_recon_drone' || hid === 'kingpin_slag_cannon'
+    )
+  }
+
+  private getJupiterOverclockFireRateMul(b: PlacedBuilding): number {
+    if (this.heroId !== 'jupiter' || !this.isJupiterOverclockTarget(b)) return 1
+    let best = 1
+    const mk2 = this.purchasedUpgradeIds.has('hero_jupiter_overclock_mk2') ? 1.08 : 1
+    for (const oc of this.buildings) {
+      if (oc.hp <= 0 || oc.defId !== 'jupiter_overclock_augment') continue
+      if (!this.buildingFootprintsEdgeAdjacent(b, oc)) continue
+      if (this.powerStored <= 0.001) continue
+      best = Math.max(best, 1.72 * mk2)
+    }
+    return best
+  }
+
+  private getHealingPotencyMul(): number {
+    return this.heroId === 'citadel' && this.purchasedUpgradeIds.has('hero_citadel_sophisticated_repairs') ? 1.35 : 1
+  }
+
+  /** Resolved conduit aura (radius + strength) after upgrades / MK2 / conductivity. */
+  private getCitadelConduitResolved(b: PlacedBuilding): { kind: CitadelConduitKind; radius: number; strength: number } | null {
+    if (this.heroId !== 'citadel') return null
+    const base = this.getBaseDef(b.defId)
+    const c = base?.citadelConduit
+    if (!c) return null
+    const eff = this.getEffectiveDef(b.defId) ?? base
+    let radius = c.radius
+    let strength = c.strength
+    if (c.kind === 'repair') {
+      radius = eff.range ?? radius
+      strength = eff.damage ?? strength
+    }
+    if (b.defId === 'citadel_construction_conduit' && this.purchasedUpgradeIds.has('hero_citadel_construction_conduit_mk2')) {
+      radius += 2.4
+      strength *= 1.25
+    }
+    if (b.defId === 'citadel_defense_conduit' && this.purchasedUpgradeIds.has('hero_citadel_defense_conduit_mk2')) {
+      radius += 1.8
+      strength = Math.min(0.26, strength * 1.35)
+    }
+    if (b.defId === 'citadel_attack_conduit' && this.purchasedUpgradeIds.has('hero_citadel_attack_conduit_mk2')) {
+      radius += 1.8
+      strength = Math.min(0.28, strength * 1.4)
+    }
+    if (b.defId === 'citadel_efficiency_conduit' && this.purchasedUpgradeIds.has('hero_citadel_efficiency_conduit_mk2')) {
+      radius += 1.8
+      strength = Math.min(0.28, strength * 1.35)
+    }
+    if (b.defId === 'citadel_range_conduit' && this.purchasedUpgradeIds.has('hero_citadel_range_conduit_mk2')) {
+      radius += 1.5
+      strength += 2.2
+    }
+    if (this.purchasedUpgradeIds.has('hero_citadel_enhanced_conductivity')) radius *= 1.28
+    return { kind: c.kind, radius, strength }
+  }
+
+  private eachCitadelConduitInRange(
+    wx: number,
+    wz: number,
+    kind: CitadelConduitKind,
+    fn: (strength: number, radius: number) => void,
+  ) {
+    for (const b of this.buildings) {
+      if (b.hp <= 0) continue
+      const spec = this.getCitadelConduitResolved(b)
+      if (!spec || spec.kind !== kind) continue
+      const cx = b.origin.x + (b.def.size.w - 1) / 2
+      const cz = b.origin.z + (b.def.size.h - 1) / 2
+      if (Math.hypot(wx - cx, wz - cz) > spec.radius) continue
+      fn(spec.strength, spec.radius)
+    }
+  }
+
+  private aggregateCitadelStrength(wx: number, wz: number, kind: CitadelConduitKind, cap: number): number {
+    const vals: number[] = []
+    this.eachCitadelConduitInRange(wx, wz, kind, (s) => vals.push(s))
+    if (vals.length === 0) return 0
+    const stack = this.purchasedUpgradeIds.has('hero_citadel_focused_power')
+    const sum = stack ? vals.reduce((a, v) => a + v, 0) : Math.max(...vals)
+    return Math.min(cap, sum)
+  }
+
+  private getPlacementDiscountAt(wx: number, wz: number): number {
+    if (this.heroId !== 'citadel') return 0
+    return this.aggregateCitadelStrength(wx, wz, 'construction', 0.5)
+  }
+
+  private getCitadelDefenseReductionAt(wx: number, wz: number): number {
+    if (this.heroId !== 'citadel') return 0
+    return this.aggregateCitadelStrength(wx, wz, 'defense', 0.55)
+  }
+
+  private getCitadelAttackBonusAt(wx: number, wz: number): number {
+    if (this.heroId !== 'citadel') return 0
+    return this.aggregateCitadelStrength(wx, wz, 'attack', 0.65)
+  }
+
+  private getCitadelEfficiencyBonusAt(wx: number, wz: number): number {
+    if (this.heroId !== 'citadel') return 0
+    return this.aggregateCitadelStrength(wx, wz, 'efficiency', 0.7)
+  }
+
+  private getCitadelRangeBonusAt(wx: number, wz: number): number {
+    if (this.heroId !== 'citadel') return 0
+    return this.aggregateCitadelStrength(wx, wz, 'range', 28)
+  }
+
+  private placementCreditCost(def: BuildingDef, ox: number, oz: number): number {
+    const cx = ox + (def.size.w - 1) / 2
+    const cz = oz + (def.size.h - 1) / 2
+    const disc = this.getPlacementDiscountAt(cx, cz)
+    let cost = Math.max(1, Math.round(def.creditCost * (1 - disc)))
+    if (this.heroId === 'kingpin' && this.purchasedUpgradeIds.has('hero_kingpin_insider_discounts')) {
+      cost = Math.max(1, Math.round(cost * 0.93))
+    }
+    return cost
+  }
+
+  private isCitadelCombatBuffTarget(b: PlacedBuilding): boolean {
+    if (this.heroId !== 'citadel') return false
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if (d.kind === 'shield') return false
+    if (b.defId.startsWith('citadel_')) return false
+    if (b.defId === 'command_center') return this.purchasedUpgradeIds.has('hero_citadel_defense_centers')
+    if (d.category === 'turrets' || d.category === 'missile' || d.category === 'energy') return true
+    const hid = b.defId
+    if (
+      hid === 'dominion_orbital_cannon' ||
+      hid === 'dominion_flak_gun' ||
+      hid === 'dominion_laser_drill' ||
+      hid === 'dominion_defensive_bunker' ||
+      hid === 'dominion_seeker_drone_spawner'
+    )
+      return true
+    if (hid === 'nova_photon_projector_s' || hid === 'nova_photon_projector_l' || hid === 'nova_shockwave_pulsar') return true
+    return hid === 'kingpin_slag_cannon'
+  }
+
+  private augmentDefForCitadelCombat(b: PlacedBuilding, d: BuildingDef): BuildingDef {
+    if (!this.isCitadelCombatBuffTarget(b)) return d
+    const wx = b.origin.x + (b.def.size.w - 1) / 2
+    const wz = b.origin.z + (b.def.size.h - 1) / 2
+    const atk = 1 + this.getCitadelAttackBonusAt(wx, wz)
+    const eff = 1 + this.getCitadelEfficiencyBonusAt(wx, wz)
+    const rng = this.getCitadelRangeBonusAt(wx, wz)
+    const out = { ...d }
+    if (out.damage != null) out.damage *= atk
+    if (out.fireRate != null) out.fireRate *= eff
+    if (out.range != null) out.range += rng
+    return out
+  }
+
+  private incomingDamageFactorForBuilding(b: PlacedBuilding): number {
+    let mul = 1
+    const cx = b.origin.x + (b.def.size.w - 1) / 2
+    const cz = b.origin.z + (b.def.size.h - 1) / 2
+    if (this.heroId === 'citadel') {
+      const red = this.getCitadelDefenseReductionAt(cx, cz)
+      mul *= Math.max(0.12, 1 - red)
+    }
+    if (
+      this.heroId === 'citadel' &&
+      this.purchasedUpgradeIds.has('hero_citadel_last_stand') &&
+      b.defId === 'command_center'
+    ) {
+      const ncc = this.buildings.filter((x) => x.hp > 0 && x.defId === 'command_center').length
+      if (ncc === 1) mul *= 0.72
+    }
+    return mul
+  }
+
+  private applyDamageToBuilding(b: PlacedBuilding, raw: number) {
+    const hpLoss = raw * this.incomingDamageFactorForBuilding(b)
+    if (b.defId === 'jupiter_mass_relay' && this.heroId === 'jupiter' && this.jupiterRelayPool) {
+      this.jupiterRelayPool.hp -= hpLoss
+      if (this.jupiterRelayPool.hp <= 0) {
+        this.jupiterRelayPool.hp = 0
+        const toKill = [...this.buildings].filter((r) => r.hp > 0 && r.defId === 'jupiter_mass_relay')
+        this.jupiterRelayPool = null
+        for (const r of toKill) {
+          r.hp = 0
+          this.destroyBuilding(r)
+        }
+      } else {
+        this.syncJupiterMassRelayHpFromPool()
+      }
+      return
+    }
+    b.hp -= hpLoss
+    if (b.hp <= 0) {
+      b.hp = 0
+      this.destroyBuilding(b)
+    }
+  }
+
+  /** Weak regen on the last living Command Center when Last Stand is owned. */
+  private tickCitadelLastStand(dt: number) {
+    if (!this.waveInProgress || this.isLost) return
+    if (this.heroId !== 'citadel' || !this.purchasedUpgradeIds.has('hero_citadel_last_stand')) return
+    const ccs = this.buildings.filter((b) => b.hp > 0 && b.defId === 'command_center')
+    if (ccs.length !== 1) return
+    const b = ccs[0]
+    const tMax = this.getBuildingMaxHp(b)
+    if (b.hp >= tMax - 0.01) return
+    const regen = 5.5 * this.getHealingPotencyMul() * dt
+    b.hp = Math.min(tMax, b.hp + regen)
+  }
+
+  private ensureCitadelCcTurretAim(b: PlacedBuilding) {
+    if ((b.mesh.userData as { citadelCcAimReady?: boolean }).citadelCcAimReady) return
+    const yawPivot = new THREE.Group()
+    yawPivot.position.set(0, 3.35, 0)
+    const pitchPivot = new THREE.Group()
+    yawPivot.add(pitchPivot)
+    const barrel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.09, 0.52, 8),
+      new THREE.MeshStandardMaterial({ color: 0xf97316, metalness: 0.22, roughness: 0.42 }),
+    )
+    barrel.rotation.x = Math.PI / 2
+    barrel.position.z = 0.26
+    pitchPivot.add(barrel)
+    const muzzle = new THREE.Object3D()
+    muzzle.position.set(0, 0, 0.52)
+    pitchPivot.add(muzzle)
+    b.mesh.add(yawPivot)
+    const aim: WeaponAim = { yaw: yawPivot, pitch: pitchPivot, muzzle }
+    b.mesh.userData.aim = aim
+    ;(b.mesh.userData as { citadelCcAimReady?: boolean }).citadelCcAimReady = true
+  }
+
+  /** Integrated Command Center turret: ~2× Auto Turret damage, no power draw. */
+  private tickCitadelCommandCenterTurrets(dt: number) {
+    if (this.heroId !== 'citadel' || !this.purchasedUpgradeIds.has('hero_citadel_defense_centers')) return
+    if (!this.waveInProgress) return
+    const autoBase = this.getBaseDef('auto_turret')
+    if (!autoBase) return
+
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'command_center') continue
+      this.ensureCitadelCcTurretAim(b)
+      const syn: BuildingDef = {
+        ...autoBase,
+        damage: (autoBase.damage ?? 11) * 2,
+        powerDrainPerSec: 0,
+      }
+      const d = this.augmentDefForCitadelCombat(b, syn)
+      if (!d.range || d.damage == null) continue
+
+      b.cooldown -= dt
+      if (b.cooldown > 0) continue
+
+      const baseOrigin = new THREE.Vector3(b.origin.x + (b.def.size.w - 1) / 2, 3.5, b.origin.z + (b.def.size.h - 1) / 2)
+      const aim = (b.mesh.userData as { aim?: WeaponAim }).aim
+      let target: Asteroid | null = null
+      let best = Infinity
+      for (const a of this.asteroids) {
+        if (!a.alive) continue
+        const dist = baseOrigin.distanceTo(a.mesh.position)
+        if (dist > d.range) continue
+        if (dist < best) {
+          best = dist
+          target = a
+        }
+      }
+      if (!target) continue
+
+      const wc = this.weaponFootprintCenter(b)
+      const novaMul = this.getNovaWeaponDamageMul(b)
+      b.cooldown = 1 / Math.max(0.04, d.fireRate ?? 1)
+      const origin = baseOrigin.clone()
+      if (aim?.muzzle) origin.copy(aim.muzzle.getWorldPosition(this.tmpAimPos))
+
+      if (aim?.yaw && aim?.pitch) {
+        aim.yaw.getWorldPosition(this.tmpAimPos)
+        this.tmpAimVec.copy(target.mesh.position).sub(this.tmpAimPos)
+        const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+        aim.yaw.rotation.y = yaw
+        const pitchDist = Math.hypot(this.tmpAimVec.x, this.tmpAimVec.z)
+        const pitch = Math.atan2(this.tmpAimVec.y, pitchDist)
+        const limit = Math.PI / 3
+        aim.pitch.rotation.x = -clamp(pitch, -limit, limit)
+      } else if (aim?.yaw) {
+        aim.yaw.getWorldPosition(this.tmpAimPos)
+        this.tmpAimVec.copy(target.mesh.position).sub(this.tmpAimPos)
+        aim.yaw.rotation.y = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+      }
+
+      if (!this.tryConsumeShotPower(d, 1, wc)) continue
+      target.hp -= (d.damage ?? 0) * novaMul * this.getRadarMarkedDamageMul(target)
+      this.spawnShot(origin, target.mesh.position, 0xf97316)
+      if (target.hp <= 0) {
+        target.alive = false
+        this.handleAsteroidDeath(target, 'combat', b)
+        this.world.remove(target.mesh)
+        this.world.remove(target.healthBar.group)
+        this.spawnExplosion(target.mesh.position, 1.25, 0xf97316)
+      }
+    }
+  }
+
+  private tickJupiterRadarStations(dt: number) {
+    if (this.heroId !== 'jupiter') return
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'jupiter_radar_station') continue
+      const d = this.getEffectiveDef(b.defId) ?? b.def
+      const cost = 11 * VARS.P * dt
+      if (this.powerStored < cost) continue
+      this.powerStored -= cost
+      const cx = b.origin.x + (b.def.size.w - 1) / 2
+      const cz = b.origin.z + (b.def.size.h - 1) / 2
+      const R = d.range ?? 46
+      let maxMarks = 4
+      let markDur = 3.25
+      if (this.purchasedUpgradeIds.has('hero_jupiter_enhanced_pinging')) {
+        maxMarks = 8
+        markDur = 5.85
+      }
+      const cand = this.asteroids
+        .filter((a) => a.alive && Math.hypot(a.mesh.position.x - cx, a.mesh.position.z - cz) <= R)
+        .sort(
+          (a, b2) =>
+            Math.hypot(a.mesh.position.x - cx, a.mesh.position.z - cz) -
+            Math.hypot(b2.mesh.position.x - cx, b2.mesh.position.z - cz),
+        )
+      const n = Math.min(maxMarks, cand.length)
+      for (let i = 0; i < n; i++) cand[i].radarMarkTimer = Math.max(cand[i].radarMarkTimer, markDur)
+    }
+  }
+
+  private tickJupiterArcThrower(b: PlacedBuilding, dt: number) {
+    const d = this.augmentDefForCitadelCombat(b, this.getEffectiveDef(b.defId) ?? b.def)
+    b.cooldown -= dt
+    if (b.cooldown > 0) return
+    const origin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 4.5, b.origin.z + (d.size.h - 1) / 2)
+    let best: Asteroid | null = null
+    let bestD = Infinity
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const dist = origin.distanceTo(a.mesh.position)
+      if (dist > (d.range ?? 56)) continue
+      if (dist < bestD) {
+        bestD = dist
+        best = a
+      }
+    }
+    if (!best) return
+
+    const supercharge = this.purchasedUpgradeIds.has('hero_jupiter_arc_supercharge')
+    type ArcTier = { cost: number; chains: number; dmg: number; hopR: number }
+    const tiers: ArcTier[] = [
+      { cost: 9 * VARS.P, chains: 2, dmg: 52, hopR: 14 },
+      { cost: 26 * VARS.P, chains: 4, dmg: 112, hopR: 17 },
+      { cost: 58 * VARS.P, chains: 6, dmg: 205, hopR: 20 },
+    ]
+    if (supercharge) tiers.push({ cost: 96 * VARS.P, chains: 9, dmg: 320, hopR: 24 })
+
+    let pick: ArcTier | null = null
+    for (let i = tiers.length - 1; i >= 0; i--) {
+      if (this.powerStored >= tiers[i].cost) {
+        pick = tiers[i]
+        break
+      }
+    }
+    if (!pick) return
+    this.powerStored -= pick.cost
+    b.cooldown = 1 / Math.max(0.08, (d.fireRate ?? 0.42) * this.getJupiterOverclockFireRateMul(b))
+
+    const hitIds = new Set<string>()
+    let cur: Asteroid | null = best
+    let from = origin.clone()
+    let jumps = 0
+    while (cur && jumps < pick.chains) {
+      hitIds.add(cur.id)
+      const mulNm = this.getNovaWeaponDamageMul(b)
+      cur.hp -= pick.dmg * mulNm * this.getRadarMarkedDamageMul(cur)
+      this.spawnShot(from, cur.mesh.position, 0xa78bfa)
+      jumps++
+      from.copy(cur.mesh.position)
+      if (cur.hp <= 0) {
+        cur.alive = false
+        this.handleAsteroidDeath(cur, 'combat', b)
+        this.world.remove(cur.mesh)
+        this.world.remove(cur.healthBar.group)
+        cur = null
+        break
+      }
+      let next: Asteroid | null = null
+      let nd = Infinity
+      for (const a of this.asteroids) {
+        if (!a.alive || hitIds.has(a.id)) continue
+        const dd = a.mesh.position.distanceTo(from)
+        if (dd <= pick.hopR && dd < nd) {
+          nd = dd
+          next = a
+        }
+      }
+      cur = next
+    }
+    if (jumps > 0) this.spawnExplosion(origin.clone(), 1.05, 0xc4b5fd)
+  }
+
+  private tickJupiterReconDrone(b: PlacedBuilding, dt: number) {
+    const d0 = this.getEffectiveDef(b.defId) ?? b.def
+    const d = this.augmentDefForCitadelCombat(b, d0)
+    const anchor = (b.mesh.userData as { reconOrbAnchor?: THREE.Object3D }).reconOrbAnchor
+    const origin = anchor
+      ? anchor.getWorldPosition(this.tmpAimPos)
+      : new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 10.2, b.origin.z + (d.size.h - 1) / 2)
+    const dps = (d.damage ?? 4.4) * this.getJupiterOverclockFireRateMul(b)
+    const targets: Asteroid[] = []
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      if (origin.distanceTo(a.mesh.position) > (d.range ?? 22)) continue
+      targets.push(a)
+    }
+    if (targets.length === 0) return
+    const wc = this.weaponFootprintCenter(b)
+    if (!this.tryConsumeShotPower(d, dt, wc)) return
+    const novaMul = this.getNovaWeaponDamageMul(b)
+    let hitAny = false
+    for (const a of targets) {
+      a.hp -= dps * dt * novaMul * this.getRadarMarkedDamageMul(a)
+      this.spawnShot(origin, a.mesh.position, 0x94a3b8)
+      hitAny = true
+      if (a.hp <= 0) {
+        a.alive = false
+        this.handleAsteroidDeath(a, 'combat', b)
+        this.world.remove(a.mesh)
+        this.world.remove(a.healthBar.group)
+        this.spawnExplosion(a.mesh.position, 0.95, 0xcbd5e1)
+      }
+    }
+    if (hitAny) this.spawnExplosion(origin.clone(), 0.35, 0x818cf8)
+  }
+
   private getEffectiveDef(id: BuildingId): BuildingDef | undefined {
     const base = this.getBaseDef(id)
     if (!base) return undefined
@@ -3673,17 +5216,124 @@ export class BaseDefenseGame {
       if (mod.shieldRechargeMul) out.shieldRechargeMul = (out.shieldRechargeMul ?? 1) * mod.shieldRechargeMul
       if (mod.supplyCapAddMul) out.supplyCapAdd = (out.supplyCapAdd ?? 0) * mod.supplyCapAddMul
       if (mod.powerCapAddMul) out.powerCapAdd = (out.powerCapAdd ?? 0) * mod.powerCapAddMul
+      if (mod.creditIntervalSecMul) out.creditIntervalSec = (out.creditIntervalSec ?? 0) * mod.creditIntervalSecMul
+      if (mod.shotCreditCostMul && out.shotCreditCost != null)
+        out.shotCreditCost = Math.max(1, Math.round(out.shotCreditCost * mod.shotCreditCostMul))
     }
     return out
   }
 
-  private getPassivePowerDrainPerSec(def: BuildingDef): number {
+  private getPassivePowerDrainPerSec(def: BuildingDef, b?: PlacedBuilding): number {
     // Turrets/missiles only draw when firing; railgun draws while charging.
     if (def.kind === 'railgun') return 0
     if (def.category === 'turrets' || def.category === 'missile') return 0
     // Nova photon / pulsar bill per shot in defense logic, not as passive drain.
     if (def.id === 'nova_photon_projector_s' || def.id === 'nova_photon_projector_l' || def.id === 'nova_shockwave_pulsar') return 0
+    // Arc Thrower only spends energy on chained bursts.
+    if (def.id === 'jupiter_arc_thrower') return 0
+    if (def.id === 'jupiter_radar_station') return 0
+    if (
+      b &&
+      this.heroId === 'kingpin' &&
+      (b.defId === 'factory_business' || b.defId === 'factory_factory' || b.defId === 'factory_megacomplex') &&
+      this.isNearKingpinIndoctrinatedLabor(b)
+    )
+      return 0
     return def.powerDrainPerSec ?? 0
+  }
+
+  private isNearKingpinIndoctrinatedLabor(f: PlacedBuilding): boolean {
+    if (this.heroId !== 'kingpin') return false
+    const wx = f.origin.x + (f.def.size.w - 1) / 2
+    const wz = f.origin.z + (f.def.size.h - 1) / 2
+    for (const lab of this.buildings) {
+      if (lab.hp <= 0 || lab.defId !== 'kingpin_indoctrinated_labor') continue
+      const ed = this.getEffectiveDef(lab.defId) ?? lab.def
+      const r = ed.range ?? 11
+      const cx = lab.origin.x + (lab.def.size.w - 1) / 2
+      const cz = lab.origin.z + (lab.def.size.h - 1) / 2
+      if (Math.hypot(wx - cx, wz - cz) <= r) return true
+    }
+    return false
+  }
+
+  private getKingpinDecoderRefineryMul(ref: PlacedBuilding): number {
+    if (this.heroId !== 'kingpin') return 1
+    const amp = this.purchasedUpgradeIds.has('hero_kingpin_signal_amplification')
+    const mk2 = this.purchasedUpgradeIds.has('hero_kingpin_cryptographic_decoder_mk2')
+    let perStack = amp ? 1.32 : 1.26
+    if (mk2) perStack *= 1.065
+    let mul = 1
+    const wx = ref.origin.x + (ref.def.size.w - 1) / 2
+    const wz = ref.origin.z + (ref.def.size.h - 1) / 2
+    for (const dec of this.buildings) {
+      if (dec.hp <= 0 || dec.defId !== 'kingpin_cryptographic_decoder') continue
+      const ed = this.getEffectiveDef(dec.defId) ?? dec.def
+      const r = ed.range ?? 11
+      const cx = dec.origin.x + (dec.def.size.w - 1) / 2
+      const cz = dec.origin.z + (dec.def.size.h - 1) / 2
+      if (Math.hypot(wx - cx, wz - cz) <= r) mul *= perStack
+    }
+    return Math.min(mul, 2.45)
+  }
+
+  private isKingpinTurretForMineral(b: PlacedBuilding): boolean {
+    if (b.hp <= 0) return false
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if (d.kind === 'shield') return false
+    if (d.category === 'turrets' || d.category === 'missile') return true
+    if (d.category === 'energy') return true
+    const hid = b.defId
+    if (
+      hid === 'dominion_orbital_cannon' ||
+      hid === 'dominion_flak_gun' ||
+      hid === 'dominion_laser_drill' ||
+      hid === 'dominion_defensive_bunker' ||
+      hid === 'dominion_seeker_drone_spawner'
+    )
+      return true
+    if (hid === 'nova_photon_projector_s' || hid === 'nova_photon_projector_l' || hid === 'nova_shockwave_pulsar') return true
+    return hid === 'jupiter_arc_thrower' || hid === 'jupiter_recon_drone' || hid === 'kingpin_slag_cannon'
+  }
+
+  private hasKingpinTurretNearProcessor(proc: PlacedBuilding, procRadius: number): boolean {
+    const pcx = proc.origin.x + (proc.def.size.w - 1) / 2
+    const pcz = proc.origin.z + (proc.def.size.h - 1) / 2
+    for (const t of this.buildings) {
+      if (!this.isKingpinTurretForMineral(t)) continue
+      const tx = t.origin.x + (t.def.size.w - 1) / 2
+      const tz = t.origin.z + (t.def.size.h - 1) / 2
+      if (Math.hypot(tx - pcx, tz - pcz) <= procRadius + 0.5) return true
+    }
+    return false
+  }
+
+  private tryKingpinMineralProcessorPayout(pos: THREE.Vector3, killer?: PlacedBuilding) {
+    if (this.heroId !== 'kingpin') return
+    const ax = pos.x
+    const az = pos.z
+    const scrapFutures = this.purchasedUpgradeIds.has('hero_kingpin_scrap_futures')
+    let paid = false
+    for (const proc of this.buildings) {
+      if (paid) break
+      if (proc.hp <= 0 || proc.defId !== 'kingpin_mineral_processor') continue
+      const ed = this.getEffectiveDef(proc.defId) ?? proc.def
+      const r = ed.range ?? 13
+      const cx = proc.origin.x + (proc.def.size.w - 1) / 2
+      const cz = proc.origin.z + (proc.def.size.h - 1) / 2
+      if (Math.hypot(ax - cx, az - cz) > r) continue
+      let ok = false
+      if (killer && this.isKingpinTurretForMineral(killer)) {
+        const kx = killer.origin.x + (killer.def.size.w - 1) / 2
+        const kz = killer.origin.z + (killer.def.size.h - 1) / 2
+        ok = Math.hypot(kx - cx, kz - cz) <= r + 1
+      }
+      if (!ok) ok = this.hasKingpinTurretNearProcessor(proc, r)
+      if (!ok) continue
+      const base = scrapFutures ? 48 : 34
+      this.credits += Math.round(base * VARS.E * (1 + this.wave * 0.024))
+      paid = true
+    }
   }
 
   private weaponFootprintCenter(b: PlacedBuilding): { x: number; z: number } {
@@ -3773,8 +5423,28 @@ export class BaseDefenseGame {
       supplyCap += d.supplyCapAdd ?? 0
       supplyUsed += d.supplyCost
       powerCap += d.powerCapAdd ?? 0
-      gen += d.powerGenPerSec ?? 0
-      drain += this.getPassivePowerDrainPerSec(d) * POWER_DRAIN_GLOBAL_MUL
+      let gLine = (d.powerGenPerSec ?? 0) * this.getJupiterReconPowerGenMulForBuilding(b)
+      if (b.defId === 'jupiter_battery_complex') {
+        const low = clamp(1 - this.powerStored / Math.max(this.powerCap > 0 ? this.powerCap : powerCap, 1), 0, 1)
+        gLine *= 1 + low * 2.25
+        if (this.jupiterBatteryEmergencyTimer > 0) gLine *= 2.95
+      }
+      gen += gLine
+      drain += this.getPassivePowerDrainPerSec(d, b) * POWER_DRAIN_GLOBAL_MUL
+    }
+
+    if (this.heroId === 'jupiter') {
+      for (const oc of this.buildings) {
+        if (oc.hp <= 0 || oc.defId !== 'jupiter_overclock_augment') continue
+        let on = false
+        for (const t of this.buildings) {
+          if (t.hp <= 0 || !this.isJupiterOverclockTarget(t)) continue
+          if (!this.buildingFootprintsEdgeAdjacent(t, oc)) continue
+          on = true
+          break
+        }
+        if (on) drain += 5.4 * VARS.P * POWER_DRAIN_GLOBAL_MUL
+      }
     }
 
     // Pylon network bonus: each pylon gains power per nearby pylon within radius 5.
@@ -3792,6 +5462,11 @@ export class BaseDefenseGame {
       gen += nearby * 0.82 * VARS.P
     }
 
+    const relays = this.buildings.filter((b) => b.hp > 0 && b.defId === 'jupiter_mass_relay')
+    if (relays.length > 1) {
+      gen += relays.length * (relays.length - 1) * 0.52 * VARS.P
+    }
+
     this.supplyCap = supplyCap
     this.supplyUsed = supplyUsed
     this.powerCap = powerCap
@@ -3806,6 +5481,10 @@ export class BaseDefenseGame {
     // Power is a stored resource produced over time and drained by active buildings.
     this.powerStored = clamp(this.powerStored + gen * dt - drain * dt, 0, this.powerCap)
 
+    if (this.heroId === 'jupiter' && this.purchasedUpgradeIds.has('hero_jupiter_emergency_generator')) {
+      if (this.powerStored <= 0.001) this.jupiterBatteryEmergencyTimer = Math.max(this.jupiterBatteryEmergencyTimer, 4.8)
+    }
+
     // Economy payouts (require power to operate if the building has drain and power is empty).
     for (const b of this.buildings) {
       const d = this.getEffectiveDef(b.defId) ?? b.def
@@ -3817,8 +5496,25 @@ export class BaseDefenseGame {
       b.econTimer += dt
       if (b.econTimer >= d.creditIntervalSec) {
         b.econTimer -= d.creditIntervalSec
-        const nextCredits = this.credits + d.creditPayout
+        let payout = d.creditPayout
+        if (this.heroId === 'kingpin' && (b.defId === 'refinery' || b.defId === 'mega_refinery')) {
+          payout *= this.getKingpinDecoderRefineryMul(b)
+        }
+        const nextCredits = this.credits + payout
         this.credits = Math.max(0, nextCredits)
+      }
+    }
+
+    if (this.heroId === 'kingpin') {
+      for (const b of this.buildings) {
+        if (b.hp <= 0 || b.defId !== 'kingpin_investment_complex') continue
+        const d = this.getEffectiveDef(b.defId) ?? b.def
+        if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) continue
+        const baseRate = (d.creditPayout ?? 12) * 0.065
+        const wealthBonus = 1 + Math.min(2.35, this.credits / 3200)
+        let add = baseRate * wealthBonus * dt
+        if (this.purchasedUpgradeIds.has('hero_kingpin_compound_interest')) add *= 1.24
+        this.credits += add
       }
     }
 
@@ -4095,7 +5791,7 @@ export class BaseDefenseGame {
               const burstCost = fr * dt
               if (p.bullets >= burstCost) {
                 p.bullets -= burstCost
-                target.hp -= dmg * fr * dt
+                target.hp -= dmg * fr * dt * this.getRadarMarkedDamageMul(target)
                 if (Math.random() < 0.5) this.spawnShot(p.mesh.position.clone(), tp.clone(), 0xfde047)
                 if (target.hp <= 0) {
                   target.alive = false
@@ -4192,6 +5888,9 @@ export class BaseDefenseGame {
         this.spawnWindowDurationSec = 0
         this.spawnWindowElapsedSec = 0
         this.emitAudio({ type: 'wave_cleared' })
+        if (this.heroId === 'kingpin' && this.purchasedUpgradeIds.has('hero_kingpin_hazard_pay')) {
+          this.credits += Math.round((72 + this.wave * 20) * VARS.E)
+        }
         this.emitState()
       }
       return
@@ -4303,7 +6002,7 @@ export class BaseDefenseGame {
     }
   }
 
-  private handleAsteroidDeath(a: Asteroid, reason: 'impact' | 'shield' | 'combat') {
+  private handleAsteroidDeath(a: Asteroid, reason: 'impact' | 'shield' | 'combat', killer?: PlacedBuilding) {
     const pos = a.mesh.position.clone()
 
     if (reason === 'impact') {
@@ -4318,6 +6017,12 @@ export class BaseDefenseGame {
     if (reason !== 'impact') {
       this.credits += Math.round(this.getAsteroidKillReward(a) * (1 + this.wave * 0.025))
     }
+
+    if (reason === 'combat' && this.heroId === 'jupiter' && a.radarMarkTimer > 0) {
+      this.powerStored = Math.min(this.powerCap, this.powerStored + Math.round(26 * VARS.P))
+    }
+
+    if (reason === 'combat') this.tryKingpinMineralProcessorPayout(pos, killer)
 
     // Splitters: each splitter can split into two smaller splitters once.
     if (a.variant === 'splitter' && a.splitLevel < 2) {
@@ -4386,6 +6091,7 @@ export class BaseDefenseGame {
       impactDamage: Math.round(parent.impactDamage * 0.8),
       pulsarSlowTimer: 0,
       stasisTimer: 0,
+      radarMarkTimer: 0,
     })
     this.registerAsteroidDiscovery('meteor')
   }
@@ -4438,6 +6144,7 @@ export class BaseDefenseGame {
       impactDamage: parent.impactDamage * dmgMul,
       pulsarSlowTimer: 0,
       stasisTimer: 0,
+      radarMarkTimer: 0,
     })
     this.registerAsteroidDiscovery('splitter')
   }
@@ -4630,6 +6337,7 @@ export class BaseDefenseGame {
       impactDamage,
       pulsarSlowTimer: 0,
       stasisTimer: 0,
+      radarMarkTimer: 0,
     })
     this.registerAsteroidDiscovery(pick.variant)
   }
@@ -4673,6 +6381,7 @@ export class BaseDefenseGame {
 
       a.stasisTimer = Math.max(0, a.stasisTimer - dt)
       a.pulsarSlowTimer = Math.max(0, a.pulsarSlowTimer - dt)
+      a.radarMarkTimer = Math.max(0, a.radarMarkTimer - dt)
       const frozen = a.stasisTimer > 0
       const slowMul = a.pulsarSlowTimer > 0 ? 0.52 : 1
 
@@ -4725,7 +6434,7 @@ export class BaseDefenseGame {
         const prevShieldHp = shield.hp
         const transfer = Math.min(a.impactDamage, shield.hp, a.hp)
         shield.hp = Math.max(0, shield.hp - transfer)
-        a.hp -= transfer
+        a.hp -= transfer * this.getRadarMarkedDamageMul(a)
 
         const isUniversal = shield.generatorId === '__universal__'
         const genB = isUniversal
@@ -4781,6 +6490,8 @@ export class BaseDefenseGame {
     // Defenses are inactive outside ACTIVE waves.
     if (!this.waveInProgress) return
 
+    this.tickCitadelCommandCenterTurrets(dt)
+
     for (const b of this.buildings) {
       if (b.hp <= 0) continue
       const d = this.getEffectiveDef(b.defId) ?? b.def
@@ -4788,6 +6499,14 @@ export class BaseDefenseGame {
       // Shield: visible bubble + active only if has power
       if (d.kind === 'shield') {
         // nothing else here; interception handled in asteroid update
+        continue
+      }
+      if (b.defId === 'jupiter_arc_thrower') {
+        this.tickJupiterArcThrower(b, dt)
+        continue
+      }
+      if (b.defId === 'jupiter_recon_drone') {
+        this.tickJupiterReconDrone(b, dt)
         continue
       }
       if (b.defId === 'dominion_orbital_cannon') {
@@ -4811,31 +6530,32 @@ export class BaseDefenseGame {
         continue
       }
       if (b.defId === 'tesla_tower') {
+        const dT = this.augmentDefForCitadelCombat(b, d)
         const anchor = (b.mesh.userData as any)?.teslaAnchor as THREE.Object3D | undefined
         const origin = anchor
           ? anchor.getWorldPosition(this.tmpAimPos)
           : new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 2.8, b.origin.z + (d.size.h - 1) / 2)
-        const dps = d.damage ?? 0
+        const dps = dT.damage ?? 0
         const targets: Asteroid[] = []
         for (const a of this.asteroids) {
           if (!a.alive) continue
           const dist = origin.distanceTo(a.mesh.position)
-          if (dist > (d.range ?? 0)) continue
+          if (dist > (dT.range ?? 0)) continue
           targets.push(a)
         }
         if (targets.length === 0) continue
         // Energy weapons: constant drain handled in resources, plus extra while firing.
         const wc = this.weaponFootprintCenter(b)
-        if (!this.tryConsumeShotPower(d, dt, wc)) continue
+        if (!this.tryConsumeShotPower(dT, dt, wc)) continue
         const novaMul = this.getNovaWeaponDamageMul(b)
         let hitAny = false
         for (const a of targets) {
-          a.hp -= dps * dt * novaMul
+          a.hp -= dps * dt * novaMul * this.getJupiterOverclockFireRateMul(b)
           this.spawnShot(origin, a.mesh.position, 0x67e8f9)
           hitAny = true
           if (a.hp <= 0) {
             a.alive = false
-            this.handleAsteroidDeath(a, 'combat')
+            this.handleAsteroidDeath(a, 'combat', b)
             this.world.remove(a.mesh)
             this.world.remove(a.healthBar.group)
             this.spawnExplosion(a.mesh.position, 1.1, 0x67e8f9)
@@ -4845,12 +6565,14 @@ export class BaseDefenseGame {
         continue
       }
 
-      if (!d.range || !d.damage) continue
+      const dCombat = this.augmentDefForCitadelCombat(b, d)
+      if (dCombat.fireRate != null) dCombat.fireRate *= this.getJupiterOverclockFireRateMul(b)
+      if (!dCombat.range || !dCombat.damage) continue
       // if out of power and the building drains power, it pauses
-      if (d.kind !== 'railgun' && (d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) continue
+      if (dCombat.kind !== 'railgun' && (dCombat.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) continue
 
       const isPlasma = b.defId === 'plasma_laser_s' || b.defId === 'plasma_laser_m' || b.defId === 'plasma_laser_l'
-      if (d.kind !== 'railgun') {
+      if (dCombat.kind !== 'railgun') {
         b.cooldown -= dt
         if (!isPlasma && b.cooldown > 0) continue
         if (isPlasma) b.cooldown = Math.max(0, b.cooldown)
@@ -4866,7 +6588,7 @@ export class BaseDefenseGame {
           if (!locked || !locked.alive) {
             b.plasmaTargetId = undefined
             b.cooldown = Math.max(b.cooldown, 0.5)
-          } else if (baseOrigin.distanceTo(locked.mesh.position) <= d.range) {
+          } else if (baseOrigin.distanceTo(locked.mesh.position) <= dCombat.range) {
             target = locked
           } else {
             b.plasmaTargetId = undefined
@@ -4879,7 +6601,7 @@ export class BaseDefenseGame {
           for (const a of this.asteroids) {
             if (!a.alive) continue
             const dist = baseOrigin.distanceTo(a.mesh.position)
-            if (dist > d.range) continue
+            if (dist > dCombat.range) continue
             if (a.hp > bestHp || (a.hp === bestHp && dist < bestDist)) {
               bestHp = a.hp
               bestDist = dist
@@ -4893,7 +6615,7 @@ export class BaseDefenseGame {
         for (const a of this.asteroids) {
           if (!a.alive) continue
           const dist = baseOrigin.distanceTo(a.mesh.position)
-          if (dist > d.range) continue
+          if (dist > dCombat.range) continue
           if (dist < best) {
             best = dist
             target = a
@@ -4905,7 +6627,7 @@ export class BaseDefenseGame {
       const wc = this.weaponFootprintCenter(b)
       const novaMul = this.getNovaWeaponDamageMul(b)
 
-      if (d.kind !== 'railgun' && !isPlasma) b.cooldown = 1 / (d.fireRate ?? 1)
+      if (dCombat.kind !== 'railgun' && !isPlasma) b.cooldown = 1 / (dCombat.fireRate ?? 1)
       const origin = baseOrigin.clone()
       if (aim?.muzzle) origin.copy(aim.muzzle.getWorldPosition(this.tmpAimPos))
 
@@ -4931,15 +6653,16 @@ export class BaseDefenseGame {
         yawObj.rotation.y = yaw
       }
 
-      if (d.kind === 'hitscan') {
+      if (dCombat.kind === 'hitscan') {
         if (isPlasma) {
           // Energy weapons: constant drain handled in resources, plus extra while firing.
-          if (!this.tryConsumeShotPower(d, dt, wc)) continue
-          target.hp -= (d.damage ?? 0) * dt * novaMul
+          if (!this.tryConsumeShotPower(dCombat, dt, wc)) continue
+          target.hp -=
+            (dCombat.damage ?? 0) * dt * novaMul * this.getRadarMarkedDamageMul(target)
           this.spawnShot(origin, target.mesh.position, 0x22d3ee)
           if (target.hp <= 0) {
             target.alive = false
-            this.handleAsteroidDeath(target, 'combat')
+            this.handleAsteroidDeath(target, 'combat', b)
             this.world.remove(target.mesh)
             this.world.remove(target.healthBar.group)
             this.spawnExplosion(target.mesh.position, 1.0, 0x22d3ee)
@@ -4948,32 +6671,41 @@ export class BaseDefenseGame {
           }
           continue
         }
-        if (!this.tryConsumeShotPower(d, 1, wc)) continue
-        if ((d.aoeRadius ?? 0) > 0.01) {
-          this.explodeAt(target.mesh.position, d.aoeRadius ?? 2, (d.damage ?? 0) * novaMul, d.color)
-          this.spawnShot(origin, target.mesh.position, d.color)
+        if (b.defId === 'kingpin_slag_cannon') {
+          const edShot = this.getEffectiveDef(b.defId) ?? dCombat
+          const shotC = Math.max(1, edShot.shotCreditCost ?? 22)
+          if (this.credits < shotC) {
+            b.cooldown = Math.max(b.cooldown, 0.16)
+            continue
+          }
+          this.credits -= shotC
+        }
+        if (!this.tryConsumeShotPower(dCombat, 1, wc)) continue
+        if ((dCombat.aoeRadius ?? 0) > 0.01) {
+          this.explodeAt(target.mesh.position, dCombat.aoeRadius ?? 2, (dCombat.damage ?? 0) * novaMul, dCombat.color)
+          this.spawnShot(origin, target.mesh.position, dCombat.color)
         } else {
-          target.hp -= (d.damage ?? 0) * novaMul
-          this.spawnShot(origin, target.mesh.position, d.color)
+          target.hp -= (dCombat.damage ?? 0) * novaMul * this.getRadarMarkedDamageMul(target)
+          this.spawnShot(origin, target.mesh.position, dCombat.color)
           if (target.hp <= 0) {
             target.alive = false
-            this.handleAsteroidDeath(target, 'combat')
+            this.handleAsteroidDeath(target, 'combat', b)
             this.world.remove(target.mesh)
             this.world.remove(target.healthBar.group)
             this.spawnExplosion(target.mesh.position, 1.4, 0x38bdf8)
           }
         }
-      } else if (d.kind === 'missiles') {
+      } else if (dCombat.kind === 'missiles') {
         const isHydra = b.defId === 'hydra_launcher'
         const isDeathLoc = b.defId === 'missile_launcher_s' || b.defId === 'missile_launcher_m'
         const mode: 'death_location' | 'retarget' = isDeathLoc ? 'death_location' : 'retarget'
-        const burst = d.burst ?? 1
+        const burst = dCombat.burst ?? 1
         if (isHydra && burst > 1) {
           const volleyId = `v_${this.volleyIdSeed++}`
           this.pendingMissileBursts.push({
             origin: origin.clone(),
             target,
-            def: d,
+            def: dCombat,
             remaining: burst,
             interval: 0.1,
             timer: 0,
@@ -4984,11 +6716,11 @@ export class BaseDefenseGame {
             damageScale: novaMul,
           })
         } else {
-          this.spawnMissile(origin, target, d, mode, false, null, wc, novaMul)
+          this.spawnMissile(origin, target, dCombat, mode, false, null, wc, novaMul)
         }
-      } else if (d.kind === 'ballistic') {
-        this.spawnBallistic(origin, target.mesh.position, d, wc, novaMul)
-      } else if (d.kind === 'railgun') {
+      } else if (dCombat.kind === 'ballistic') {
+        this.spawnBallistic(origin, target.mesh.position, dCombat, wc, novaMul)
+      } else if (dCombat.kind === 'railgun') {
         const chargeCap = 120
         const maxDrawPerSec = 24
         const drawn = Math.min(this.powerStored, maxDrawPerSec * dt)
@@ -4996,7 +6728,7 @@ export class BaseDefenseGame {
         b.charge += drawn
         if (b.charge < chargeCap) continue
         b.charge = 0
-        this.fireRailgun(origin, target.mesh.position, d.range, (d.damage ?? 600) * novaMul)
+        this.fireRailgun(origin, target.mesh.position, dCombat.range, (dCombat.damage ?? 600) * novaMul)
       }
     }
   }
@@ -5016,7 +6748,7 @@ export class BaseDefenseGame {
       if (t < 0 || t > range) continue
       const closest = origin.clone().add(dir.clone().multiplyScalar(t))
       if (closest.distanceTo(a.mesh.position) <= beamRadius) {
-        a.hp -= damage
+        a.hp -= damage * this.getRadarMarkedDamageMul(a)
         if (a.hp <= 0) {
           a.alive = false
           this.handleAsteroidDeath(a, 'combat')
@@ -5069,7 +6801,7 @@ export class BaseDefenseGame {
       for (const a of this.asteroids) {
         if (!a.alive) continue
         if (sh.mesh.position.distanceTo(a.mesh.position) < 1.15) {
-          a.hp -= sh.damage
+          a.hp -= sh.damage * this.getRadarMarkedDamageMul(a)
           hit = true
           if (a.hp <= 0) {
             a.alive = false
@@ -5088,7 +6820,7 @@ export class BaseDefenseGame {
   }
 
   private tickDominionOrbitalCannon(b: PlacedBuilding, dt: number) {
-    const d = this.getEffectiveDef(b.defId) ?? b.def
+    const d = this.augmentDefForCitadelCombat(b, this.getEffectiveDef(b.defId) ?? b.def)
     b.cooldown -= dt
     if (b.cooldown > 0) return
     const origin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 5.4, b.origin.z + (d.size.h - 1) / 2)
@@ -5107,7 +6839,7 @@ export class BaseDefenseGame {
     const powerShot = 52 * VARS.P * POWER_DRAIN_GLOBAL_MUL
     if (this.powerStored < powerShot) return
     this.powerStored -= powerShot
-    const rof = d.fireRate ?? 0.2
+    const rof = (d.fireRate ?? 0.2) * this.getJupiterOverclockFireRateMul(b)
     b.cooldown = 1 / Math.max(0.04, rof)
     if (aim?.yaw) {
       this.tmpAimVec.copy(target.mesh.position).sub(origin)
@@ -5124,7 +6856,7 @@ export class BaseDefenseGame {
   }
 
   private tickDominionFlakGun(b: PlacedBuilding, dt: number) {
-    const d = this.getEffectiveDef(b.defId) ?? b.def
+    const d = this.augmentDefForCitadelCombat(b, this.getEffectiveDef(b.defId) ?? b.def)
     if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
     b.cooldown -= dt
     if (b.cooldown > 0) return
@@ -5155,7 +6887,7 @@ export class BaseDefenseGame {
     if (!target) return
     const wc = this.weaponFootprintCenter(b)
     if (!this.tryConsumeShotPower(d, 1, wc)) return
-    b.cooldown = 1 / Math.max(0.2, d.fireRate ?? 9)
+    b.cooldown = 1 / Math.max(0.2, (d.fireRate ?? 9) * this.getJupiterOverclockFireRateMul(b))
     if (aim?.yaw && aim?.pitch) {
       this.tmpAimVec.copy(target.mesh.position).sub(origin)
       const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
@@ -5168,7 +6900,7 @@ export class BaseDefenseGame {
       aim.yaw.rotation.y = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
     }
     const mainDmg = (d.damage ?? 108) * this.getNovaWeaponDamageMul(b)
-    target.hp -= mainDmg
+    target.hp -= mainDmg * this.getRadarMarkedDamageMul(target)
     this.spawnShot(origin, target.mesh.position, d.color)
     if (target.hp <= 0) {
       target.alive = false
@@ -5182,7 +6914,7 @@ export class BaseDefenseGame {
   }
 
   private tickDominionLaserDrill(b: PlacedBuilding, dt: number) {
-    const d = this.getEffectiveDef(b.defId) ?? b.def
+    const d = this.augmentDefForCitadelCombat(b, this.getEffectiveDef(b.defId) ?? b.def)
     if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
     const baseOrigin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 2.4, b.origin.z + (d.size.h - 1) / 2)
     const aim = (b.mesh.userData as any)?.aim as WeaponAim | undefined
@@ -5228,8 +6960,9 @@ export class BaseDefenseGame {
       const pitch = Math.atan2(this.tmpAimVec.y, pitchDist)
       aim.pitch.rotation.x = -clamp(pitch, -Math.PI / 2.5, Math.PI / 2.5)
     }
-    const dmg = (d.damage ?? 52) * dt * this.getNovaWeaponDamageMul(b)
-    target.hp -= dmg
+    const dmg =
+      (d.damage ?? 52) * dt * this.getNovaWeaponDamageMul(b) * this.getJupiterOverclockFireRateMul(b)
+    target.hp -= dmg * this.getRadarMarkedDamageMul(target)
     this.credits += dmg * 0.092
     this.spawnShot(origin, target.mesh.position, 0xf472b6)
     if (target.hp <= 0) {
@@ -5243,7 +6976,7 @@ export class BaseDefenseGame {
   }
 
   private tickNovaPhotonProjector(b: PlacedBuilding, dt: number) {
-    const d = this.getEffectiveDef(b.defId) ?? b.def
+    const d = this.augmentDefForCitadelCombat(b, this.getEffectiveDef(b.defId) ?? b.def)
     if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
     b.cooldown -= dt
     if (b.cooldown > 0) return
@@ -5265,7 +6998,7 @@ export class BaseDefenseGame {
     if (!target) return
     const wc = this.weaponFootprintCenter(b)
     if (!this.tryConsumeShotPower(d, 1, wc)) return
-    b.cooldown = 1 / Math.max(0.05, d.fireRate ?? 0.12)
+    b.cooldown = 1 / Math.max(0.05, (d.fireRate ?? 0.12) * this.getJupiterOverclockFireRateMul(b))
     if (aim?.yaw && aim?.pitch) {
       this.tmpAimVec.copy(target.mesh.position).sub(origin)
       const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
@@ -5284,7 +7017,7 @@ export class BaseDefenseGame {
   }
 
   private tickNovaShockwavePulsar(b: PlacedBuilding, dt: number) {
-    const d = this.getEffectiveDef(b.defId) ?? b.def
+    const d = this.augmentDefForCitadelCombat(b, this.getEffectiveDef(b.defId) ?? b.def)
     if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
     b.cooldown -= dt
     if (b.cooldown > 0) return
@@ -5292,7 +7025,7 @@ export class BaseDefenseGame {
     const cz = b.origin.z + (d.size.h - 1) / 2
     const wc = this.weaponFootprintCenter(b)
     if (!this.tryConsumeShotPower(d, 1, wc)) return
-    b.cooldown = 1 / Math.max(0.06, d.fireRate ?? 0.17)
+    b.cooldown = 1 / Math.max(0.06, (d.fireRate ?? 0.17) * this.getJupiterOverclockFireRateMul(b))
     const radius = Math.max(d.aoeRadius ?? 24, d.range ?? 0)
     const baseDmg = (d.damage ?? 16) * this.getNovaWeaponDamageMul(b)
     const center = new THREE.Vector3(cx, 1.0, cz)
@@ -5302,7 +7035,7 @@ export class BaseDefenseGame {
       const dist = Math.hypot(ap.x - cx, ap.z - cz)
       if (dist > radius) continue
       const falloff = 1 - dist / radius
-      a.hp -= baseDmg * (0.5 + 0.5 * falloff)
+      a.hp -= baseDmg * (0.5 + 0.5 * falloff) * this.getRadarMarkedDamageMul(a)
       a.pulsarSlowTimer = Math.max(a.pulsarSlowTimer, 2.8)
       if (this.purchasedUpgradeIds.has('hero_nova_stasis_surge')) {
         a.stasisTimer = Math.max(a.stasisTimer, 0.52)
@@ -5357,7 +7090,7 @@ export class BaseDefenseGame {
       for (const a of this.asteroids) {
         if (!a.alive) continue
         if (pos.distanceTo(a.mesh.position) <= o.travelRadius) {
-          a.hp -= o.travelDps * dt
+          a.hp -= o.travelDps * dt * this.getRadarMarkedDamageMul(a)
           if (a.hp <= 0) {
             a.alive = false
             this.handleAsteroidDeath(a, 'combat')
@@ -5370,7 +7103,7 @@ export class BaseDefenseGame {
         if (!a.alive || o.pierceHitIds.has(a.id)) continue
         if (pos.distanceTo(a.mesh.position) < 1.22) {
           o.pierceHitIds.add(a.id)
-          a.hp -= o.hitDamage
+          a.hp -= o.hitDamage * this.getRadarMarkedDamageMul(a)
           this.spawnExplosion(a.mesh.position, 0.95, 0x67e8f9)
           if (a.hp <= 0) {
             a.alive = false
@@ -5398,6 +7131,14 @@ export class BaseDefenseGame {
       if (b.hp <= 0 || b.defId !== 'nova_gravity_well') continue
       const ring = (b.mesh.userData as any)?.novaGravitySpin as THREE.Group | undefined
       if (ring) ring.rotation.y += dt * 1.85
+    }
+  }
+
+  private tickCitadelConduitVisuals(dt: number) {
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'citadel_efficiency_conduit') continue
+      const rotor = (b.mesh.userData as { citadelEfficiencySpin?: THREE.Group }).citadelEfficiencySpin
+      if (rotor) rotor.rotation.y += dt * 2.85
     }
   }
 
@@ -5441,6 +7182,8 @@ export class BaseDefenseGame {
 
   private updateSupportSystems(dt: number) {
     if (!this.waveInProgress) return
+
+    this.tickJupiterRadarStations(dt)
 
     // Repair Bay: spawn 1 drone every 5s (base), up to 5 active drones per bay.
     for (const bay of this.buildings) {
@@ -5498,7 +7241,7 @@ export class BaseDefenseGame {
           const close = d.mesh.position.distanceTo(targetPos) <= 0.95
           if (close) {
             d.state = 'healing'
-            const heal = perDroneHeal * dt
+            const heal = perDroneHeal * dt * this.getHealingPotencyMul()
             const powerCost = (heal / 10) * VARS.P
             const tMax = this.getBuildingMaxHp(target)
             if (this.powerStored >= powerCost && target.hp < tMax) {
@@ -5592,7 +7335,7 @@ export class BaseDefenseGame {
           const push = new THREE.Vector3(px / horiz, 0, pz / horiz).multiplyScalar(3.1 * dt)
           ast.mesh.position.add(push)
         }
-        ast.hp -= dotDps * dt
+        ast.hp -= dotDps * dt * this.getRadarMarkedDamageMul(ast)
         if (ast.hp <= 0) {
           ast.alive = false
           this.handleAsteroidDeath(ast, 'combat')
@@ -5640,7 +7383,7 @@ export class BaseDefenseGame {
           if (Math.hypot(tx - hx, tz - hz) > healR) continue
           const tMax = this.getBuildingMaxHp(t)
           if (t.hp >= tMax - 0.02) continue
-          const h = healPerSec * dt
+          const h = healPerSec * dt * this.getHealingPotencyMul()
           const pCost = (h / 5.5) * VARS.P
           if (this.powerStored < pCost) continue
           this.powerStored -= pCost
@@ -5678,15 +7421,43 @@ export class BaseDefenseGame {
         const tx = t.origin.x + (t.def.size.w - 1) / 2
         const tz = t.origin.z + (t.def.size.h - 1) / 2
         if (Math.hypot(tx - cx, tz - cz) <= pulseRange) {
-          t.hp = Math.min(this.getBuildingMaxHp(t), t.hp + (d.damage ?? 25))
+          const amt = (d.damage ?? 25) * this.getHealingPotencyMul()
+          t.hp = Math.min(this.getBuildingMaxHp(t), t.hp + amt)
         }
       }
       this.spawnExplosion(new THREE.Vector3(cx, 0.2, cz), 1.0, 0x60a5fa)
     }
 
+    // Citadel Repair Conduit pulses (larger radius / stronger than Support Node baseline).
+    for (const b of this.buildings) {
+      if (b.hp <= 0 || b.defId !== 'citadel_repair_conduit') continue
+      const spec = this.getCitadelConduitResolved(b)
+      if (!spec || spec.kind !== 'repair') continue
+      const d = this.getEffectiveDef(b.defId) ?? b.def
+      b.cooldown -= dt
+      if (b.cooldown > 0) continue
+      b.cooldown = 2.5 / Math.max(0.25, (d.fireRate ?? 0.25) / 0.4)
+      const pulseRange = spec.radius
+      const pulseHeal = spec.strength * this.getHealingPotencyMul()
+      const pulseCost = 16 * VARS.P
+      if (this.powerStored < pulseCost) continue
+      this.powerStored -= pulseCost
+      const cx = b.origin.x + (b.def.size.w - 1) / 2
+      const cz = b.origin.z + (b.def.size.h - 1) / 2
+      for (const t of this.buildings) {
+        if (t.hp <= 0) continue
+        const tx = t.origin.x + (t.def.size.w - 1) / 2
+        const tz = t.origin.z + (t.def.size.h - 1) / 2
+        if (Math.hypot(tx - cx, tz - cz) <= pulseRange) {
+          t.hp = Math.min(this.getBuildingMaxHp(t), t.hp + pulseHeal)
+        }
+      }
+      this.spawnExplosion(new THREE.Vector3(cx, 0.25, cz), 1.35, 0x14b8a6)
+    }
+
     // Structural upgrade: passive auto-repair up to 50% health.
     if (this.purchasedUpgradeIds.has('structural_auto_repair')) {
-      const regenPerSec = 18
+      const regenPerSec = 18 * this.getHealingPotencyMul()
       for (const b of this.buildings) {
         if (b.hp <= 0) continue
         const minHp = this.getBuildingMaxHp(b) * 0.5
@@ -5708,8 +7479,7 @@ export class BaseDefenseGame {
         const bx = b.origin.x + (b.def.size.w - 1) / 2
         const bz = b.origin.z + (b.def.size.h - 1) / 2
         if (Math.hypot(bx - cx, bz - cz) <= auraRange) {
-          b.hp = Math.max(0, b.hp - dps)
-          if (b.hp <= 0) this.destroyBuilding(b)
+          this.applyDamageToBuilding(b, dps)
         }
       }
     }
@@ -5962,7 +7732,7 @@ export class BaseDefenseGame {
             const key = `${m.volleyId ?? 'v0'}:${m.target.id}`
             const hits = this.hydraHitStack.get(key) ?? 0
             const dmg = m.damage * (1 + hits * 0.2)
-            m.target.hp -= dmg
+            m.target.hp -= dmg * this.getRadarMarkedDamageMul(m.target)
             this.hydraHitStack.set(key, hits + 1)
             if (m.target.hp <= 0) {
               m.target.alive = false
@@ -6007,7 +7777,7 @@ export class BaseDefenseGame {
       const dist = a.mesh.position.distanceTo(pos)
       if (dist > radius) continue
       const falloff = 1 - dist / radius
-      a.hp -= damage * (0.45 + 0.55 * falloff)
+      a.hp -= damage * (0.45 + 0.55 * falloff) * this.getRadarMarkedDamageMul(a)
       if (a.hp <= 0) {
         a.alive = false
         this.handleAsteroidDeath(a, 'combat')
@@ -6026,11 +7796,7 @@ export class BaseDefenseGame {
       const dist = Math.hypot(cx - pos.x, cz - pos.z)
       if (dist > radius) continue
       const falloff = 1 - dist / radius
-      b.hp -= damage * (0.35 + 0.65 * falloff)
-      if (b.hp <= 0) {
-        b.hp = 0
-        this.destroyBuilding(b)
-      }
+      this.applyDamageToBuilding(b, damage * (0.35 + 0.65 * falloff))
     }
 
     // lose if all command centers dead
@@ -6048,6 +7814,25 @@ export class BaseDefenseGame {
       z: b.origin.z + (b.def.size.h - 1) / 2,
     }
     const destroyedDef = b.def
+    if (
+      this.heroId === 'kingpin' &&
+      this.purchasedUpgradeIds.has('hero_kingpin_scavenging') &&
+      !this.suppressKingpinScavenge &&
+      destroyedDef.id !== 'command_center'
+    ) {
+      this.credits += Math.round(destroyedDef.creditCost * 0.22)
+    }
+    if (destroyedDef.id === 'jupiter_mass_relay' && this.jupiterRelayPool) {
+      const contrib = this.getBuildingMaxHp(b)
+      const frac = this.jupiterRelayPool.hp / Math.max(1e-6, this.jupiterRelayPool.maxHp)
+      this.jupiterRelayPool.maxHp = Math.max(0, this.jupiterRelayPool.maxHp - contrib)
+      this.jupiterRelayPool.hp = this.jupiterRelayPool.maxHp * frac
+      const remaining = this.buildings.filter(
+        (x) => x.id !== b.id && x.hp > 0 && x.defId === 'jupiter_mass_relay',
+      ).length
+      if (remaining === 0) this.jupiterRelayPool = null
+      else this.syncJupiterMassRelayHpFromPool()
+    }
     const wasPylon = b.defId === 'pylon'
     for (const p of [...this.archangelPlanes]) {
       if (p.homeId !== b.id) continue
@@ -6127,8 +7912,7 @@ export class BaseDefenseGame {
       const bx = b.origin.x
       const bz = b.origin.z
       if (Math.hypot(bx - x, bz - z) > radius) continue
-      b.hp = Math.max(0, b.hp - damage)
-      if (b.hp <= 0) this.destroyBuilding(b)
+      this.applyDamageToBuilding(b, damage)
     }
   }
 
@@ -6148,7 +7932,9 @@ export class BaseDefenseGame {
     this.credits += fullRefund ? top.def.creditCost : Math.floor(top.def.creditCost * 0.5)
     this.emitAudio({ type: 'build_sell' })
     top.hp = 0
+    this.suppressKingpinScavenge = true
     this.destroyBuilding(top)
+    this.suppressKingpinScavenge = false
   }
 
   private findRootBuildingByObject(obj: THREE.Object3D): PlacedBuilding | null {
@@ -6171,7 +7957,8 @@ export class BaseDefenseGame {
 
     // resource checks
     if (!this.unlockedBuildingIds.has(def.id)) return
-    if (this.credits < def.creditCost) return
+    const placeCost = this.placementCreditCost(def, ox, oz)
+    if (this.credits < placeCost) return
     const ignoresSupplyLock =
       def.id === 'command_center' || def.id === 'supply_depot_s' || def.id === 'supply_depot_l'
     if (!ignoresSupplyLock && this.supplyUsed + def.supplyCost > this.supplyCap) return
@@ -6191,7 +7978,7 @@ export class BaseDefenseGame {
     if (!this.isAreaClearWithPadding(ox, oz, def.size.w, def.size.h, 1)) return
 
     // commit
-    this.credits -= def.creditCost
+    this.credits -= placeCost
     this.placeBuilding(def, ox, oz, false)
     this.emitAudio({ type: 'build_place' })
     this.emitState()
@@ -6280,6 +8067,21 @@ export class BaseDefenseGame {
       econTimer: 0,
     }
     this.buildings.push(placed)
+    if (def.id === 'jupiter_mass_relay') {
+      const m = this.getBuildingMaxHp(placed)
+      if (!this.jupiterRelayPool) {
+        this.jupiterRelayPool = { hp: m, maxHp: m }
+      } else {
+        const r = this.jupiterRelayPool.hp / Math.max(1e-6, this.jupiterRelayPool.maxHp)
+        this.jupiterRelayPool.maxHp += m
+        this.jupiterRelayPool.hp = this.jupiterRelayPool.maxHp * r
+      }
+      this.syncJupiterMassRelayHpFromPool()
+    }
+    if (def.id === 'jupiter_recon_drone') {
+      mesh.position.y = 7.6
+      hb.group.position.set(mesh.position.x, 3.8 + def.size.h * 0.2 + mesh.position.y, mesh.position.z)
+    }
   }
 
   private updateRefundSprites() {
@@ -6415,6 +8217,223 @@ export class BaseDefenseGame {
       const dish = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), mkEmat(def.color, 0.6, 0.25))
       dish.position.y = baseH + 1.5
       group.add(dish)
+      return group
+    }
+
+    if (def.id === 'citadel_repair_conduit') {
+      const { baseH } = addBase(1.35, def.color)
+      for (const [sx, sz] of [
+        [-w * 0.22, -h * 0.22],
+        [w * 0.22, -h * 0.22],
+        [-w * 0.22, h * 0.22],
+        [w * 0.22, h * 0.22],
+      ] as const) {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, baseH + 0.4, 10), mkEmat(0x2dd4bf, 0.45, 0.35))
+        col.position.set(sx, (baseH + 0.4) / 2, sz)
+        group.add(col)
+      }
+      const hub = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), mkEmat(def.color, 0.5, 0.3))
+      hub.position.y = baseH + 0.65
+      group.add(hub)
+      return group
+    }
+
+    if (def.id === 'citadel_construction_conduit') {
+      const { baseH } = addBase(1.05, def.color)
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(Math.max(w, h) * 0.28, 0.12, 8, 24), mkMat(0x0f766e, 0.12, 0.55))
+      ring.rotation.x = Math.PI / 2
+      ring.position.y = baseH + 0.2
+      group.add(ring)
+      const crane = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.8, 0.16), mkMat(0xe2e8f0, 0.2, 0.48))
+      crane.position.set(-w * 0.32, baseH + 0.95, 0)
+      group.add(crane)
+      const boom = new THREE.Mesh(new THREE.BoxGeometry(w * 0.55, 0.12, 0.12), mkMat(0xe2e8f0, 0.18, 0.5))
+      boom.position.set(0, baseH + 1.55, 0)
+      group.add(boom)
+      return group
+    }
+
+    if (def.id === 'citadel_defense_conduit') {
+      const { baseH } = addBase(1.15, def.color)
+      const shield = new THREE.Mesh(new THREE.OctahedronGeometry(0.38, 0), mkEmat(0x5eead4, 0.55, 0.28))
+      shield.position.y = baseH + 0.85
+      group.add(shield)
+      return group
+    }
+
+    if (def.id === 'citadel_attack_conduit') {
+      const { baseH } = addBase(1.0, def.color)
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55, 8), mkEmat(0xf97316, 0.65, 0.32))
+      cone.position.y = baseH + 0.55
+      group.add(cone)
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.9, 8), mkMat(0xe2e8f0, 0.2, 0.5))
+      post.position.y = baseH + 0.45
+      group.add(post)
+      return group
+    }
+
+    if (def.id === 'citadel_efficiency_conduit') {
+      const { baseH } = addBase(0.95, def.color)
+      const rotor = new THREE.Group()
+      rotor.position.y = baseH + 0.55
+      for (let i = 0; i < 3; i++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.12), mkEmat(0x14b8a6, 0.4, 0.4))
+        blade.rotation.y = (i / 3) * Math.PI * 2
+        blade.position.y = i * 0.02
+        rotor.add(blade)
+      }
+      group.add(rotor)
+      group.userData.citadelEfficiencySpin = rotor
+      return group
+    }
+
+    if (def.id === 'citadel_range_conduit') {
+      const { baseH } = addBase(0.88, def.color)
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.1, 8), mkMat(0xe2e8f0, 0.22, 0.48))
+      mast.position.y = baseH + 1.05
+      group.add(mast)
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.06, 14), mkEmat(def.color, 0.5, 0.35))
+      disc.position.y = baseH + 2.05
+      group.add(disc)
+      return group
+    }
+
+    if (def.id === 'kingpin_data_array') {
+      const { baseH } = addBase(0.72, def.color)
+      const rack = new THREE.Mesh(new THREE.BoxGeometry(w * 0.88, 1.35, h * 0.2), mkMat(0x1e1b4b, 0.06, 0.92))
+      rack.position.set(0, baseH + 0.72, 0)
+      group.add(rack)
+      for (let i = 0; i < 4; i++) {
+        const led = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.06), mkEmat(0xe879f9, 0.85, 0.28))
+        led.position.set(-w * 0.28 + (i % 2) * w * 0.56, baseH + 0.55 + Math.floor(i / 2) * 0.35, h * 0.12)
+        group.add(led)
+      }
+      return group
+    }
+
+    if (def.id === 'kingpin_investment_complex') {
+      const { baseH } = addBase(1.05, def.color)
+      const vault = new THREE.Mesh(new THREE.BoxGeometry(w * 0.55, 1.15, h * 0.55), mkMat(0x312e81, 0.1, 0.55))
+      vault.position.set(0, baseH + 0.65, 0)
+      group.add(vault)
+      const band = new THREE.Mesh(new THREE.TorusGeometry(Math.min(w, h) * 0.22, 0.06, 8, 20), mkEmat(0xfbbf24, 0.55, 0.35))
+      band.rotation.x = Math.PI / 2
+      band.position.y = baseH + 1.15
+      group.add(band)
+      return group
+    }
+
+    if (def.id === 'kingpin_cryptographic_decoder') {
+      const { baseH } = addBase(0.85, def.color)
+      const prism = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), mkEmat(0xa855f7, 0.65, 0.3))
+      prism.position.y = baseH + 0.65
+      group.add(prism)
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.05, 8, 24), mkMat(0x0f172a, 0.04, 0.95))
+      ring.rotation.x = Math.PI / 2
+      ring.position.y = baseH + 0.25
+      group.add(ring)
+      return group
+    }
+
+    if (def.id === 'kingpin_indoctrinated_labor') {
+      const { baseH } = addBase(0.78, def.color)
+      for (let i = 0; i < 3; i++) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 1.25, 8), mkMat(0x94a3b8, 0.12, 0.55))
+        pole.position.set((i - 1) * w * 0.32, baseH + 0.65, 0)
+        group.add(pole)
+      }
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 0.12, h * 0.92), mkEmat(0x7c3aed, 0.45, 0.4))
+      cap.position.y = baseH + 1.25
+      group.add(cap)
+      return group
+    }
+
+    if (def.id === 'kingpin_mineral_processor') {
+      const { baseH } = addBase(0.95, def.color)
+      const hopper = new THREE.Mesh(
+        new THREE.CylinderGeometry(Math.max(w, h) * 0.38, Math.max(w, h) * 0.32, 0.55, 16, 1, true),
+        mkMat(0x4a044e, 0.1, 0.52),
+      )
+      hopper.position.y = baseH + 0.55
+      group.add(hopper)
+      const auger = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 1.4, 10), mkMat(0xe2e8f0, 0.2, 0.48))
+      auger.position.set(0, baseH + 0.95, 0)
+      group.add(auger)
+      return group
+    }
+
+    if (def.id === 'jupiter_mass_relay') {
+      const { baseH } = addBase(1.15, def.color)
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(Math.max(w, h) * 0.32, 0.14, 8, 28), mkEmat(0xc4b5fd, 0.45, 0.35))
+      ring.rotation.x = Math.PI / 2
+      ring.position.y = baseH + 0.35
+      group.add(ring)
+      for (const [sx, sz] of [
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1],
+      ] as const) {
+        const sp = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), mkEmat(0xa78bfa, 0.55, 0.3))
+        sp.position.set(sx * w * 0.38, baseH + 0.55, sz * h * 0.38)
+        group.add(sp)
+      }
+      return group
+    }
+
+    if (def.id === 'jupiter_arc_thrower') {
+      const { baseH } = addBase(1.85, def.color)
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.12, 8, 20), mkEmat(0x818cf8, 0.6, 0.32))
+      coil.rotation.x = Math.PI / 2
+      coil.position.y = baseH + 0.5
+      group.add(coil)
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.55, 8), mkEmat(0xe879f9, 0.75, 0.28))
+      tip.position.set(0, baseH + 1.15, 0)
+      tip.rotation.x = -Math.PI / 2
+      group.add(tip)
+      return group
+    }
+
+    if (def.id === 'jupiter_overclock_augment') {
+      const { baseH } = addBase(0.92, def.color)
+      const fins = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), mkEmat(0xfbbf24, 0.7, 0.3))
+      fins.position.y = baseH + 0.55
+      group.add(fins)
+      return group
+    }
+
+    if (def.id === 'jupiter_radar_station') {
+      const { baseH } = addBase(1.05, def.color)
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 2.4, 10), mkMat(0xe2e8f0, 0.2, 0.48))
+      mast.position.y = baseH + 1.25
+      group.add(mast)
+      const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.08, 18), mkEmat(0x38bdf8, 0.5, 0.35))
+      dish.rotation.x = Math.PI / 2.8
+      dish.position.set(0.35, baseH + 2.35, 0)
+      group.add(dish)
+      return group
+    }
+
+    if (def.id === 'jupiter_recon_drone') {
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.1, 10), mkMat(0x475569, 0.1, 0.55))
+      pad.position.y = 0.05
+      group.add(pad)
+      const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.34, 0), mkEmat(0x818cf8, 0.75, 0.28))
+      orb.position.y = 0.88
+      group.add(orb)
+      group.userData.reconOrbAnchor = orb
+      return group
+    }
+
+    if (def.id === 'jupiter_battery_complex') {
+      const { baseH } = addBase(1.15, def.color)
+      const span = Math.max(w, h) * 0.38
+      for (let i = 0; i < 5; i++) {
+        const t = i / 4
+        const cell = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.85, 0.52), mkMat(i % 2 === 0 ? 0xeab308 : 0xfde047, 0.12, 0.52))
+        cell.position.set(-span + t * span * 2, baseH + 0.48, (i % 3) * 0.15 - 0.15)
+        group.add(cell)
+      }
       return group
     }
 
@@ -6583,6 +8602,7 @@ export class BaseDefenseGame {
       def.id === 'auto_turret_large' ||
       def.id === 'siege_cannon' ||
       def.id === 'heavy_siege_gun' ||
+      def.id === 'kingpin_slag_cannon' ||
       def.id === 'aa_gun' ||
       def.id === 'railgun' ||
       def.id === 'missile_launcher_s' ||
@@ -6597,7 +8617,7 @@ export class BaseDefenseGame {
       def.id === 'plasma_laser_l'
     ) {
       const isAuto = def.id === 'auto_turret' || def.id === 'auto_turret_large'
-      const isSiege = def.id === 'siege_cannon' || def.id === 'heavy_siege_gun'
+      const isSiege = def.id === 'siege_cannon' || def.id === 'heavy_siege_gun' || def.id === 'kingpin_slag_cannon'
       const isAA = def.id === 'aa_gun'
       const isRail = def.id === 'railgun'
       const isMissile = def.id === 'missile_launcher_s' || def.id === 'missile_launcher_m' || def.id === 'hydra_launcher'
@@ -7221,11 +9241,14 @@ export class BaseDefenseGame {
     const ox = x - Math.floor(def.size.w / 2)
     const oz = z - Math.floor(def.size.h / 2)
 
-    if (this.credits < def.creditCost) {
+    const placeCost = this.placementCreditCost(def, ox, oz)
+    if (this.credits < placeCost) {
       this.hoverValid = false
       return
     }
-    if (this.supplyUsed + def.supplyCost > this.supplyCap) {
+    const ignoresSupplyLock =
+      def.id === 'command_center' || def.id === 'supply_depot_s' || def.id === 'supply_depot_l'
+    if (!ignoresSupplyLock && this.supplyUsed + def.supplyCost > this.supplyCap) {
       this.hoverValid = false
       return
     }
@@ -7374,9 +9397,10 @@ export class BaseDefenseGame {
   private updateHealthBars() {
     for (const b of this.buildings) {
       this.setHealthBar(b.healthBar, b.hp, this.getBuildingMaxHp(b))
+      const yLift = b.defId === 'jupiter_recon_drone' ? 7.6 : 0
       b.healthBar.group.position.set(
         b.origin.x + (b.def.size.w - 1) / 2,
-        4.2 + b.def.size.h * 0.2,
+        4.2 + b.def.size.h * 0.2 + yLift,
         b.origin.z + (b.def.size.h - 1) / 2,
       )
       b.healthBar.group.quaternion.copy(this.camera.quaternion)

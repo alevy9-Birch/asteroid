@@ -30,8 +30,9 @@ export class GameAudioEngine {
     empBurst: sfx('/audio/sfx/emp_burst.ogg', 0.75),
   }
 
-  private readonly musicMenu = musicTrack('/audio/music/music_menu.mp3', 0.22)
-  private readonly musicBuild = musicTrack('/audio/music/music_build.mp3', 0.2)
+  /** Dark sci-fi ambience / loops (OGG + MP3); see `public/audio/ATTRIBUTION.md`. */
+  private readonly musicMenu = musicTrack('/audio/music/music_menu.ogg', 0.22)
+  private readonly musicBuild = musicTrack('/audio/music/music_build.ogg', 0.2)
   private readonly musicCombat = musicTrack('/audio/music/music_combat.mp3', 0.22)
 
   /** `null` until first `setMusicPhase` so the initial menu pass always applies. */

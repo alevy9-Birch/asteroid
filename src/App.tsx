@@ -127,6 +127,9 @@ function App() {
     archangel: 'Archangel',
     dominion: 'Dominion',
     nova: 'Nova',
+    citadel: 'Citadel',
+    jupiter: 'Jupiter',
+    kingpin: 'Kingpin',
   }
   const categoryLabel: Record<BuildingCategory, string> = {
     structural: 'Structural',
@@ -1154,6 +1157,9 @@ function App() {
                   ['archangel', 'Archangel'],
                   ['dominion', 'Dominion'],
                   ['nova', 'Nova'],
+                  ['citadel', 'Citadel'],
+                  ['jupiter', 'Jupiter'],
+                  ['kingpin', 'Kingpin'],
                 ] as Array<[HeroId, string]>
               ).map(([id, label]) => (
                 <button
