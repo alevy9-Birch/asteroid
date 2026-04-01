@@ -1598,7 +1598,7 @@ export const BUILDINGS: BuildingDef[] = [
     id: 'kingpin_data_array',
     label: 'Data Array',
     heroId: 'kingpin',
-    category: 'economy',
+    category: 'hero',
     color: 0xa855f7,
     size: { w: 2, h: 2 },
     maxHp: 260,
@@ -1613,7 +1613,7 @@ export const BUILDINGS: BuildingDef[] = [
     id: 'kingpin_investment_complex',
     label: 'Investment Complex',
     heroId: 'kingpin',
-    category: 'economy',
+    category: 'hero',
     color: 0xc084fc,
     size: { w: 3, h: 3 },
     maxHp: 720,
@@ -1669,7 +1669,7 @@ export const BUILDINGS: BuildingDef[] = [
     id: 'kingpin_slag_cannon',
     label: 'Slag Cannon',
     heroId: 'kingpin',
-    category: 'turrets',
+    category: 'hero',
     color: 0xf43f5e,
     size: { w: 3, h: 3 },
     maxHp: 920,
@@ -3983,6 +3983,7 @@ export class BaseDefenseGame {
   private wave = 0
   private firstWaveStarted = false
   private waveInProgress = false
+  private paused = false
   private waveReady = true
   private toSpawn = 0
   private spawnTimer = 0
@@ -4183,6 +4184,16 @@ export class BaseDefenseGame {
 
   setWheelOpen(open: boolean) {
     this.wheelOpen = open
+  }
+
+  /** Freeze simulation and input (used by pause menu). */
+  setPaused(p: boolean) {
+    this.paused = p
+    if (p) {
+      this.moveKeys.clear()
+      this.draggingBuild = false
+      this.draggingSell = false
+    }
   }
 
   purchaseUpgrade(id: UpgradeId) {
@@ -4491,6 +4502,13 @@ export class BaseDefenseGame {
   }
 
   private readonly onPointerMove = (e: PointerEvent) => {
+    if (this.paused) {
+      const rect = this.canvas.getBoundingClientRect()
+      this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      return
+    }
+
     const applyLook = (dx: number, dy: number) => {
       const rotSpeed = 0.0022
       this.yaw -= dx * rotSpeed
@@ -4528,6 +4546,7 @@ export class BaseDefenseGame {
 
   private readonly onPointerDown = (e: PointerEvent) => {
     if (this.isLost) return
+    if (this.paused) return
     if (this.wheelOpen) return
     if (e.button === 0) {
       this.draggingBuild = true
@@ -4565,6 +4584,7 @@ export class BaseDefenseGame {
   }
 
   private readonly onKeyDown = (e: KeyboardEvent) => {
+    if (this.paused) return
     const k = e.key.toLowerCase()
     if (k === 'w' || k === 'a' || k === 's' || k === 'd' || k === 'q' || k === 'e') this.moveKeys.add(k)
     if (e.key === ' ') this.startNextWave()
@@ -4587,7 +4607,7 @@ export class BaseDefenseGame {
   private tick = () => {
     this.raf = requestAnimationFrame(this.tick)
     const dt = Math.min(0.04, this.clock.getDelta())
-    this.update(dt)
+    if (!this.paused) this.update(dt)
     this.renderer.render(this.scene, this.camera)
   }
 
@@ -5227,6 +5247,8 @@ export class BaseDefenseGame {
     // Turrets/missiles only draw when firing; railgun draws while charging.
     if (def.kind === 'railgun') return 0
     if (def.category === 'turrets' || def.category === 'missile') return 0
+    // Commander Slag Cannon is category `hero` but bills power per shot like a turret.
+    if (def.id === 'kingpin_slag_cannon') return 0
     // Nova photon / pulsar bill per shot in defense logic, not as passive drain.
     if (def.id === 'nova_photon_projector_s' || def.id === 'nova_photon_projector_l' || def.id === 'nova_shockwave_pulsar') return 0
     // Arc Thrower only spends energy on chained bursts.

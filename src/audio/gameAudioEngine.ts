@@ -1,6 +1,8 @@
 import { Howl, Howler } from 'howler'
 import type { GameAudioEvent, MusicPhase } from './types'
 
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
+
 const audioUrl = (path: string) => {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '')
   const rel = path.replace(/^\//, '')
@@ -28,6 +30,11 @@ export class GameAudioEngine {
     thrWhoosh: sfx('/audio/sfx/thr_whoosh.ogg', 0.45),
     metalImpact: sfx('/audio/sfx/metal_impact.ogg', 0.7),
     empBurst: sfx('/audio/sfx/emp_burst.ogg', 0.75),
+    /** Quiet placement tick (separate from door UI sounds). */
+    buildPlace: sfx('/audio/sfx/door_open.ogg', 0.14),
+    /** Distinct stingers for wave lifecycle */
+    waveStart: sfx('/audio/sfx/thr_whoosh.ogg', 0.56),
+    waveCleared: sfx('/audio/sfx/computer.ogg', 0.58),
   }
 
   /** Dark sci-fi ambience / loops (OGG + MP3); see `public/audio/ATTRIBUTION.md`. */
@@ -39,6 +46,11 @@ export class GameAudioEngine {
   private musicPhase: MusicPhase | null = null
   private lastShieldHitMs = 0
   private unlocked = false
+
+  /** 0–1 global gain (Howler master). */
+  setMasterVolume(level: number) {
+    Howler.volume(clamp01(level))
+  }
 
   unlock() {
     if (this.unlocked) return
@@ -80,10 +92,10 @@ export class GameAudioEngine {
     if (!this.unlocked) return
     switch (e.type) {
       case 'wave_start':
-        this.sfx.thrWhoosh.play()
+        this.sfx.waveStart.play()
         break
       case 'wave_cleared':
-        this.sfx.computer.play()
+        this.sfx.waveCleared.play()
         break
       case 'asteroid_impact':
         this.sfx.explosionLow.play()
@@ -110,7 +122,7 @@ export class GameAudioEngine {
         this.sfx.explosionCrunch.play()
         break
       case 'build_place':
-        this.sfx.doorOpen.play()
+        this.sfx.buildPlace.play()
         break
       case 'build_sell':
         this.sfx.doorClose.play()

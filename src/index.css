@@ -722,3 +722,57 @@ body,
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.volume-control {
+  margin: 14px 0 16px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.volume-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.volume-control-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.volume-control-row input[type='range'] {
+  flex: 1;
+  min-height: 28px;
+  accent-color: color-mix(in srgb, var(--accent-color, #22d3ee) 80%, white);
+}
+
+.volume-value {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  min-width: 3rem;
+  text-align: right;
+}
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 28;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.72);
+  pointer-events: auto;
+  backdrop-filter: blur(6px);
+}
+
+.pause-card {
+  width: min(480px, calc(100% - 32px));
+}
+
+.pause-actions {
+  flex-wrap: wrap;
+}

@@ -66,6 +66,20 @@ const INITIAL_STATE: State = {
 
 type Phase = 'menu' | 'playing' | 'gameover'
 
+const VOLUME_STORAGE_KEY = 'meteor-base-defense-master-volume'
+
+function readStoredMasterVolume(): number {
+  try {
+    const raw = localStorage.getItem(VOLUME_STORAGE_KEY)
+    if (raw == null) return 0.85
+    const v = parseFloat(raw)
+    if (!Number.isFinite(v)) return 0.85
+    return Math.min(1, Math.max(0, v))
+  } catch {
+    return 0.85
+  }
+}
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const gameRef = useRef<BaseDefenseGame | null>(null)
@@ -97,7 +111,28 @@ function App() {
     heroId: 'archangel',
   })
 
+  const [masterVolume, setMasterVolume] = useState(readStoredMasterVolume)
+  const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
+
   const audioRef = useGameAudioController(phase, state.waveInProgress, state.gameOver)
+
+  useEffect(() => {
+    audioRef.current?.setMasterVolume(masterVolume)
+  }, [masterVolume, audioRef])
+
+  const commitMasterVolume = (v: number) => {
+    const clamped = Math.min(1, Math.max(0, v))
+    setMasterVolume(clamped)
+    try {
+      localStorage.setItem(VOLUME_STORAGE_KEY, String(clamped))
+    } catch {
+      /* ignore */
+    }
+  }
+
+  useEffect(() => {
+    if (phase !== 'playing') setPauseMenuOpen(false)
+  }, [phase])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -153,7 +188,8 @@ function App() {
   const buildingDefs = useMemo(() => {
     const order = new Map(categoryOrder.map((c, i) => [c, i]))
     return [...BUILDINGS]
-      .filter((b) => b.category !== 'hero' || (b as any).heroId === state.heroId)
+      // Commander-specific buildings may live in economy/turrets/etc.; hide them unless `heroId` matches.
+      .filter((b) => b.heroId == null || b.heroId === state.heroId)
       .sort((a, b) => {
       const ca = order.get(a.category) ?? 0
       const cb = order.get(b.category) ?? 0
@@ -566,6 +602,16 @@ function App() {
         researchOpenRef.current = next
         setResearchOpen(next)
       }
+      if (e.key === 'p' || e.key === 'P') {
+        if (e.repeat) return
+        e.preventDefault()
+        setPauseMenuOpen((prev) => {
+          const next = !prev
+          gameRef.current?.setPaused(next)
+          if (next) document.exitPointerLock()
+          return next
+        })
+      }
     }
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'c' || e.key === 'C') {
@@ -763,6 +809,7 @@ function App() {
   }, [wheelOpen, upgradeOpen, researchOpen, phase])
 
   const startNewRun = () => {
+    setPauseMenuOpen(false)
     runConfigRef.current = { mode: 'normal', difficulty: selectedDifficulty, heroId: selectedHero }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
@@ -778,6 +825,7 @@ function App() {
   }
 
   const startSandbox = () => {
+    setPauseMenuOpen(false)
     runConfigRef.current = { mode: 'sandbox', difficulty: selectedDifficulty, heroId: selectedHero }
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
@@ -793,6 +841,7 @@ function App() {
   }
 
   const goToMenu = () => {
+    setPauseMenuOpen(false)
     wheelOpenRef.current = false
     upgradeOpenRef.current = false
     researchOpenRef.current = false
@@ -844,12 +893,54 @@ function App() {
     hoveredUpgradeCanBuyRef.current = hoveredNodeCanBuy
   }, [hoveredUpgradeId, hoveredNodeCanBuy])
 
+  const masterVolumeSlider = (idSuffix: string) => (
+    <div className="volume-control">
+      <label className="volume-label" htmlFor={`master-vol-${idSuffix}`}>
+        Master volume
+      </label>
+      <div className="volume-control-row">
+        <input
+          id={`master-vol-${idSuffix}`}
+          type="range"
+          min={0}
+          max={100}
+          value={Math.round(masterVolume * 100)}
+          onChange={(e) => commitMasterVolume(Number(e.target.value) / 100)}
+        />
+        <span className="volume-value">{Math.round(masterVolume * 100)}%</span>
+      </div>
+    </div>
+  )
+
+  const resumeGame = () => {
+    setPauseMenuOpen(false)
+    gameRef.current?.setPaused(false)
+  }
+
   return (
     <div className="app-root" style={{ ['--accent-color' as string]: categoryColor[selectedCategory] }}>
       <canvas ref={canvasRef} className="game-canvas" />
 
       {/* Crosshair (target is screen center while mouse-look is active) */}
       {phase === 'playing' && <div className="crosshair" />}
+
+      {phase === 'playing' && pauseMenuOpen && (
+        <div className="pause-overlay">
+          <div className="screen-card pause-card">
+            <h2>Paused</h2>
+            <p className="small">Press P to resume. Audio and the scene stay as they were.</p>
+            {masterVolumeSlider('pause')}
+            <div className="screen-actions pause-actions">
+              <button type="button" className="primary-btn" onClick={resumeGame}>
+                Resume (P)
+              </button>
+              <button type="button" className="secondary-btn" onClick={goToMenu}>
+                Main Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {phase === 'playing' && state.wave === 0 && !state.waveInProgress && (
         <div className="hud top-left">
@@ -1149,8 +1240,10 @@ function App() {
             <h2>Meteor Base Defense</h2>
             <p>Defend your command center(s) against massive meteor impacts.</p>
             <p className="small">
-              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, press U for skill tree, press R for hero research, RMB sell, Space starts next wave.
+              Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, press U for skill tree, press R for
+              hero research, RMB sell, Space starts the next wave, P pauses in-game.
             </p>
+            {masterVolumeSlider('menu')}
             <div className="difficulty-picker">
               {(
                 [
