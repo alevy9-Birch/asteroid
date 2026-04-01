@@ -4230,6 +4230,8 @@ export class BaseDefenseGame {
 
   setWheelOpen(open: boolean) {
     this.wheelOpen = open
+    // Opening any full-screen UI: drop pointer baseline so the next move event cannot apply a bogus cross-lock/warp delta.
+    if (open) this.hasMousePos = false
   }
 
   /** Freeze simulation and input (used by pause menu). */
@@ -4574,17 +4576,20 @@ export class BaseDefenseGame {
       this.pitch = Math.max(-limit, Math.min(limit, this.pitch))
     }
 
+    // Reject single-frame spikes (pointer lock / focus / OS warp) that cause view snaps.
+    const clampLookDelta = (v: number) => Math.max(-220, Math.min(220, v))
+
     if (!this.hasMousePos) {
       this.hasMousePos = true
       this.lastMouseX = e.clientX
       this.lastMouseY = e.clientY
     } else {
-      const dx = this.lookLocked ? e.movementX : e.clientX - this.lastMouseX
-      const dy = this.lookLocked ? e.movementY : e.clientY - this.lastMouseY
+      const rawDx = this.lookLocked ? e.movementX : e.clientX - this.lastMouseX
+      const rawDy = this.lookLocked ? e.movementY : e.clientY - this.lastMouseY
       this.lastMouseX = e.clientX
       this.lastMouseY = e.clientY
-      // Keep gameplay camera fixed while the wheel UI is open.
-      if (!this.wheelOpen) applyLook(dx, dy)
+      // Keep gameplay camera fixed while build wheel / skills / research overlays are open.
+      if (!this.wheelOpen) applyLook(clampLookDelta(rawDx), clampLookDelta(rawDy))
     }
 
     const rect = this.canvas.getBoundingClientRect()

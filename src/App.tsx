@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useGameAudioController } from './audio/useGameAudio'
 import {
   addScoreRecord,
@@ -536,6 +536,8 @@ function App() {
     if (!target) return
     const upMeta = UPGRADES.find((u) => u.id === target)
     const isHeroResearch = Boolean(upMeta?.heroId)
+    document.exitPointerLock()
+    gameRef.current?.setWheelOpen(true)
     wheelOpenRef.current = false
     setWheelOpen(false)
     if (isHeroResearch) {
@@ -657,6 +659,8 @@ function App() {
           setUpgradeOpen(false)
           setResearchOpen(false)
           if (!wheelOpenRef.current) {
+            document.exitPointerLock()
+            gameRef.current?.setWheelOpen(true)
             pendingLockedWheelSelectionRef.current = undefined
             wheelOpenRef.current = true
             setWheelOpen(true)
@@ -664,6 +668,8 @@ function App() {
           return
         }
         if (!wheelOpenRef.current) {
+          document.exitPointerLock()
+          gameRef.current?.setWheelOpen(true)
           pendingLockedWheelSelectionRef.current = undefined
           wheelOpenRef.current = true
           setWheelOpen(true)
@@ -680,6 +686,10 @@ function App() {
           setResearchOpen(false)
         }
         const next = !upgradeOpenRef.current
+        if (next) {
+          document.exitPointerLock()
+          gameRef.current?.setWheelOpen(true)
+        }
         upgradeOpenRef.current = next
         setUpgradeOpen(next)
       }
@@ -695,6 +705,10 @@ function App() {
           setUpgradeOpen(false)
         }
         const next = !researchOpenRef.current
+        if (next) {
+          document.exitPointerLock()
+          gameRef.current?.setWheelOpen(true)
+        }
         researchOpenRef.current = next
         setResearchOpen(next)
       }
@@ -776,8 +790,10 @@ function App() {
   useEffect(() => {
     if (phase !== 'playing') return
     const onMouseMove = (e: MouseEvent) => {
-      const dx = e.movementX ?? 0
-      const dy = e.movementY ?? 0
+      const rawDx = e.movementX ?? 0
+      const rawDy = e.movementY ?? 0
+      const dx = Math.max(-220, Math.min(220, rawDx))
+      const dy = Math.max(-220, Math.min(220, rawDy))
       if (dx === 0 && dy === 0) return
       if (upgradeOpenRef.current || researchOpenRef.current) {
         // Pan direction should feel like "dragging the canvas".
@@ -899,7 +915,7 @@ function App() {
     return () => window.removeEventListener('mousedown', onMouseDown)
   }, [phase, upgradeOpen, researchOpen, refundableUpgrades, purchasedUpgrades, skillAdj, state.credits, activeTreeDefs])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (phase !== 'playing') return
     gameRef.current?.setWheelOpen(wheelOpen || upgradeOpen || researchOpen)
   }, [wheelOpen, upgradeOpen, researchOpen, phase])
