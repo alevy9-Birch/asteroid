@@ -43,10 +43,16 @@ export type BuildingId =
   | 'archangel_bulk_fueling_station'
   | 'archangel_munitions_plant'
   | 'archangel_missile_factory'
+  | 'dominion_orbital_cannon'
+  | 'dominion_flak_gun'
+  | 'dominion_seeker_drone_spawner'
+  | 'dominion_defensive_bunker'
+  | 'dominion_laser_drill'
+  | 'dominion_support_bay'
 
 export type BuildingCategory = 'structural' | 'economy' | 'electrical' | 'turrets' | 'missile' | 'energy' | 'hero'
 export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'brutal' | 'deadly'
-export type HeroId = 'archangel'
+export type HeroId = 'archangel' | 'dominion'
 
 type BuildingDef = {
   id: BuildingId
@@ -184,6 +190,29 @@ type RepairDrone = {
   state: 'to_target' | 'healing' | 'returning'
 }
 
+type DominionShrapnel = {
+  mesh: THREE.Mesh
+  velocity: THREE.Vector3
+  ttl: number
+  damage: number
+}
+
+type DominionSeekerDrone = {
+  mesh: THREE.Mesh
+  spawnerId: string
+  state: 'flying' | 'attached'
+  targetId: string | null
+}
+
+type DominionDropship = {
+  mesh: THREE.Mesh
+  bayId: string
+  state: 'outbound' | 'healing' | 'returning'
+  focusX: number
+  focusZ: number
+  healElapsed: number
+}
+
 type ArchangelPlaneHud = {
   group: THREE.Group
   fuelFill: THREE.Mesh
@@ -317,6 +346,25 @@ export type UpgradeId =
   | 'hero_archangel_missile_range_2'
   | 'hero_archangel_missile_payload_1'
   | 'hero_archangel_missile_payload_2'
+  | 'hero_dominion_core'
+  | 'hero_dominion_unlock_elite_weaponry'
+  | 'hero_dominion_unlock_advanced_tech'
+  | 'hero_dominion_extended_support'
+  | 'hero_dominion_enhanced_power'
+  | 'hero_dominion_reinforced_plating'
+  | 'hero_dominion_lead_rounds'
+  | 'hero_dominion_orbital_mk2'
+  | 'hero_dominion_flak_mk2'
+  | 'hero_dominion_bunker_mk2'
+  | 'hero_dominion_spawner_mk2'
+  | 'hero_dominion_drill_mk2'
+  | 'hero_dominion_support_mk2'
+  | 'hero_dominion_turret_damage_1'
+  | 'hero_dominion_turret_damage_2'
+  | 'hero_dominion_turret_range_1'
+  | 'hero_dominion_turret_range_2'
+  | 'hero_dominion_turret_rof_1'
+  | 'hero_dominion_turret_rof_2'
 
 type BuildingModifier = {
   rangeAdd?: number
@@ -328,6 +376,7 @@ type BuildingModifier = {
 
   powerDrainMul?: number
   aoeRadiusMul?: number
+  maxHpMul?: number
 
   shieldCapacityMul?: number
   shieldRechargeMul?: number
@@ -1009,6 +1058,107 @@ export const BUILDINGS: BuildingDef[] = [
     creditCost: Math.round(360 * VARS.C),
     supplyCost: 6,
     wheelDetails: () => ['Arms bombers on pad during waves', 'Slightly faster load than munitions plants'],
+  },
+  {
+    id: 'dominion_orbital_cannon',
+    label: 'Orbital Cannon',
+    heroId: 'dominion',
+    category: 'hero',
+    color: 0x8b5cf6,
+    size: { w: 5, h: 5 },
+    maxHp: 2400,
+    creditCost: Math.round(2400 * VARS.C),
+    supplyCost: 24,
+    range: 125,
+    fireRate: 0.2,
+    damage: 560,
+    aoeRadius: 15,
+    kind: 'hitscan',
+    wheelDetails: () => ['Huge single shot every 5s', 'Power-hungry; main blast + shrapnel'],
+  },
+  {
+    id: 'dominion_flak_gun',
+    label: 'Flak Gun',
+    heroId: 'dominion',
+    category: 'hero',
+    color: 0xa78bfa,
+    size: { w: 2, h: 2 },
+    maxHp: 520,
+    creditCost: Math.round(420 * VARS.C),
+    supplyCost: 5,
+    powerDrainPerSec: 0.55 * VARS.P,
+    range: 82,
+    fireRate: 9,
+    damage: 108,
+    aoeRadius: 2.2,
+    kind: 'hitscan',
+    wheelDetails: () => ['Long range; high in sky only', 'Min ground range 15; flak shards on hit'],
+  },
+  {
+    id: 'dominion_seeker_drone_spawner',
+    label: 'Seeker Drone Spawner',
+    heroId: 'dominion',
+    category: 'hero',
+    color: 0xc4b5fd,
+    size: { w: 3, h: 3 },
+    maxHp: 720,
+    creditCost: Math.round(680 * VARS.C),
+    supplyCost: 8,
+    powerDrainPerSec: 0.35 * VARS.P,
+    fireRate: 0.25,
+    damage: 2.4,
+    projectileSpeed: 17,
+    wheelDetails: () => ['Launches a drone every 4s', 'Drone slows & damages attached asteroid'],
+  },
+  {
+    id: 'dominion_defensive_bunker',
+    label: 'Defensive Bunker',
+    heroId: 'dominion',
+    category: 'hero',
+    color: 0x64748b,
+    size: { w: 3, h: 3 },
+    maxHp: 1950,
+    creditCost: Math.round(720 * VARS.C),
+    supplyCost: 10,
+    powerDrainPerSec: 0.42 * VARS.P,
+    range: 38,
+    fireRate: 5.5,
+    damage: 38,
+    kind: 'hitscan',
+    wheelDetails: () => ['Very durable emplacement', 'Solid all-round ballistic fire'],
+  },
+  {
+    id: 'dominion_laser_drill',
+    label: 'Laser Drill',
+    heroId: 'dominion',
+    category: 'hero',
+    color: 0xf472b6,
+    size: { w: 2, h: 2 },
+    maxHp: 480,
+    creditCost: Math.round(590 * VARS.C),
+    supplyCost: 6,
+    powerDrainPerSec: 1.1 * VARS.P,
+    range: 44,
+    fireRate: 2.2,
+    damage: 52,
+    kind: 'hitscan',
+    wheelDetails: () => ['Mining laser pays credits while firing', '1s delay before retarget'],
+  },
+  {
+    id: 'dominion_support_bay',
+    label: 'Support Bay',
+    heroId: 'dominion',
+    category: 'hero',
+    color: 0x34d399,
+    size: { w: 3, h: 3 },
+    maxHp: 920,
+    creditCost: Math.round(820 * VARS.C),
+    supplyCost: 8,
+    powerDrainPerSec: 0.28 * VARS.P,
+    damage: 72,
+    fireRate: 0.143,
+    projectileSpeed: 11,
+    wheelDetails: () => ['One dropship (two with upgrade)', 'Large-area heal, faster than drones'],
   },
 ]
 
@@ -2092,6 +2242,259 @@ const UPGRADES_RAW: UpgradeDef[] = [
       hydra_launcher: { fireRateMul: 1.1, damageAdd: 10 },
     },
   },
+  {
+    id: 'hero_dominion_core',
+    label: 'Dominion Command Mandate',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 0,
+    description: 'Unlocks the Defensive Bunker and Support Bay.',
+    unlockBuildingIds: ['dominion_defensive_bunker', 'dominion_support_bay'],
+  },
+  {
+    id: 'hero_dominion_unlock_elite_weaponry',
+    label: 'Unlock Elite Weaponry',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 680,
+    description: 'Unlocks the Orbital Cannon and Flak Gun.',
+    prereqIds: ['hero_dominion_core'],
+    unlockBuildingIds: ['dominion_orbital_cannon', 'dominion_flak_gun'],
+  },
+  {
+    id: 'hero_dominion_unlock_advanced_tech',
+    label: 'Unlock Advanced Tech',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 720,
+    description: 'Unlocks the Seeker Drone Spawner and Laser Drill.',
+    prereqIds: ['hero_dominion_core'],
+    unlockBuildingIds: ['dominion_seeker_drone_spawner', 'dominion_laser_drill'],
+  },
+  {
+    id: 'hero_dominion_extended_support',
+    label: 'Extended Support',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 560,
+    description: 'Support Bays can deploy up to two dropships at once.',
+    prereqIds: ['hero_dominion_core'],
+  },
+  {
+    id: 'hero_dominion_enhanced_power',
+    label: 'Enhanced Power',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 520,
+    description: 'All Dominion structures deal additional damage.',
+    prereqIds: ['hero_dominion_core'],
+    modifiers: {
+      dominion_orbital_cannon: { damageAdd: 55 },
+      dominion_flak_gun: { damageAdd: 14 },
+      dominion_defensive_bunker: { damageAdd: 8 },
+      dominion_laser_drill: { damageAdd: 12 },
+    },
+  },
+  {
+    id: 'hero_dominion_reinforced_plating',
+    label: 'Reinforced Plating',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 540,
+    description: 'All Dominion structures gain increased maximum health.',
+    prereqIds: ['hero_dominion_core'],
+    modifiers: {
+      dominion_orbital_cannon: { maxHpMul: 1.14 },
+      dominion_flak_gun: { maxHpMul: 1.14 },
+      dominion_seeker_drone_spawner: { maxHpMul: 1.14 },
+      dominion_defensive_bunker: { maxHpMul: 1.14 },
+      dominion_laser_drill: { maxHpMul: 1.14 },
+      dominion_support_bay: { maxHpMul: 1.14 },
+    },
+  },
+  {
+    id: 'hero_dominion_lead_rounds',
+    label: 'Lead Rounds',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 480,
+    description: 'Orbital and Flak shrapnel counts are 50% higher (18 and 6 shards).',
+    prereqIds: ['hero_dominion_unlock_elite_weaponry'],
+  },
+  {
+    id: 'hero_dominion_orbital_mk2',
+    label: 'Orbital Cannon Level 2',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 1100,
+    description: 'Larger blast, harder hit, slightly faster cycle.',
+    prereqIds: ['hero_dominion_unlock_elite_weaponry'],
+    modifiers: {
+      dominion_orbital_cannon: { damageAdd: 90, aoeRadiusMul: 1.08, fireRateMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_dominion_flak_mk2',
+    label: 'Flak Gun Level 2',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 520,
+    description: 'More range, damage, and rate of fire.',
+    prereqIds: ['hero_dominion_unlock_elite_weaponry'],
+    modifiers: {
+      dominion_flak_gun: { rangeAdd: 6, damageAdd: 18, fireRateMul: 1.1 },
+    },
+  },
+  {
+    id: 'hero_dominion_bunker_mk2',
+    label: 'Defensive Bunker Level 2',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 620,
+    description: 'Bunker gains durability and punch.',
+    prereqIds: ['hero_dominion_core'],
+    modifiers: {
+      dominion_defensive_bunker: { damageAdd: 10, rangeAdd: 3, maxHpMul: 1.08 },
+    },
+  },
+  {
+    id: 'hero_dominion_spawner_mk2',
+    label: 'Seeker Spawner Level 2',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 640,
+    description: 'Drones launch faster and hit harder.',
+    prereqIds: ['hero_dominion_unlock_advanced_tech'],
+    modifiers: {
+      dominion_seeker_drone_spawner: { fireRateMul: 1.15, maxHpMul: 1.1, projectileSpeedMul: 1.12 },
+    },
+  },
+  {
+    id: 'hero_dominion_drill_mk2',
+    label: 'Laser Drill Level 2',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 580,
+    description: 'Stronger beam and longer reach.',
+    prereqIds: ['hero_dominion_unlock_advanced_tech'],
+    modifiers: {
+      dominion_laser_drill: { damageAdd: 16, rangeAdd: 5, fireRateMul: 1.08 },
+    },
+  },
+  {
+    id: 'hero_dominion_support_mk2',
+    label: 'Support Bay Level 2',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 740,
+    description: 'Dropships heal faster and fly quicker.',
+    prereqIds: ['hero_dominion_core'],
+    modifiers: {
+      dominion_support_bay: { damageAdd: 22, fireRateMul: 1.12, projectileSpeedMul: 1.1 },
+    },
+  },
+  {
+    id: 'hero_dominion_turret_damage_1',
+    label: 'Turret Battery: Damage I',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 520,
+    description: 'Increases damage for standard turrets.',
+    prereqIds: ['hero_dominion_core'],
+    modifiers: {
+      auto_turret: { damageAdd: 4 },
+      auto_turret_large: { damageAdd: 6 },
+      siege_cannon: { damageAdd: 55 },
+      heavy_siege_gun: { damageAdd: 85 },
+      aa_gun: { damageAdd: 12 },
+      railgun: { damageAdd: 140 },
+    },
+  },
+  {
+    id: 'hero_dominion_turret_damage_2',
+    label: 'Turret Battery: Damage II',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 920,
+    description: 'Further increases turret damage.',
+    prereqIds: ['hero_dominion_turret_damage_1'],
+    modifiers: {
+      auto_turret: { damageAdd: 5 },
+      auto_turret_large: { damageAdd: 8 },
+      siege_cannon: { damageAdd: 80 },
+      heavy_siege_gun: { damageAdd: 120 },
+      aa_gun: { damageAdd: 16 },
+      railgun: { damageAdd: 200 },
+    },
+  },
+  {
+    id: 'hero_dominion_turret_range_1',
+    label: 'Turret Battery: Range I',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 480,
+    description: 'Increases engagement range for turrets.',
+    prereqIds: ['hero_dominion_core'],
+    modifiers: {
+      auto_turret: { rangeAdd: 3 },
+      auto_turret_large: { rangeAdd: 4 },
+      siege_cannon: { rangeAdd: 4 },
+      heavy_siege_gun: { rangeAdd: 4 },
+      aa_gun: { rangeAdd: 3 },
+      railgun: { rangeAdd: 5 },
+    },
+  },
+  {
+    id: 'hero_dominion_turret_range_2',
+    label: 'Turret Battery: Range II',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 860,
+    description: 'Further increases turret range.',
+    prereqIds: ['hero_dominion_turret_range_1'],
+    modifiers: {
+      auto_turret: { rangeAdd: 4 },
+      auto_turret_large: { rangeAdd: 5 },
+      siege_cannon: { rangeAdd: 5 },
+      heavy_siege_gun: { rangeAdd: 5 },
+      aa_gun: { rangeAdd: 4 },
+      railgun: { rangeAdd: 6 },
+    },
+  },
+  {
+    id: 'hero_dominion_turret_rof_1',
+    label: 'Turret Battery: Cycle I',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 500,
+    description: 'Increases turret rate of fire.',
+    prereqIds: ['hero_dominion_core'],
+    modifiers: {
+      auto_turret: { fireRateMul: 1.1 },
+      auto_turret_large: { fireRateMul: 1.1 },
+      siege_cannon: { fireRateMul: 1.08 },
+      heavy_siege_gun: { fireRateMul: 1.08 },
+      aa_gun: { fireRateMul: 1.1 },
+      railgun: { fireRateMul: 1.05 },
+    },
+  },
+  {
+    id: 'hero_dominion_turret_rof_2',
+    label: 'Turret Battery: Cycle II',
+    heroId: 'dominion',
+    category: 'hero',
+    creditCost: 880,
+    description: 'Further increases turret cadence.',
+    prereqIds: ['hero_dominion_turret_rof_1'],
+    modifiers: {
+      auto_turret: { fireRateMul: 1.1 },
+      auto_turret_large: { fireRateMul: 1.1 },
+      siege_cannon: { fireRateMul: 1.08 },
+      heavy_siege_gun: { fireRateMul: 1.08 },
+      aa_gun: { fireRateMul: 1.1 },
+      railgun: { fireRateMul: 1.06 },
+    },
+  },
 ]
 
 // Globally reduce upgrade credit costs (5-10% target).
@@ -2189,6 +2592,9 @@ export class BaseDefenseGame {
   private readonly shieldFields = new Map<string, ShieldField>()
   private readonly ballistics: Ballistic[] = []
   private readonly repairDrones: RepairDrone[] = []
+  private readonly dominionShrapnel: DominionShrapnel[] = []
+  private readonly dominionSeekerDrones: DominionSeekerDrone[] = []
+  private readonly dominionDropships: DominionDropship[] = []
   private readonly archangelPlanes: ArchangelPlane[] = []
   private planeIdSeed = 0
   private readonly occupied = new Map<string, string>() // cell -> placedBuilding.id
@@ -2408,6 +2814,12 @@ export class BaseDefenseGame {
     this.shieldFields.clear()
     for (const b of this.ballistics) this.projectiles.remove(b.mesh)
     for (const d of this.repairDrones) this.world.remove(d.mesh)
+    for (const s of this.dominionShrapnel) this.projectiles.remove(s.mesh)
+    for (const d of this.dominionSeekerDrones) this.world.remove(d.mesh)
+    for (const d of this.dominionDropships) this.world.remove(d.mesh)
+    this.dominionShrapnel.length = 0
+    this.dominionSeekerDrones.length = 0
+    this.dominionDropships.length = 0
     this.buildings.length = 0
     this.asteroids.length = 0
     this.missiles.length = 0
@@ -2440,9 +2852,11 @@ export class BaseDefenseGame {
     this.purchasedUpgradeIds.clear()
     this.purchasedUpgradeIds.add('core_protocol')
     if (this.heroId === 'archangel') this.purchasedUpgradeIds.add('hero_archangel_core')
+    if (this.heroId === 'dominion') this.purchasedUpgradeIds.add('hero_dominion_core')
     this.purchasedUpgradePhase.clear()
     this.purchasedUpgradePhase.set('core_protocol', -1)
     if (this.heroId === 'archangel') this.purchasedUpgradePhase.set('hero_archangel_core', -1)
+    if (this.heroId === 'dominion') this.purchasedUpgradePhase.set('hero_dominion_core', -1)
     this.recomputeUnlockedBuildingIds()
     this.asteroidIdSeed = 0
     this.volleyIdSeed = 0
@@ -2742,6 +3156,10 @@ export class BaseDefenseGame {
     return BUILDINGS.find((d) => d.id === id)
   }
 
+  private getBuildingMaxHp(b: PlacedBuilding): number {
+    return (this.getEffectiveDef(b.defId) ?? b.def).maxHp
+  }
+
   private getEffectiveDef(id: BuildingId): BuildingDef | undefined {
     const base = this.getBaseDef(id)
     if (!base) return undefined
@@ -2758,6 +3176,7 @@ export class BaseDefenseGame {
       if (mod.projectileSpeedMul) out.projectileSpeed = (out.projectileSpeed ?? 0) * mod.projectileSpeedMul
       if (mod.powerDrainMul) out.powerDrainPerSec = (out.powerDrainPerSec ?? 0) * mod.powerDrainMul
       if (mod.aoeRadiusMul) out.aoeRadius = (out.aoeRadius ?? 0) * mod.aoeRadiusMul
+      if (mod.maxHpMul) out.maxHp *= mod.maxHpMul
       if (mod.shieldCapacityMul) out.shieldCapacityMul = (out.shieldCapacityMul ?? 1) * mod.shieldCapacityMul
       if (mod.shieldRechargeMul) out.shieldRechargeMul = (out.shieldRechargeMul ?? 1) * mod.shieldRechargeMul
       if (mod.supplyCapAddMul) out.supplyCapAdd = (out.supplyCapAdd ?? 0) * mod.supplyCapAddMul
@@ -3749,6 +4168,18 @@ export class BaseDefenseGame {
         // nothing else here; interception handled in asteroid update
         continue
       }
+      if (b.defId === 'dominion_orbital_cannon') {
+        this.tickDominionOrbitalCannon(b, dt)
+        continue
+      }
+      if (b.defId === 'dominion_flak_gun') {
+        this.tickDominionFlakGun(b, dt)
+        continue
+      }
+      if (b.defId === 'dominion_laser_drill') {
+        this.tickDominionLaserDrill(b, dt)
+        continue
+      }
       if (b.defId === 'tesla_tower') {
         const anchor = (b.mesh.userData as any)?.teslaAnchor as THREE.Object3D | undefined
         const origin = anchor
@@ -3967,6 +4398,249 @@ export class BaseDefenseGame {
     this.spawnExplosion(end, 0.9, 0x93c5fd)
   }
 
+  private getDominionShrapnelCount(orbital: boolean): number {
+    const base = orbital ? 12 : 4
+    return this.purchasedUpgradeIds.has('hero_dominion_lead_rounds') ? Math.round(base * 1.5) : base
+  }
+
+  private spawnDominionShrapnel(origin: THREE.Vector3, damage: number, color: number) {
+    const theta = Math.random() * Math.PI * 2
+    const u = Math.random() * 2 - 1
+    const s = Math.sqrt(Math.max(0.001, 1 - u * u))
+    const dir = new THREE.Vector3(Math.cos(theta) * s, u, Math.sin(theta) * s)
+    const speed = 26 + Math.random() * 24
+    const vel = dir.multiplyScalar(speed)
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.2, 7, 5),
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4, roughness: 0.35 }),
+    )
+    mesh.position.copy(origin)
+    mesh.position.addScaledVector(
+      new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.3, Math.random() - 0.5),
+      0.6,
+    )
+    this.projectiles.add(mesh)
+    this.dominionShrapnel.push({ mesh, velocity: vel, ttl: 2.75, damage })
+  }
+
+  private updateDominionShrapnel(dt: number) {
+    for (const sh of [...this.dominionShrapnel]) {
+      sh.ttl -= dt
+      sh.velocity.y -= 14 * dt
+      sh.mesh.position.addScaledVector(sh.velocity, dt)
+      let hit = false
+      for (const a of this.asteroids) {
+        if (!a.alive) continue
+        if (sh.mesh.position.distanceTo(a.mesh.position) < 1.15) {
+          a.hp -= sh.damage
+          hit = true
+          if (a.hp <= 0) {
+            a.alive = false
+            this.handleAsteroidDeath(a, 'combat')
+            this.world.remove(a.mesh)
+            this.world.remove(a.healthBar.group)
+          }
+          break
+        }
+      }
+      if (hit || sh.ttl <= 0) {
+        this.projectiles.remove(sh.mesh)
+        this.dominionShrapnel.splice(this.dominionShrapnel.indexOf(sh), 1)
+      }
+    }
+  }
+
+  private tickDominionOrbitalCannon(b: PlacedBuilding, dt: number) {
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    b.cooldown -= dt
+    if (b.cooldown > 0) return
+    const origin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 5.4, b.origin.z + (d.size.h - 1) / 2)
+    const aim = (b.mesh.userData as any)?.aim as WeaponAim | undefined
+    let target: Asteroid | null = null
+    let bestD = Infinity
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const dist = origin.distanceTo(a.mesh.position)
+      if (dist > (d.range ?? 125)) continue
+      if (dist < bestD) {
+        bestD = dist
+        target = a
+      }
+    }
+    if (!target) return
+    const powerShot = 52 * VARS.P * POWER_DRAIN_GLOBAL_MUL
+    if (this.powerStored < powerShot) return
+    this.powerStored -= powerShot
+    const rof = d.fireRate ?? 0.2
+    b.cooldown = 1 / Math.max(0.04, rof)
+    if (aim?.yaw) {
+      this.tmpAimVec.copy(target.mesh.position).sub(origin)
+      const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+      aim.yaw.rotation.y = yaw
+    }
+    const dmg = d.damage ?? 560
+    const aoe = d.aoeRadius ?? 15
+    this.explodeAt(target.mesh.position, aoe, dmg, 0xa78bfa)
+    const n = this.getDominionShrapnelCount(true)
+    const sd = dmg * 0.5
+    const burstFrom = target.mesh.position.clone()
+    for (let i = 0; i < n; i++) this.spawnDominionShrapnel(burstFrom, sd, 0xe879f9)
+  }
+
+  private tickDominionFlakGun(b: PlacedBuilding, dt: number) {
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
+    b.cooldown -= dt
+    if (b.cooldown > 0) return
+    const baseOrigin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 2.9, b.origin.z + (d.size.h - 1) / 2)
+    const aim = (b.mesh.userData as any)?.aim as WeaponAim | undefined
+    const origin = baseOrigin.clone()
+    if (aim?.muzzle) aim.muzzle.getWorldPosition(this.tmpAimPos), origin.copy(this.tmpAimPos)
+    const minR = 15
+    const maxR = d.range ?? 82
+    let target: Asteroid | null = null
+    let best = Infinity
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const ap = a.mesh.position
+      const horiz = Math.hypot(ap.x - origin.x, ap.z - origin.z)
+      if (horiz < minR || horiz > maxR) continue
+      const to = new THREE.Vector3().subVectors(ap, origin)
+      const len = to.length()
+      if (len < 0.001) continue
+      to.multiplyScalar(1 / len)
+      if (to.y < 0.707) continue
+      if (len < best) {
+        best = len
+        target = a
+      }
+    }
+    if (!target) return
+    if (!this.tryConsumeShotPower(d)) return
+    b.cooldown = 1 / Math.max(0.2, d.fireRate ?? 9)
+    if (aim?.yaw && aim?.pitch) {
+      this.tmpAimVec.copy(target.mesh.position).sub(origin)
+      const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+      aim.yaw.rotation.y = yaw
+      const pitchDist = Math.hypot(this.tmpAimVec.x, this.tmpAimVec.z)
+      const pitch = Math.atan2(this.tmpAimVec.y, pitchDist)
+      aim.pitch.rotation.x = -clamp(pitch, -Math.PI / 2.2, Math.PI / 2.2)
+    } else if (aim?.yaw) {
+      this.tmpAimVec.copy(target.mesh.position).sub(origin)
+      aim.yaw.rotation.y = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+    }
+    const mainDmg = d.damage ?? 108
+    target.hp -= mainDmg
+    this.spawnShot(origin, target.mesh.position, d.color)
+    if (target.hp <= 0) {
+      target.alive = false
+      this.handleAsteroidDeath(target, 'combat')
+      this.world.remove(target.mesh)
+      this.world.remove(target.healthBar.group)
+    }
+    const n = this.getDominionShrapnelCount(false)
+    const burstFrom = target.mesh.position.clone()
+    for (let i = 0; i < n; i++) this.spawnDominionShrapnel(burstFrom, mainDmg * 0.5, 0xfbbf24)
+  }
+
+  private tickDominionLaserDrill(b: PlacedBuilding, dt: number) {
+    const d = this.getEffectiveDef(b.defId) ?? b.def
+    if ((d.powerDrainPerSec ?? 0) > 0 && this.powerStored <= 0.001) return
+    const baseOrigin = new THREE.Vector3(b.origin.x + (d.size.w - 1) / 2, 2.4, b.origin.z + (d.size.h - 1) / 2)
+    const aim = (b.mesh.userData as any)?.aim as WeaponAim | undefined
+    const origin = baseOrigin.clone()
+    if (aim?.muzzle) aim.muzzle.getWorldPosition(this.tmpAimPos), origin.copy(this.tmpAimPos)
+
+    let target: Asteroid | null = null
+    if (b.plasmaTargetId) {
+      const locked = this.asteroids.find((a) => a.id === b.plasmaTargetId && a.alive) ?? null
+      if (!locked || baseOrigin.distanceTo(locked.mesh.position) > (d.range ?? 44)) {
+        b.plasmaTargetId = undefined
+        b.econTimer = 1
+      } else {
+        target = locked
+      }
+    }
+    if (!target) {
+      if (b.econTimer > 0) {
+        b.econTimer -= dt
+        return
+      }
+      let best = Infinity
+      for (const a of this.asteroids) {
+        if (!a.alive) continue
+        const dist = baseOrigin.distanceTo(a.mesh.position)
+        if (dist > (d.range ?? 44)) continue
+        if (dist < best) {
+          best = dist
+          target = a
+        }
+      }
+      if (!target) return
+      b.plasmaTargetId = target.id
+    }
+
+    if (!this.tryConsumeShotPower(d, dt)) return
+    if (aim?.yaw && aim?.pitch) {
+      this.tmpAimVec.copy(target.mesh.position).sub(origin)
+      const yaw = Math.atan2(this.tmpAimVec.x, this.tmpAimVec.z)
+      aim.yaw.rotation.y = yaw
+      const pitchDist = Math.hypot(this.tmpAimVec.x, this.tmpAimVec.z)
+      const pitch = Math.atan2(this.tmpAimVec.y, pitchDist)
+      aim.pitch.rotation.x = -clamp(pitch, -Math.PI / 2.5, Math.PI / 2.5)
+    }
+    const dmg = (d.damage ?? 52) * dt
+    target.hp -= dmg
+    this.credits += dmg * 0.092
+    this.spawnShot(origin, target.mesh.position, 0xf472b6)
+    if (target.hp <= 0) {
+      target.alive = false
+      this.handleAsteroidDeath(target, 'combat')
+      this.world.remove(target.mesh)
+      this.world.remove(target.healthBar.group)
+      b.plasmaTargetId = undefined
+      b.econTimer = 1
+    }
+  }
+
+  private spawnDominionSeekerDrone(spawner: PlacedBuilding): DominionSeekerDrone | null {
+    let best: Asteroid | null = null
+    let bestD = Infinity
+    const ox = spawner.origin.x + (spawner.def.size.w - 1) / 2
+    const oz = spawner.origin.z + (spawner.def.size.h - 1) / 2
+    const o = new THREE.Vector3(ox, 4, oz)
+    for (const a of this.asteroids) {
+      if (!a.alive) continue
+      const dist = o.distanceTo(a.mesh.position)
+      if (dist < bestD) {
+        bestD = dist
+        best = a
+      }
+    }
+    if (!best) return null
+    const mesh = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.38, 0),
+      new THREE.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x4338ca, emissiveIntensity: 0.55, roughness: 0.25 }),
+    )
+    mesh.position.copy(o)
+    this.world.add(mesh)
+    return { mesh, spawnerId: spawner.id, state: 'flying', targetId: best.id }
+  }
+
+  private spawnDominionDropship(bay: PlacedBuilding, focus: PlacedBuilding): DominionDropship {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1.1, 0.35, 0.85),
+      new THREE.MeshStandardMaterial({ color: 0x34d399, emissive: 0x059669, emissiveIntensity: 0.35, roughness: 0.3 }),
+    )
+    const bx = bay.origin.x + (bay.def.size.w - 1) / 2
+    const bz = bay.origin.z + (bay.def.size.h - 1) / 2
+    mesh.position.set(bx + (Math.random() * 0.8 - 0.4), 6.2, bz + (Math.random() * 0.8 - 0.4))
+    this.world.add(mesh)
+    const fx = focus.origin.x + (focus.def.size.w - 1) / 2
+    const fz = focus.origin.z + (focus.def.size.h - 1) / 2
+    return { mesh, bayId: bay.id, state: 'outbound', focusX: fx, focusZ: fz, healElapsed: 0 }
+  }
+
   private updateSupportSystems(dt: number) {
     if (!this.waveInProgress) return
 
@@ -4028,11 +4702,12 @@ export class BaseDefenseGame {
             d.state = 'healing'
             const heal = perDroneHeal * dt
             const powerCost = (heal / 10) * VARS.P
-            if (this.powerStored >= powerCost && target.hp < target.def.maxHp) {
+            const tMax = this.getBuildingMaxHp(target)
+            if (this.powerStored >= powerCost && target.hp < tMax) {
               this.powerStored -= powerCost
-              target.hp = Math.min(target.def.maxHp, target.hp + heal)
+              target.hp = Math.min(tMax, target.hp + heal)
             }
-            if (target.hp >= target.def.maxHp - 0.01) d.state = 'returning'
+            if (target.hp >= tMax - 0.01) d.state = 'returning'
           }
         }
       }
@@ -4043,6 +4718,146 @@ export class BaseDefenseGame {
         if (d.mesh.position.distanceTo(bayPos) <= 0.9) {
           this.world.remove(d.mesh)
           this.repairDrones.splice(this.repairDrones.indexOf(d), 1)
+        }
+      }
+    }
+
+    // Dominion Seeker Drone Spawner
+    for (const sp of this.buildings) {
+      if (sp.hp <= 0 || sp.defId !== 'dominion_seeker_drone_spawner') continue
+      const sd = this.getEffectiveDef(sp.defId) ?? sp.def
+      const spawnInterval = 1 / Math.max(0.08, sd.fireRate ?? 0.25)
+      sp.cooldown -= dt
+      if (sp.cooldown <= 0) {
+        const drone = this.spawnDominionSeekerDrone(sp)
+        if (drone) this.dominionSeekerDrones.push(drone)
+        sp.cooldown += spawnInterval
+      }
+    }
+
+    // Dominion Support Bay — limited concurrent dropships
+    for (const bay of this.buildings) {
+      if (bay.hp <= 0 || bay.defId !== 'dominion_support_bay') continue
+      const bd = this.getEffectiveDef(bay.defId) ?? bay.def
+      const spawnInterval = 1 / Math.max(0.05, bd.fireRate ?? 0.143)
+      const maxShips = this.purchasedUpgradeIds.has('hero_dominion_extended_support') ? 2 : 1
+      bay.cooldown -= dt
+      if (bay.cooldown <= 0) {
+        const active = this.dominionDropships.filter((x) => x.bayId === bay.id).length
+        if (active < maxShips) {
+          const target = this.findLowestHpBuilding()
+          if (target) this.dominionDropships.push(this.spawnDominionDropship(bay, target))
+        }
+        bay.cooldown += spawnInterval
+      }
+    }
+
+    for (const d of [...this.dominionSeekerDrones]) {
+      const sp = this.buildings.find((b) => b.id === d.spawnerId && b.hp > 0)
+      if (!sp) {
+        this.world.remove(d.mesh)
+        this.dominionSeekerDrones.splice(this.dominionSeekerDrones.indexOf(d), 1)
+        continue
+      }
+      const ast = d.targetId ? (this.asteroids.find((a) => a.id === d.targetId && a.alive) ?? null) : null
+      if (!ast) {
+        this.world.remove(d.mesh)
+        this.dominionSeekerDrones.splice(this.dominionSeekerDrones.indexOf(d), 1)
+        continue
+      }
+      const spDef = this.getEffectiveDef(sp.defId) ?? sp.def
+      const droneSpeed = spDef.projectileSpeed ?? 17
+      const dotDps = (spDef.damage ?? 2.4) * 2.35
+
+      if (d.state === 'flying') {
+        const ap = ast.mesh.position.clone().add(new THREE.Vector3(0, 0.65, 0))
+        const dir = ap.clone().sub(d.mesh.position)
+        const len = dir.length()
+        if (len > 0.4) {
+          dir.normalize().multiplyScalar(Math.min(droneSpeed * dt, len))
+          d.mesh.position.add(dir)
+        } else {
+          d.state = 'attached'
+        }
+      } else {
+        d.mesh.position.lerp(ast.mesh.position.clone().add(new THREE.Vector3(0.5, 0.9, 0.15)), 0.2)
+        const sizeRef = Math.max(65, ast.maxHp)
+        const brake = (90 / sizeRef) * dt
+        ast.speed = Math.max(2.1, ast.speed - brake * 26)
+        if (ast.velocity.lengthSq() > 0.0001) ast.velocity.normalize().multiplyScalar(ast.speed)
+        const scx = sp.origin.x + (sp.def.size.w - 1) / 2
+        const scz = sp.origin.z + (sp.def.size.h - 1) / 2
+        const px = ast.mesh.position.x - scx
+        const pz = ast.mesh.position.z - scz
+        const horiz = Math.hypot(px, pz)
+        if (horiz > 0.35) {
+          const push = new THREE.Vector3(px / horiz, 0, pz / horiz).multiplyScalar(3.1 * dt)
+          ast.mesh.position.add(push)
+        }
+        ast.hp -= dotDps * dt
+        if (ast.hp <= 0) {
+          ast.alive = false
+          this.handleAsteroidDeath(ast, 'combat')
+          this.world.remove(ast.mesh)
+          this.world.remove(ast.healthBar.group)
+          this.world.remove(d.mesh)
+          this.dominionSeekerDrones.splice(this.dominionSeekerDrones.indexOf(d), 1)
+        }
+      }
+    }
+
+    for (const ds of [...this.dominionDropships]) {
+      const bay = this.buildings.find((b) => b.id === ds.bayId && b.hp > 0)
+      if (!bay) {
+        this.world.remove(ds.mesh)
+        this.dominionDropships.splice(this.dominionDropships.indexOf(ds), 1)
+        continue
+      }
+      const bd = this.getEffectiveDef(bay.defId) ?? bay.def
+      const speed = bd.projectileSpeed ?? 11
+      const healPerSec = (bd.damage ?? 72) * 2.1
+      const bayPos = new THREE.Vector3(bay.origin.x + (bay.def.size.w - 1) / 2, 6.4, bay.origin.z + (bay.def.size.h - 1) / 2)
+      const hover = new THREE.Vector3(ds.focusX, 7.8, ds.focusZ)
+
+      if (ds.state === 'outbound') {
+        const dir = hover.clone().sub(ds.mesh.position)
+        const len = dir.length()
+        if (len > 0.75) {
+          dir.normalize().multiplyScalar(Math.min(speed * dt, len))
+          ds.mesh.position.add(dir)
+        } else {
+          ds.state = 'healing'
+          ds.healElapsed = 0
+        }
+      } else if (ds.state === 'healing') {
+        ds.healElapsed += dt
+        ds.mesh.position.lerp(hover, 0.08)
+        const hx = ds.mesh.position.x
+        const hz = ds.mesh.position.z
+        const healR = 11
+        for (const t of this.buildings) {
+          if (t.hp <= 0) continue
+          const tx = t.origin.x + (t.def.size.w - 1) / 2
+          const tz = t.origin.z + (t.def.size.h - 1) / 2
+          if (Math.hypot(tx - hx, tz - hz) > healR) continue
+          const tMax = this.getBuildingMaxHp(t)
+          if (t.hp >= tMax - 0.02) continue
+          const h = healPerSec * dt
+          const pCost = (h / 5.5) * VARS.P
+          if (this.powerStored < pCost) continue
+          this.powerStored -= pCost
+          t.hp = Math.min(tMax, t.hp + h)
+        }
+        if (ds.healElapsed >= 4.2) ds.state = 'returning'
+      } else {
+        const dir = bayPos.clone().sub(ds.mesh.position)
+        const len = dir.length()
+        if (len > 0.65) {
+          dir.normalize().multiplyScalar(Math.min(speed * 1.05 * dt, len))
+          ds.mesh.position.add(dir)
+        } else {
+          this.world.remove(ds.mesh)
+          this.dominionDropships.splice(this.dominionDropships.indexOf(ds), 1)
         }
       }
     }
@@ -4065,7 +4880,7 @@ export class BaseDefenseGame {
         const tx = t.origin.x + (t.def.size.w - 1) / 2
         const tz = t.origin.z + (t.def.size.h - 1) / 2
         if (Math.hypot(tx - cx, tz - cz) <= pulseRange) {
-          t.hp = Math.min(t.def.maxHp, t.hp + (d.damage ?? 25))
+          t.hp = Math.min(this.getBuildingMaxHp(t), t.hp + (d.damage ?? 25))
         }
       }
       this.spawnExplosion(new THREE.Vector3(cx, 0.2, cz), 1.0, 0x60a5fa)
@@ -4076,7 +4891,7 @@ export class BaseDefenseGame {
       const regenPerSec = 18
       for (const b of this.buildings) {
         if (b.hp <= 0) continue
-        const minHp = b.def.maxHp * 0.5
+        const minHp = this.getBuildingMaxHp(b) * 0.5
         if (b.hp >= minHp) continue
         b.hp = Math.min(minHp, b.hp + regenPerSec * dt)
       }
@@ -4157,7 +4972,7 @@ export class BaseDefenseGame {
     for (const b of this.buildings) {
       if (b.hp <= 0) continue
       if (excludedIds?.has(b.id)) continue
-      const ratio = b.hp / b.def.maxHp
+      const ratio = b.hp / this.getBuildingMaxHp(b)
       if (ratio < bestRatio) {
         bestRatio = ratio
         best = b
@@ -4167,6 +4982,7 @@ export class BaseDefenseGame {
   }
 
   private updateProjectiles(dt: number) {
+    this.updateDominionShrapnel(dt)
     for (const p of [...this.pendingMissileBursts]) {
       p.timer -= dt
       while (p.remaining > 0 && p.timer <= 0) {
@@ -4313,6 +5129,16 @@ export class BaseDefenseGame {
       this.world.remove(p.hud.group)
       this.world.remove(p.mesh)
       this.archangelPlanes.splice(this.archangelPlanes.indexOf(p), 1)
+    }
+    for (const d of [...this.dominionSeekerDrones]) {
+      if (d.spawnerId !== b.id) continue
+      this.world.remove(d.mesh)
+      this.dominionSeekerDrones.splice(this.dominionSeekerDrones.indexOf(d), 1)
+    }
+    for (const d of [...this.dominionDropships]) {
+      if (d.bayId !== b.id) continue
+      this.world.remove(d.mesh)
+      this.dominionDropships.splice(this.dominionDropships.indexOf(d), 1)
     }
     this.world.remove(b.mesh)
     this.world.remove(b.healthBar.group)
@@ -4493,13 +5319,14 @@ export class BaseDefenseGame {
       })
     }
 
+    const effMaxHp = (this.getEffectiveDef(def.id) ?? def).maxHp
     const placed: PlacedBuilding = {
       id,
       defId: def.id,
       def,
       origin: { x: ox, z: oz },
       builtInInactivePhase: free ? -1 : this.currentInactivePhase,
-      hp: def.maxHp,
+      hp: effMaxHp,
       mesh,
       healthBar: hb,
       refundSprite,
@@ -5185,6 +6012,122 @@ export class BaseDefenseGame {
       return group
     }
 
+    if (def.id === 'dominion_orbital_cannon') {
+      const { baseH } = addBase(2.4, def.color)
+      const scale = Math.max(w, h)
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(scale * 0.3, 22, 18), mkMat(0x7c3aed, 0.2, 0.38))
+      sphere.position.set(0, baseH + scale * 0.34, 0)
+      group.add(sphere)
+      const yaw = new THREE.Group()
+      yaw.position.set(0, baseH + scale * 0.34, 0)
+      group.add(yaw)
+      const pitch = new THREE.Group()
+      yaw.add(pitch)
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.42, scale * 1.1, 14), mkEmat(0xa855f7, 0.3, 0.36))
+      barrel.rotation.x = Math.PI / 2
+      barrel.position.set(0, 0, scale * 0.55)
+      pitch.add(barrel)
+      const muzzle = new THREE.Group()
+      muzzle.position.set(0, 0, scale * 1.08)
+      pitch.add(muzzle)
+      aim.yaw = yaw
+      aim.pitch = pitch
+      aim.muzzle = muzzle
+      group.userData.aim = aim
+      return group
+    }
+
+    if (def.id === 'dominion_flak_gun') {
+      const { baseH } = addBase(2.05, def.color)
+      const yaw = new THREE.Group()
+      yaw.position.set(0, baseH + 0.95, 0)
+      group.add(yaw)
+      const pitch = new THREE.Group()
+      yaw.add(pitch)
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.95, 10), mkMat(0xc4b5fd, 0.28, 0.42))
+      barrel.rotation.x = Math.PI / 2
+      barrel.position.z = 0.98
+      pitch.add(barrel)
+      const muzzle = new THREE.Group()
+      muzzle.position.z = 1.88
+      pitch.add(muzzle)
+      aim.yaw = yaw
+      aim.pitch = pitch
+      aim.muzzle = muzzle
+      group.userData.aim = aim
+      return group
+    }
+
+    if (def.id === 'dominion_seeker_drone_spawner') {
+      const { baseH } = addBase(2.05, def.color)
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.42, w * 0.48, 0.14, 18), mkMat(0x6366f1, 0.14, 0.48))
+      pad.position.y = baseH + 0.07
+      group.add(pad)
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.55, 0.5), mkMat(0x3730a3, 0.12, 0.52))
+      tower.position.set(0, baseH + 0.9, 0)
+      group.add(tower)
+      const dish = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.22, 12, 1, true), mkMat(0x818cf8, 0.2, 0.4))
+      dish.position.set(0, baseH + 1.55, 0)
+      group.add(dish)
+      return group
+    }
+
+    if (def.id === 'dominion_defensive_bunker') {
+      const { baseH } = addBase(3.0, 0x334155)
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.35, h * 0.55), mkMat(def.color, 0.16, 0.55))
+      slab.position.set(0, baseH + 0.2, -h * 0.12)
+      group.add(slab)
+      const yaw = new THREE.Group()
+      yaw.position.set(0, baseH + 1.35, h * 0.28)
+      group.add(yaw)
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.55, 9), mkMat(0x94a3b8, 0.35, 0.42))
+      barrel.rotation.x = Math.PI / 2
+      barrel.position.z = 0.78
+      yaw.add(barrel)
+      const muzzle = new THREE.Group()
+      muzzle.position.z = 1.48
+      yaw.add(muzzle)
+      aim.yaw = yaw
+      aim.muzzle = muzzle
+      group.userData.aim = aim
+      return group
+    }
+
+    if (def.id === 'dominion_laser_drill') {
+      const { baseH } = addBase(1.85, def.color)
+      const yaw = new THREE.Group()
+      yaw.position.set(0, baseH + 1.0, 0)
+      group.add(yaw)
+      const pitch = new THREE.Group()
+      yaw.add(pitch)
+      const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.42, 12), mkEmat(0xf472b6, 0.6, 0.32))
+      lens.rotation.x = Math.PI / 2
+      lens.position.z = 0.55
+      pitch.add(lens)
+      const muzzle = new THREE.Group()
+      muzzle.position.z = 0.78
+      pitch.add(muzzle)
+      aim.yaw = yaw
+      aim.pitch = pitch
+      aim.muzzle = muzzle
+      group.userData.aim = aim
+      return group
+    }
+
+    if (def.id === 'dominion_support_bay') {
+      const { baseH } = addBase(2.65, def.color)
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.12, h * 0.95), mkMat(0x059669, 0.12, 0.55))
+      roof.position.y = baseH + 1.35
+      group.add(roof)
+      const bay = new THREE.Mesh(new THREE.BoxGeometry(w * 0.75, 0.9, h * 0.55), mkMat(0x10b981, 0.08, 0.58))
+      bay.position.set(0, baseH + 0.65, h * 0.15)
+      group.add(bay)
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(w * 0.95, 0.08, 0.12), mkMat(0xfbbf24, 0.25, 0.45))
+      stripe.position.set(0, baseH + 0.45, h * 0.46)
+      group.add(stripe)
+      return group
+    }
+
     // Default fallback: simple body
     addBase(2.4, def.color)
     group.userData.aim = aim
@@ -5356,7 +6299,7 @@ export class BaseDefenseGame {
 
   private updateHealthBars() {
     for (const b of this.buildings) {
-      this.setHealthBar(b.healthBar, b.hp, b.def.maxHp)
+      this.setHealthBar(b.healthBar, b.hp, this.getBuildingMaxHp(b))
       b.healthBar.group.position.set(
         b.origin.x + (b.def.size.w - 1) / 2,
         4.2 + b.def.size.h * 0.2,

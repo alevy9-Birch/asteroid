@@ -119,6 +119,7 @@ function App() {
   const categoryOrder: BuildingCategory[] = ['structural', 'economy', 'electrical', 'turrets', 'missile', 'energy', 'hero']
   const heroLabel: Record<HeroId, string> = {
     archangel: 'Archangel',
+    dominion: 'Dominion',
   }
   const categoryLabel: Record<BuildingCategory, string> = {
     structural: 'Structural',
@@ -474,6 +475,18 @@ function App() {
       return 'During waves, on the airfield pad only: spends credits to load gunship magazines. More plants = faster.'
     if (id === 'archangel_missile_factory')
       return 'During waves, on the starport pad: loads bomber missiles a bit faster than munitions load gunships. More factories = faster.'
+    if (id === 'dominion_orbital_cannon')
+      return '5x5 spherical battery: one devastating blast every ~5s for heavy power cost; huge AoE plus shrapnel (more with Lead Rounds).'
+    if (id === 'dominion_flak_gun')
+      return 'Cheap long-range flak: very high damage, fast fire. Only targets in a cone above the gun; cannot fire within 15 tiles ground range. Spawns shrapnel on hit.'
+    if (id === 'dominion_seeker_drone_spawner')
+      return 'Every 4s launches a drone to the nearest asteroid; slows and pushes it based on size, with light damage-over-time. Drone dies with the rock.'
+    if (id === 'dominion_defensive_bunker')
+      return 'Extremely tough turret with solid but not exceptional DPS.'
+    if (id === 'dominion_laser_drill')
+      return 'Powered mining laser: earns credits while damaging rocks; waits 1s after losing a target before locking a new one.'
+    if (id === 'dominion_support_bay')
+      return 'Launches one dropship at a time (two with Extended Support). Large healing aura, faster throughput than repair drones.'
     return ''
   }, [selectedDef])
   const selectedCatIndex = categoryOrder.indexOf(selectedCategory)
@@ -1129,7 +1142,12 @@ function App() {
               Controls: WASD move, Q/E vertical, mouse-look, hold C for build wheel, press U for skill tree, press R for hero research, RMB sell, Space starts next wave.
             </p>
             <div className="difficulty-picker">
-              {([['archangel', 'Archangel']] as Array<[HeroId, string]>).map(([id, label]) => (
+              {(
+                [
+                  ['archangel', 'Archangel'],
+                  ['dominion', 'Dominion'],
+                ] as Array<[HeroId, string]>
+              ).map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
