@@ -1,6 +1,7 @@
 html,
 body,
-#root {
+#root,
+.app-root {
   margin: 0;
   width: 100%;
   height: 100%;
@@ -8,6 +9,7 @@ body,
   font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
   background: #020617;
   color: #e2e8f0;
+  cursor: none;
 }
 
 * {
@@ -24,6 +26,7 @@ body,
   width: 100%;
   height: 100%;
   display: block;
+  cursor: none;
 }
 
 .crosshair {
@@ -56,6 +59,7 @@ body,
   display: grid;
   place-items: center;
   pointer-events: auto;
+  cursor: none;
 }
 
 .upgrade-panel {
@@ -93,6 +97,7 @@ body,
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: radial-gradient(circle at 30% 20%, rgba(15, 23, 42, 0.85), rgba(2, 6, 23, 0.95));
   overflow: hidden;
+  cursor: none;
 }
 
 .skilltree-lines {
@@ -289,11 +294,11 @@ body,
   font-size: 12px;
   font-weight: 800;
   padding: 7px 10px;
-  cursor: pointer;
+  cursor: none;
 }
 
 .upgrade-buy-btn:disabled {
-  cursor: not-allowed;
+  cursor: none;
   opacity: 0.6;
 }
 
@@ -652,6 +657,7 @@ body,
   display: grid;
   place-items: center;
   background: rgba(2, 6, 23, 0.55);
+  cursor: none;
 }
 
 .screen-card {
@@ -696,7 +702,7 @@ body,
   padding: 9px 12px;
   font-size: 14px;
   font-weight: 700;
-  cursor: pointer;
+  cursor: none;
 }
 
 .primary-btn {
@@ -767,6 +773,7 @@ body,
   background: rgba(2, 6, 23, 0.72);
   pointer-events: auto;
   backdrop-filter: blur(6px);
+  cursor: none;
 }
 
 .pause-card {
@@ -777,12 +784,73 @@ body,
   flex-wrap: wrap;
 }
 
+.virtual-menu-cursor {
+  position: fixed;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 999px;
+  border: 2px solid rgba(226, 232, 240, 0.88);
+  background: rgba(15, 23, 42, 0.45);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-color, #22d3ee) 42%, transparent);
+  pointer-events: none;
+  z-index: 99999;
+}
+
+.menu-virtual-highlight {
+  outline: 2px solid color-mix(in srgb, var(--accent-color, #22d3ee) 72%, white);
+  outline-offset: 2px;
+}
+
+.menu-volume-virtual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0 14px;
+}
+
+.menu-vol-step {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: none;
+}
+
+.menu-vol-pct {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.2rem;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.pause-volume-block {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.pause-volume-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
 /* —— Main menu (Asteroid Defense) —— */
 .main-menu-overlay {
   position: absolute;
   inset: 0;
   z-index: 24;
   display: grid;
+  cursor: none;
   grid-template-columns: minmax(280px, 1fr) minmax(240px, 300px);
   grid-template-rows: auto 1fr auto auto;
   grid-template-areas:
@@ -824,11 +892,15 @@ body,
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px 10px;
+  gap: 8px;
+  padding: 10px 12px 12px;
   border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: rgba(15, 23, 42, 0.55);
+}
+
+.main-menu-volume .menu-volume-virtual {
+  margin: 0;
 }
 
 .main-menu-volume-label {
@@ -853,7 +925,7 @@ body,
   transform: rotate(-90deg);
   transform-origin: center center;
   accent-color: #38bdf8;
-  cursor: pointer;
+  cursor: none;
 }
 
 .main-menu-volume-pct {
@@ -894,7 +966,7 @@ body,
   font-size: 15px;
   font-weight: 700;
   padding: 10px 14px;
-  cursor: pointer;
+  cursor: none;
   text-align: left;
   transition:
     border-color 0.15s ease,
@@ -957,7 +1029,7 @@ body,
   font-weight: 800;
   font-size: 15px;
   padding: 10px 12px;
-  cursor: pointer;
+  cursor: none;
 }
 
 .commander-none-btn.active {
@@ -989,7 +1061,7 @@ body,
   font-weight: 800;
   font-size: 13px;
   padding: 12px 8px;
-  cursor: pointer;
+  cursor: none;
   transition:
     border-color 0.15s ease,
     background 0.15s ease,

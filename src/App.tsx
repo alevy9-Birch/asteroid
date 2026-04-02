@@ -86,6 +86,17 @@ const INITIAL_STATE: State = {
 type Phase = 'menu' | 'playing' | 'gameover'
 
 const VOLUME_STORAGE_KEY = 'meteor-base-defense-master-volume'
+const MENU_CURSOR_MARGIN = 14
+
+function pickMenuHitTarget(x: number, y: number): HTMLElement | null {
+  for (const n of document.elementsFromPoint(x, y)) {
+    if (!(n instanceof HTMLElement)) continue
+    if (n.classList.contains('virtual-menu-cursor')) continue
+    const el = n.closest('[data-menu-hit]')
+    if (el instanceof HTMLButtonElement && !el.disabled) return el
+  }
+  return null
+}
 
 function readStoredMasterVolume(): number {
   try {
@@ -112,6 +123,11 @@ function App() {
   const researchOpenRef = useRef(false)
   const [skillCam, setSkillCam] = useState({ x: 0, y: 0, zoom: 1 })
   const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight })
+  const [menuScreenCursor, setMenuScreenCursor] = useState({ x: 0, y: 0 })
+  const menuScreenCursorLiveRef = useRef(menuScreenCursor)
+  const lastMenuClientRef = useRef<{ x: number; y: number } | null>(null)
+  const [menuVirtualHover, setMenuVirtualHover] = useState<string | null>(null)
+  const prevMenuPointerModeRef = useRef(false)
   const hoveredUpgradeRef = useRef<UpgradeId | undefined>(undefined)
   const hoveredUpgradeCanBuyRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('menu')
@@ -145,6 +161,134 @@ function App() {
 
   const [masterVolume, setMasterVolume] = useState(readStoredMasterVolume)
   const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
+
+  const menuPointerMode =
+    phase === 'menu' || phase === 'gameover' || (phase === 'playing' && pauseMenuOpen)
+  const menuPointerModeRef = useRef(menuPointerMode)
+  useEffect(() => {
+    menuPointerModeRef.current = menuPointerMode
+  }, [menuPointerMode])
+
+  const requestGamePointerLock = () => {
+    const el = canvasRef.current
+    if (!el || document.pointerLockElement === el) return
+    void el.requestPointerLock()
+  }
+
+  /** Fullscreen + pointer lock on primary click; menu clicks use virtual cursor (handler runs before stopImmediatePropagation). */
+  useEffect(() => {
+    const tryPointerLockOnCanvas = () => {
+      const el = canvasRef.current
+      if (!el || document.pointerLockElement === el) return
+      void el.requestPointerLock()
+    }
+    const tryFullscreenIfPossible = () => {
+      if (document.fullscreenElement != null) return
+      const root = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void }
+      const fs = root.requestFullscreen?.()
+      if (fs != null && typeof (fs as Promise<void>).then === 'function') {
+        void (fs as Promise<void>)
+          .then(() => {
+            tryPointerLockOnCanvas()
+          })
+          .catch(() => {})
+        return
+      }
+      try {
+        root.webkitRequestFullscreen?.()
+      } catch {
+        /* ignore */
+      }
+      tryPointerLockOnCanvas()
+    }
+    const scheduleRelock = () => {
+      requestAnimationFrame(() => {
+        tryPointerLockOnCanvas()
+      })
+    }
+    const onPointerLockChange = () => {
+      const el = canvasRef.current
+      if (!el || document.pointerLockElement === el) return
+      scheduleRelock()
+    }
+    const onPointerDownCapture = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      tryFullscreenIfPossible()
+      tryPointerLockOnCanvas()
+      if (menuPointerModeRef.current) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        const t = pickMenuHitTarget(menuScreenCursorLiveRef.current.x, menuScreenCursorLiveRef.current.y)
+        t?.click()
+      }
+    }
+    window.addEventListener('pointerdown', onPointerDownCapture, { capture: true })
+    document.addEventListener('pointerlockchange', onPointerLockChange)
+    const onFocus = () => scheduleRelock()
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') scheduleRelock()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDownCapture, { capture: true })
+      document.removeEventListener('pointerlockchange', onPointerLockChange)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [])
+
+  useEffect(() => {
+    const entered = menuPointerMode && !prevMenuPointerModeRef.current
+    prevMenuPointerModeRef.current = menuPointerMode
+    if (entered) {
+      const cx = Math.max(MENU_CURSOR_MARGIN, viewport.w / 2)
+      const cy = Math.max(MENU_CURSOR_MARGIN, viewport.h / 2)
+      const p = { x: cx, y: cy }
+      menuScreenCursorLiveRef.current = p
+      setMenuScreenCursor(p)
+      setMenuVirtualHover(null)
+      lastMenuClientRef.current = null
+    }
+  }, [menuPointerMode, viewport.w, viewport.h])
+
+  useEffect(() => {
+    if (!menuPointerMode) return
+    const onMove = (e: MouseEvent) => {
+      let dx: number
+      let dy: number
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const m = MENU_CURSOR_MARGIN
+      if (lastMenuClientRef.current == null) {
+        lastMenuClientRef.current = { x: e.clientX, y: e.clientY }
+        dx = e.movementX ?? 0
+        dy = e.movementY ?? 0
+        if (dx === 0 && dy === 0) return
+      } else {
+        if (e.movementX !== 0 || e.movementY !== 0) {
+          dx = e.movementX
+          dy = e.movementY
+        } else {
+          dx = e.clientX - lastMenuClientRef.current.x
+          dy = e.clientY - lastMenuClientRef.current.y
+        }
+        lastMenuClientRef.current = { x: e.clientX, y: e.clientY }
+      }
+      dx = Math.max(-220, Math.min(220, dx))
+      dy = Math.max(-220, Math.min(220, dy))
+      if (dx === 0 && dy === 0) return
+      const prev = menuScreenCursorLiveRef.current
+      const nx = Math.max(m, Math.min(vw - m, prev.x + dx))
+      const ny = Math.max(m, Math.min(vh - m, prev.y + dy))
+      menuScreenCursorLiveRef.current = { x: nx, y: ny }
+      setMenuScreenCursor({ x: nx, y: ny })
+      const hit = pickMenuHitTarget(nx, ny)?.getAttribute('data-menu-hit') ?? null
+      setMenuVirtualHover(hit)
+    }
+    window.addEventListener('mousemove', onMove)
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [menuPointerMode])
 
   const audioRef = useGameAudioController(phase, state.waveInProgress, state.gameOver)
 
@@ -536,7 +680,7 @@ function App() {
     if (!target) return
     const upMeta = UPGRADES.find((u) => u.id === target)
     const isHeroResearch = Boolean(upMeta?.heroId)
-    document.exitPointerLock()
+    requestGamePointerLock()
     gameRef.current?.setWheelOpen(true)
     wheelOpenRef.current = false
     setWheelOpen(false)
@@ -659,7 +803,7 @@ function App() {
           setUpgradeOpen(false)
           setResearchOpen(false)
           if (!wheelOpenRef.current) {
-            document.exitPointerLock()
+            requestGamePointerLock()
             gameRef.current?.setWheelOpen(true)
             pendingLockedWheelSelectionRef.current = undefined
             wheelOpenRef.current = true
@@ -668,7 +812,7 @@ function App() {
           return
         }
         if (!wheelOpenRef.current) {
-          document.exitPointerLock()
+          requestGamePointerLock()
           gameRef.current?.setWheelOpen(true)
           pendingLockedWheelSelectionRef.current = undefined
           wheelOpenRef.current = true
@@ -687,7 +831,7 @@ function App() {
         }
         const next = !upgradeOpenRef.current
         if (next) {
-          document.exitPointerLock()
+          requestGamePointerLock()
           gameRef.current?.setWheelOpen(true)
         }
         upgradeOpenRef.current = next
@@ -706,7 +850,7 @@ function App() {
         }
         const next = !researchOpenRef.current
         if (next) {
-          document.exitPointerLock()
+          requestGamePointerLock()
           gameRef.current?.setWheelOpen(true)
         }
         researchOpenRef.current = next
@@ -718,7 +862,6 @@ function App() {
         setPauseMenuOpen((prev) => {
           const next = !prev
           gameRef.current?.setPaused(next)
-          if (next) document.exitPointerLock()
           return next
         })
       }
@@ -1005,28 +1148,34 @@ function App() {
     hoveredUpgradeCanBuyRef.current = hoveredNodeCanBuy
   }, [hoveredUpgradeId, hoveredNodeCanBuy])
 
-  const masterVolumeSlider = (idSuffix: string) => (
-    <div className="volume-control">
-      <label className="volume-label" htmlFor={`master-vol-${idSuffix}`}>
-        Master volume
-      </label>
-      <div className="volume-control-row">
-        <input
-          id={`master-vol-${idSuffix}`}
-          type="range"
-          min={0}
-          max={100}
-          value={Math.round(masterVolume * 100)}
-          onChange={(e) => commitMasterVolume(Number(e.target.value) / 100)}
-        />
-        <span className="volume-value">{Math.round(masterVolume * 100)}%</span>
-      </div>
+  const virtualMenuVolume = (prefix: string) => (
+    <div className="menu-volume-virtual">
+      <button
+        type="button"
+        className={`menu-vol-step ${menuVirtualHover === `${prefix}-vol-minus` ? 'menu-virtual-highlight' : ''}`}
+        data-menu-hit={`${prefix}-vol-minus`}
+        aria-label="Volume down"
+        onClick={() => commitMasterVolume(Math.max(0, masterVolume - 0.05))}
+      >
+        −
+      </button>
+      <span className="menu-vol-pct">{Math.round(masterVolume * 100)}%</span>
+      <button
+        type="button"
+        className={`menu-vol-step ${menuVirtualHover === `${prefix}-vol-plus` ? 'menu-virtual-highlight' : ''}`}
+        data-menu-hit={`${prefix}-vol-plus`}
+        aria-label="Volume up"
+        onClick={() => commitMasterVolume(Math.min(1, masterVolume + 0.05))}
+      >
+        +
+      </button>
     </div>
   )
 
   const resumeGame = () => {
     setPauseMenuOpen(false)
     gameRef.current?.setPaused(false)
+    requestGamePointerLock()
   }
 
   return (
@@ -1040,13 +1189,26 @@ function App() {
         <div className="pause-overlay">
           <div className="screen-card pause-card">
             <h2>Paused</h2>
-            <p className="small">Press P to resume. Audio and the scene stay as they were.</p>
-            {masterVolumeSlider('pause')}
+            <p className="small">Press P to resume. Move the mouse to steer the virtual cursor; primary click activates the target under it.</p>
+            <div className="pause-volume-block">
+              <span className="pause-volume-label">Master volume</span>
+              {virtualMenuVolume('pause')}
+            </div>
             <div className="screen-actions pause-actions">
-              <button type="button" className="primary-btn" onClick={resumeGame}>
+              <button
+                type="button"
+                className={`primary-btn ${menuVirtualHover === 'pause-resume' ? 'menu-virtual-highlight' : ''}`}
+                data-menu-hit="pause-resume"
+                onClick={resumeGame}
+              >
                 Resume (P)
               </button>
-              <button type="button" className="secondary-btn" onClick={goToMenu}>
+              <button
+                type="button"
+                className={`secondary-btn ${menuVirtualHover === 'pause-menu' ? 'menu-virtual-highlight' : ''}`}
+                data-menu-hit="pause-menu"
+                onClick={goToMenu}
+              >
                 Main Menu
               </button>
             </div>
@@ -1351,17 +1513,7 @@ function App() {
           <h1 className="main-menu-title">Asteroid Defense</h1>
           <div className="main-menu-volume" title="Master volume">
             <span className="main-menu-volume-label">Vol</span>
-            <div className="main-menu-volume-track">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={Math.round(masterVolume * 100)}
-                onChange={(e) => commitMasterVolume(Number(e.target.value) / 100)}
-                aria-label="Master volume"
-              />
-            </div>
-            <span className="main-menu-volume-pct">{Math.round(masterVolume * 100)}</span>
+            {virtualMenuVolume('menu')}
           </div>
 
           <div className="main-menu-difficulty-block">
@@ -1379,7 +1531,11 @@ function App() {
                 <button
                   key={id}
                   type="button"
-                  className={selectedDifficulty === id ? 'menu-chip active' : 'menu-chip'}
+                  className={
+                    (selectedDifficulty === id ? 'menu-chip active' : 'menu-chip') +
+                    (menuVirtualHover === `diff-${id}` ? ' menu-virtual-highlight' : '')
+                  }
+                  data-menu-hit={`diff-${id}`}
                   onClick={() => setSelectedDifficulty(id)}
                 >
                   {label}
@@ -1389,10 +1545,20 @@ function App() {
           </div>
 
           <div className="main-menu-actions">
-            <button type="button" className="primary-btn main-menu-start" onClick={startNewRun}>
+            <button
+              type="button"
+              className={`primary-btn main-menu-start${menuVirtualHover === 'start-run' ? ' menu-virtual-highlight' : ''}`}
+              data-menu-hit="start-run"
+              onClick={startNewRun}
+            >
               Start Game
             </button>
-            <button type="button" className="secondary-btn main-menu-sandbox" onClick={startSandbox}>
+            <button
+              type="button"
+              className={`secondary-btn main-menu-sandbox${menuVirtualHover === 'start-sandbox' ? ' menu-virtual-highlight' : ''}`}
+              data-menu-hit="start-sandbox"
+              onClick={startSandbox}
+            >
               Sandbox
             </button>
           </div>
@@ -1401,7 +1567,11 @@ function App() {
             <div className="main-menu-section-label">Commander</div>
             <button
               type="button"
-              className={selectedCommander === null ? 'commander-none-btn active' : 'commander-none-btn'}
+              className={
+                (selectedCommander === null ? 'commander-none-btn active' : 'commander-none-btn') +
+                (menuVirtualHover === 'cmd-none' ? ' menu-virtual-highlight' : '')
+              }
+              data-menu-hit="cmd-none"
               onClick={() => setSelectedCommander(null)}
             >
               None
@@ -1421,7 +1591,11 @@ function App() {
                 <button
                   key={id}
                   type="button"
-                  className={selectedCommander === id ? 'commander-cell active' : 'commander-cell'}
+                  className={
+                    (selectedCommander === id ? 'commander-cell active' : 'commander-cell') +
+                    (menuVirtualHover === `cmd-${id}` ? ' menu-virtual-highlight' : '')
+                  }
+                  data-menu-hit={`cmd-${id}`}
                   onClick={() => setSelectedCommander(id)}
                 >
                   {label}
@@ -1431,8 +1605,8 @@ function App() {
           </div>
 
           <p className="main-menu-hint small">
-            WASD move · Q/E height · mouse look · C build wheel · U skills · R hero research (with commander) · RMB sell ·
-            Space wave · P pause
+            Move the mouse to steer the virtual cursor; click selects. WASD move · Q/E height · mouse look · C build wheel · U
+            skills · R hero research (with commander) · RMB sell · Space wave · P pause
           </p>
         </div>
       )}
@@ -1494,10 +1668,20 @@ function App() {
               )}
 
               <div className="screen-actions gameover-actions">
-                <button type="button" className="primary-btn" onClick={startNewRun}>
+                <button
+                  type="button"
+                  className={`primary-btn${menuVirtualHover === 'go-play-again' ? ' menu-virtual-highlight' : ''}`}
+                  data-menu-hit="go-play-again"
+                  onClick={startNewRun}
+                >
                   Play Again
                 </button>
-                <button type="button" className="secondary-btn" onClick={goToMenu}>
+                <button
+                  type="button"
+                  className={`secondary-btn${menuVirtualHover === 'go-main-menu' ? ' menu-virtual-highlight' : ''}`}
+                  data-menu-hit="go-main-menu"
+                  onClick={goToMenu}
+                >
                   Main Menu
                 </button>
               </div>
@@ -1506,16 +1690,34 @@ function App() {
             <div className="screen-card danger">
               <h2>Base Destroyed</h2>
               <div className="screen-actions">
-                <button type="button" className="primary-btn" onClick={startNewRun}>
+                <button
+                  type="button"
+                  className={`primary-btn${menuVirtualHover === 'go-play-again' ? ' menu-virtual-highlight' : ''}`}
+                  data-menu-hit="go-play-again"
+                  onClick={startNewRun}
+                >
                   Play Again
                 </button>
-                <button type="button" className="secondary-btn" onClick={goToMenu}>
+                <button
+                  type="button"
+                  className={`secondary-btn${menuVirtualHover === 'go-main-menu' ? ' menu-virtual-highlight' : ''}`}
+                  data-menu-hit="go-main-menu"
+                  onClick={goToMenu}
+                >
                   Main Menu
                 </button>
               </div>
             </div>
           )}
         </div>
+      )}
+
+      {menuPointerMode && (
+        <div
+          className="virtual-menu-cursor"
+          style={{ left: menuScreenCursor.x, top: menuScreenCursor.y }}
+          aria-hidden
+        />
       )}
     </div>
   )
