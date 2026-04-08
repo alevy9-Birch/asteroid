@@ -14,16 +14,23 @@ const TURRET_COOLDOWN := 0.42
 const ASTEROID_SPEED := 52.0
 const ASTEROID_BASE_HP := 60.0
 const CENTER_MAX_HP := 1000.0
+const SAVE_PATH := "user://migration_score.save"
 
 @onready var gameplay_layer: ColorRect = $GameplayLayer
 @onready var look_readout: Label = $GameplayLayer/LookReadout
 @onready var gameplay_info: Label = $GameplayLayer/GameplayInfo
+@onready var research_core_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchCore
+@onready var research_factory_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchFactory
+@onready var research_logistics_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchLogistics
 @onready var menu_overlay: PanelContainer = $MenuOverlay
 @onready var pause_overlay: PanelContainer = $PauseOverlay
 @onready var gameover_overlay: PanelContainer = $GameOverOverlay
 @onready var virtual_cursor: ColorRect = $VirtualCursor
 @onready var menu_volume_value: Label = $MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolumeValue
 @onready var pause_volume_value: Label = $PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolumeValue
+@onready var gameover_hint: Label = $GameOverOverlay/GameOverVBox/GameOverHint
+@onready var gameover_score: Label = $GameOverOverlay/GameOverVBox/GameOverScore
+@onready var gameover_best: Label = $GameOverOverlay/GameOverVBox/GameOverBest
 
 var phase: AppPhase = AppPhase.MENU
 var yaw := 0.0
@@ -44,6 +51,18 @@ var intermission_timer := 0.0
 var rand := RandomNumberGenerator.new()
 var command_center_node: ColorRect
 var command_center_pos := Vector2.ZERO
+var money_earned := 0
+var money_spent := 0
+var asteroids_killed := 0
+var run_score := 0
+var best_score := 0
+var upgrade_core := false
+var upgrade_factory := false
+var upgrade_logistics := false
+var turret_damage_mult := 1.0
+var kill_credit_bonus := 0
+var turret_range_bonus := 0.0
+var turret_cooldown_bonus := 0.0
 
 func _ready() -> void:
 	_setup_inputs()
@@ -51,9 +70,11 @@ func _ready() -> void:
 	_connect_button_handlers()
 	rand.randomize()
 	_create_gameplay_entities()
+	_load_best_score()
+	_update_research_labels()
 	apply_phase(AppPhase.MENU)
 	_set_master_volume(master_volume)
-	print("Godot migration Phase 3 prototype loaded.")
+	print("Godot migration Phase 4 prototype loaded.")
 
 
 func _input(event: InputEvent) -> void:
@@ -76,9 +97,16 @@ func _input(event: InputEvent) -> void:
 		elif phase == AppPhase.PAUSED:
 			apply_phase(AppPhase.PLAYING)
 	if event.is_action_pressed("simulate_gameover"):
+		_finalize_run_score()
 		apply_phase(AppPhase.GAMEOVER)
 	if event.is_action_pressed("start_wave") and phase == AppPhase.PLAYING:
 		_start_next_wave()
+	if event.is_action_pressed("buy_upgrade_core") and phase == AppPhase.PLAYING:
+		_try_buy_upgrade("core")
+	if event.is_action_pressed("buy_upgrade_factory") and phase == AppPhase.PLAYING:
+		_try_buy_upgrade("factory")
+	if event.is_action_pressed("buy_upgrade_logistics") and phase == AppPhase.PLAYING:
+		_try_buy_upgrade("logistics")
 
 
 func _notification(what: int) -> void:
@@ -90,6 +118,9 @@ func _setup_inputs() -> void:
 	_add_action_if_missing("ui_pause", KEY_P)
 	_add_action_if_missing("simulate_gameover", KEY_G)
 	_add_action_if_missing("start_wave", KEY_SPACE)
+	_add_action_if_missing("buy_upgrade_core", KEY_U)
+	_add_action_if_missing("buy_upgrade_factory", KEY_I)
+	_add_action_if_missing("buy_upgrade_logistics", KEY_O)
 
 
 func _add_action_if_missing(action_name: StringName, keycode: Key) -> void:
@@ -165,7 +196,19 @@ func _start_new_run() -> void:
 	spawn_remaining = 0
 	spawn_timer = 0.0
 	intermission_timer = 0.0
+	money_earned = 0
+	money_spent = 0
+	asteroids_killed = 0
+	run_score = 0
+	upgrade_core = false
+	upgrade_factory = false
+	upgrade_logistics = false
+	turret_damage_mult = 1.0
+	kill_credit_bonus = 0
+	turret_range_bonus = 0.0
+	turret_cooldown_bonus = 0.0
 	_create_gameplay_entities()
+	_update_research_labels()
 	apply_phase(AppPhase.PLAYING)
 
 
@@ -323,6 +366,7 @@ func _update_asteroids(delta: float) -> void:
 			_remove_asteroid(i)
 			if command_center_hp <= 0.0:
 				command_center_hp = 0.0
+				_finalize_run_score()
 				apply_phase(AppPhase.GAMEOVER)
 				return
 		else:
@@ -339,6 +383,7 @@ func _remove_asteroid(index: int) -> void:
 func _update_turrets(delta: float) -> void:
 	if asteroids.is_empty():
 		return
+	var live_range := TURRET_RANGE + turret_range_bonus
 	for i in range(turrets.size()):
 		var t = turrets[i]
 		var cooldown: float = t["cooldown"]
@@ -353,18 +398,21 @@ func _update_turrets(delta: float) -> void:
 		for j in range(asteroids.size()):
 			var apos: Vector2 = asteroids[j]["pos"]
 			var d := tpos.distance_to(apos)
-			if d < TURRET_RANGE and d < best_dist:
+			if d < live_range and d < best_dist:
 				best_dist = d
 				best = j
 		if best >= 0:
 			var a = asteroids[best]
-			a["hp"] = float(a["hp"]) - TURRET_DAMAGE
+			a["hp"] = float(a["hp"]) - TURRET_DAMAGE * turret_damage_mult
 			asteroids[best] = a
 			_flash_turret(t["node"])
 			if float(a["hp"]) <= 0.0:
-				credits += 12
+				var payout := 12 + kill_credit_bonus
+				credits += payout
+				money_earned += payout
+				asteroids_killed += 1
 				_remove_asteroid(best)
-			t["cooldown"] = TURRET_COOLDOWN
+			t["cooldown"] = max(0.12, TURRET_COOLDOWN - turret_cooldown_bonus)
 		turrets[i] = t
 
 
@@ -389,6 +437,7 @@ func _handle_play_left_click() -> void:
 	if credits < TURRET_COST:
 		return
 	credits -= TURRET_COST
+	money_spent += TURRET_COST
 	var node := ColorRect.new()
 	node.color = Color(0.45, 0.95, 0.60, 0.95)
 	node.size = Vector2(16, 16)
@@ -430,6 +479,68 @@ func _update_hud() -> void:
 	gameplay_info.text = "Wave %d | Credits %d | Center HP %d | Turrets %d | %s | LMB build / RMB sell / Space wave / P pause" % [
 		wave, credits, int(command_center_hp), turrets.size(), spawn_status
 	]
+
+
+func _try_buy_upgrade(which: String) -> void:
+	if which == "core":
+		if upgrade_core or credits < 120:
+			return
+		credits -= 120
+		money_spent += 120
+		upgrade_core = true
+		turret_damage_mult = 1.2
+	elif which == "factory":
+		if upgrade_factory or credits < 140:
+			return
+		credits -= 140
+		money_spent += 140
+		upgrade_factory = true
+		kill_credit_bonus = 4
+	elif which == "logistics":
+		if upgrade_logistics or credits < 160:
+			return
+		credits -= 160
+		money_spent += 160
+		upgrade_logistics = true
+		turret_range_bonus = 35.0
+		turret_cooldown_bonus = 0.06
+	_update_research_labels()
+
+
+func _update_research_labels() -> void:
+	research_core_label.text = "U - Core Protocol (120c): +20%% turret dmg %s" % ("[OWNED]" if upgrade_core else "")
+	research_factory_label.text = "I - Factory Expansion (140c): +4 credits/kill %s" % ("[OWNED]" if upgrade_factory else "")
+	research_logistics_label.text = "O - Logistics (160c): +35 range, -0.06s cooldown %s" % ("[OWNED]" if upgrade_logistics else "")
+
+
+func _finalize_run_score() -> void:
+	run_score = int(wave * 100 + asteroids_killed * 18 + money_earned * 0.7 - money_spent * 0.25)
+	if run_score < 0:
+		run_score = 0
+	gameover_hint.text = "Wave %d | Kills %d | Earned %d | Spent %d" % [wave, asteroids_killed, money_earned, money_spent]
+	gameover_score.text = "Score: %d" % run_score
+	if run_score > best_score:
+		best_score = run_score
+		_save_best_score()
+	gameover_best.text = "Best: %d" % best_score
+
+
+func _save_best_score() -> void:
+	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_32(best_score)
+
+
+func _load_best_score() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		best_score = 0
+		return
+	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if f == null:
+		best_score = 0
+		return
+	best_score = int(f.get_32())
 
 
 func _ensure_fullscreen_and_capture() -> void:

@@ -46,6 +46,39 @@ offset_right = 645.0
 offset_bottom = 365.0
 color = Color(0.9, 0.95, 1, 0.9)
 
+[node name="ResearchPanel" type="PanelContainer" parent="GameplayLayer"]
+layout_mode = 0
+offset_left = 948.0
+offset_top = 18.0
+offset_right = 1260.0
+offset_bottom = 208.0
+
+[node name="ResearchVBox" type="VBoxContainer" parent="GameplayLayer/ResearchPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ResearchTitle" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Research"
+
+[node name="ResearchHint" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
+layout_mode = 2
+text = "Press U / I / O to purchase upgrades."
+autowrap_mode = 3
+
+[node name="ResearchCore" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
+layout_mode = 2
+text = "U - Core Protocol (120c): +20% turret dmg"
+
+[node name="ResearchFactory" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
+layout_mode = 2
+text = "I - Factory Expansion (140c): +4 credits/kill"
+
+[node name="ResearchLogistics" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
+layout_mode = 2
+text = "O - Logistics (160c): +35 range, -0.06s cooldown"
+
 [node name="MenuOverlay" type="PanelContainer" parent="."]
 visible = false
 layout_mode = 1
@@ -174,6 +207,17 @@ horizontal_alignment = 1
 [node name="GameOverHint" type="Label" parent="GameOverOverlay/GameOverVBox"]
 layout_mode = 2
 text = "Phase 2 prototype menu flow"
+horizontal_alignment = 1
+
+[node name="GameOverScore" type="Label" parent="GameOverOverlay/GameOverVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Score: 0"
+horizontal_alignment = 1
+
+[node name="GameOverBest" type="Label" parent="GameOverOverlay/GameOverVBox"]
+layout_mode = 2
+text = "Best: 0"
 horizontal_alignment = 1
 
 [node name="PlayAgainButton" type="Button" parent="GameOverOverlay/GameOverVBox"]
