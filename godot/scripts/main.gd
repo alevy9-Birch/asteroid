@@ -15,10 +15,12 @@ const ASTEROID_SPEED := 52.0
 const ASTEROID_BASE_HP := 60.0
 const CENTER_MAX_HP := 1000.0
 const SAVE_PATH := "user://migration_score.save"
+const PASSIVE_CREDITS_PER_SEC := 5.0
 
 @onready var gameplay_layer: ColorRect = $GameplayLayer
 @onready var look_readout: Label = $GameplayLayer/LookReadout
 @onready var gameplay_info: Label = $GameplayLayer/GameplayInfo
+@onready var diagnostics_label: Label = $GameplayLayer/Diagnostics
 @onready var research_core_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchCore
 @onready var research_factory_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchFactory
 @onready var research_logistics_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchLogistics
@@ -63,6 +65,9 @@ var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
 var turret_cooldown_bonus := 0.0
+var diagnostics_visible := false
+var passive_credit_accum := 0.0
+var asteroid_pool: Array[ColorRect] = []
 
 func _ready() -> void:
 	_setup_inputs()
@@ -74,7 +79,7 @@ func _ready() -> void:
 	_update_research_labels()
 	apply_phase(AppPhase.MENU)
 	_set_master_volume(master_volume)
-	print("Godot migration Phase 4 prototype loaded.")
+	print("Godot migration Phase 5 prototype loaded.")
 
 
 func _input(event: InputEvent) -> void:
@@ -107,6 +112,9 @@ func _input(event: InputEvent) -> void:
 		_try_buy_upgrade("factory")
 	if event.is_action_pressed("buy_upgrade_logistics") and phase == AppPhase.PLAYING:
 		_try_buy_upgrade("logistics")
+	if event.is_action_pressed("toggle_diagnostics"):
+		diagnostics_visible = not diagnostics_visible
+		diagnostics_label.visible = diagnostics_visible
 
 
 func _notification(what: int) -> void:
@@ -121,6 +129,7 @@ func _setup_inputs() -> void:
 	_add_action_if_missing("buy_upgrade_core", KEY_U)
 	_add_action_if_missing("buy_upgrade_factory", KEY_I)
 	_add_action_if_missing("buy_upgrade_logistics", KEY_O)
+	_add_action_if_missing("toggle_diagnostics", KEY_F3)
 
 
 func _add_action_if_missing(action_name: StringName, keycode: Key) -> void:
@@ -207,6 +216,7 @@ func _start_new_run() -> void:
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0
 	turret_cooldown_bonus = 0.0
+	passive_credit_accum = 0.0
 	_create_gameplay_entities()
 	_update_research_labels()
 	apply_phase(AppPhase.PLAYING)
@@ -271,10 +281,12 @@ func _activate_menu_target() -> void:
 func _process(delta: float) -> void:
 	if phase != AppPhase.PLAYING:
 		return
+	_update_passive_income(delta)
 	_update_wave(delta)
 	_update_asteroids(delta)
 	_update_turrets(delta)
 	_update_hud()
+	_update_diagnostics()
 
 
 func _create_gameplay_entities() -> void:
@@ -295,6 +307,7 @@ func _clear_entities() -> void:
 		an.queue_free()
 	turrets.clear()
 	asteroids.clear()
+	asteroid_pool.clear()
 	if command_center_node != null:
 		command_center_node.queue_free()
 
@@ -339,11 +352,17 @@ func _spawn_asteroid() -> void:
 			p = Vector2(rand.randf_range(0.0, size.x), size.y + 20.0)
 		_:
 			p = Vector2(-20.0, rand.randf_range(0.0, size.y))
-	var node := ColorRect.new()
-	node.color = Color(0.95, 0.55, 0.45, 0.95)
-	node.size = Vector2(14, 14)
+	var node: ColorRect
+	if asteroid_pool.is_empty():
+		node = ColorRect.new()
+		node.color = Color(0.95, 0.55, 0.45, 0.95)
+		node.size = Vector2(14, 14)
+	else:
+		node = asteroid_pool.pop_back()
+		node.visible = true
+	if node.get_parent() == null:
+		gameplay_layer.add_child(node)
 	node.position = p - node.size * 0.5
-	gameplay_layer.add_child(node)
 	var hp := ASTEROID_BASE_HP + wave * 7.0 + rand.randf_range(-10.0, 10.0)
 	asteroids.append({
 		"node": node,
@@ -375,8 +394,11 @@ func _update_asteroids(delta: float) -> void:
 
 func _remove_asteroid(index: int) -> void:
 	var a = asteroids[index]
-	var node: Node = a["node"]
-	node.queue_free()
+	var node: ColorRect = a["node"]
+	if node.get_parent() != null:
+		node.get_parent().remove_child(node)
+	node.visible = false
+	asteroid_pool.append(node)
 	asteroids.remove_at(index)
 
 
@@ -478,6 +500,26 @@ func _update_hud() -> void:
 		spawn_status = "Cleanup (%d asteroids)" % asteroids.size()
 	gameplay_info.text = "Wave %d | Credits %d | Center HP %d | Turrets %d | %s | LMB build / RMB sell / Space wave / P pause" % [
 		wave, credits, int(command_center_hp), turrets.size(), spawn_status
+	]
+
+
+func _update_passive_income(delta: float) -> void:
+	passive_credit_accum += PASSIVE_CREDITS_PER_SEC * delta
+	if passive_credit_accum < 1.0:
+		return
+	var earned := int(passive_credit_accum)
+	passive_credit_accum -= earned
+	credits += earned
+	money_earned += earned
+
+
+func _update_diagnostics() -> void:
+	if not diagnostics_visible:
+		return
+	var fps := int(round(Engine.get_frames_per_second()))
+	var mem_mb := Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+	diagnostics_label.text = "FPS %d | Turrets %d | Asteroids %d | Pool %d | Spawning %s | Mem %.1f MB" % [
+		fps, turrets.size(), asteroids.size(), asteroid_pool.size(), str(wave_spawning), mem_mb
 	]
 
 
