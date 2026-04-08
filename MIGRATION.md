@@ -2,6 +2,16 @@
 
 This proposes a staged migration from the current web/TS build to a Godot-based game while preserving gameplay behavior and reducing risk.
 
+## Execution Status
+
+- [x] Phase 0 - Migration Readiness
+- [x] Phase 1 - Core Architecture Port (prototype-level scaffolding)
+- [x] Phase 2 - Input, Camera, and Menu UX Parity (prototype-level behavior)
+- [x] Phase 3 - Gameplay Systems Port (playable core loop prototype)
+- [x] Phase 4 - Research, Economy, and Meta Systems (prototype-level behavior)
+- [x] Phase 5 - Assets/Audio/Performance pass (instrumentation + optimization scaffolding)
+- [x] Phase 6 - Validation/Cutover/Cleanup artifacts
+
 ## Goals
 
 - Preserve core gameplay loop, progression, and balance.

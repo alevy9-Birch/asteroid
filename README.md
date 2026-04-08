@@ -1,73 +1,40 @@
-# React + TypeScript + Vite
+# Asteroid Defense
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repository currently contains:
 
-Currently, two official plugins are available:
+- The existing web game implementation (`src/`, React + TS + Vite)
+- The Godot migration prototype (`godot/`)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Migration Status
 
-## React Compiler
+- Active migration branch: `migration/godot`
+- Completed migration phases: 0 through 6 (prototype-level execution)
+- Current state: playable Godot prototype with menu/pause/game-over virtual cursor flow, core wave/build loop, upgrades, and score persistence.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Run the Web Version
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Run the Godot Migration Prototype
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Open the Godot project located at:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `godot/project.godot`
+
+Or from command line (example):
+
+```bash
+Godot_v4.6.2-stable_win64.exe --path godot
 ```
+
+## Migration Docs
+
+- `MIGRATION.md`
+- `docs/migration/PHASE_0_INVENTORY.md`
+- `docs/migration/PHASE_0_PARITY_CHECKLIST.md`
+- `docs/migration/PHASE_6_VALIDATION_REPORT.md`
+- `docs/migration/KNOWN_DIFFERENCES.md`
+- `docs/migration/CUTOVER_CHECKLIST.md`
