@@ -65,9 +65,9 @@ Status legend:
 
 ## 6) Combat / Projectiles / Effects
 
-- [ ] All weapon types parity (hitscan, missiles, ballistic, railgun, shield, specials)  
+- [-] All weapon types parity (hitscan, missiles, ballistic, railgun, shield, specials)  
   Web ref: `src/game/BaseDefenseGame.ts` (`kind`, missile/projectile systems)  
-  Godot ref: single turret + simple projectile
+  Godot ref: single turret + simple projectile; **kill payout** uses web variant table + 1.45 × wave scale (`WaveScaling` + `CombatSystem`)
 
 - [ ] AOE, splash, special interactions parity  
   Web ref: `src/game/BaseDefenseGame.ts`  

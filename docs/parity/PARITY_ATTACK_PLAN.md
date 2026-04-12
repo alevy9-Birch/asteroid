@@ -93,6 +93,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 ### C.6 Economy, power, supply
 
 - [x] **C.6.1** Extract `EconomySystem.gd` (passive tick helpers).
+- [-] **C.6.1b** Asteroid **kill credits** (combat only): `getAsteroidKillReward` × `asteroidKillCreditMul` (1.45) × `(1 + wave*0.025)` in `WaveScaling.asteroid_kill_payout`; Godot **logistics kill_credit_bonus** still additive flat (web upgrade parity later). **Impact deaths** still no payout (web `reason !== 'impact'`).
 - [ ] **C.6.2** Power cap, stored power, generation (`solar`, generators), drain order, throttling when starved.
 - [ ] **C.6.3** Supply cap / `supplyUsed` / per-building `supplyCost` + `supplyCapAdd`.
 - [ ] **C.6.4** Building payout intervals (`creditPayout`, `creditIntervalSec`).

@@ -89,6 +89,41 @@ static func compute_spawn_window_duration_sec(to_spawn: int, wave: int, diff: St
 ## Web `spawnAsteroid()` base stats (`ASTEROID_HP_GLOBAL_MUL`, `getEnemyScalingWave`, `getDifficultyScale`).
 const ASTEROID_HP_GLOBAL_MUL := 0.78
 
+## Web `getAsteroidKillReward` + `VARS.asteroidKillCreditMul` (1.45) + `(1 + wave * 0.025)`.
+const ASTEROID_KILL_CREDIT_MUL := 1.45
+
+static func asteroid_kill_reward_base(variant: String, split_level: int) -> int:
+	match variant:
+		"gold":
+			return 90
+		"planet":
+			return 55
+		"spawner":
+			return 45
+		"emp":
+			return 38
+		"meteor":
+			return 24
+		"explosive":
+			return 20
+		"seeker":
+			return 22
+		"splitter":
+			if split_level > 0:
+				return 8
+			return 18
+		"colossus":
+			return 220
+		_:
+			return 14
+
+
+static func asteroid_kill_payout(variant: String, split_level: int, wave: int, upgrade_flat_bonus: int) -> int:
+	var b := asteroid_kill_reward_base(variant, split_level)
+	var scaled := int(round(float(b) * ASTEROID_KILL_CREDIT_MUL * (1.0 + float(wave) * 0.025)))
+	return scaled + upgrade_flat_bonus
+
+
 static func asteroid_base_stats(wave: int, diff: String) -> Dictionary:
 	var sc := enemy_scaling_wave(wave, diff)
 	var adj := float(sc.get("adj", 1.0))

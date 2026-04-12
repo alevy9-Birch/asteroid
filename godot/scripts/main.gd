@@ -726,7 +726,7 @@ func _spawn_projectile(from_pos: Vector3, to_pos: Vector3, damage: float) -> voi
 
 
 func _update_projectiles(delta: float) -> void:
-	var r = combat_system.step_projectiles(delta, projectiles, asteroids, kill_credit_bonus)
+	var r = combat_system.step_projectiles(delta, projectiles, asteroids, wave, kill_credit_bonus)
 	projectiles = r.projectiles
 	asteroids = r.asteroids
 	var payout_total := int(r.payout_total)

@@ -16,6 +16,7 @@ func apply_projectile_hit(
 	pos: Vector3,
 	damage: float,
 	asteroids: Array,
+	wave: int,
 	kill_credit_bonus: int,
 ) -> Dictionary:
 	var out := {
@@ -42,13 +43,16 @@ func apply_projectile_hit(
 	out.asteroids = next_asteroids
 	if float(a["hp"]) <= 0.0:
 		out.killed_index = best
-		out.payout = 12 + kill_credit_bonus
+		var v := String(a.get("variant", "normal"))
+		var sl := int(a.get("splitLevel", 0))
+		out.payout = WaveScaling.asteroid_kill_payout(v, sl, wave, kill_credit_bonus)
 	return out
 
 func step_projectiles(
 	delta: float,
 	projectiles: Array,
 	asteroids: Array,
+	wave: int,
 	kill_credit_bonus: int,
 ) -> Dictionary:
 	var next_projectiles := projectiles.duplicate(true)
@@ -67,7 +71,7 @@ func step_projectiles(
 		p["ttl"] = ttl
 		next_projectiles[i] = p
 
-		var hit = apply_projectile_hit(pos, float(p["damage"]), next_asteroids, kill_credit_bonus)
+		var hit = apply_projectile_hit(pos, float(p["damage"]), next_asteroids, wave, kill_credit_bonus)
 		if bool(hit.hit):
 			next_asteroids = hit.asteroids
 			var killed_index := int(hit.killed_index)
