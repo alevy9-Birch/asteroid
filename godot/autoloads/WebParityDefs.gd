@@ -5,12 +5,15 @@ extends Node
 
 const DEFS_PATH := "res://data/parity_web_defs.json"
 
-## Web `BaseDefenseGame.resetRun()` resource baselines. **Supply** is gated on build; **power** ticks (CC gen − turret drains) while playing.
+## Web `BaseDefenseGame.resetRun()` resource baselines. **Supply** gated on build; **power** tick = CC gen + **non-turret** passive drains (turrets bill **`tryConsumeShotPower`** only).
 const RESET_RUN_CREDITS := 1550
 const RESET_RUN_POWER_CAP := 45
 const RESET_RUN_POWER_STORED := 45
 const RESET_RUN_SUPPLY_CAP := 0
 const RESET_RUN_SUPPLY_USED := 0
+
+## Web `BaseDefenseGame.ts` `POWER_DRAIN_GLOBAL_MUL` — scales passive drain and **`tryConsumeShotPower`** costs.
+const POWER_DRAIN_GLOBAL_MUL := 1.5
 
 var ok: bool = false
 var balance_vars: Dictionary = {}

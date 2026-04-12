@@ -10,7 +10,7 @@
 
 | Area | Web (reference) | Godot (current) |
 |------|-----------------|-----------------|
-| **State** | `BaseDefenseGame` + `App` state: credits, power, supply, buildings[], occupied grid, shields, missiles, heroes | Credits, CC HP, wave timers, turrets, asteroids, projectiles; **power** gen/drain **only during `waveInProgress`** (else clamp to cap); **supply** used/cap from defs; **no full building catalog** |
+| **State** | `BaseDefenseGame` + `App` state: credits, power, supply, buildings[], occupied grid, shields, missiles, heroes | Credits, CC HP, wave timers, turrets, asteroids, projectiles; **power**: CC gen during wave; **turret** draw via **`tryConsumeShotPower`** (not passive tick); inactive clamp to cap; **supply** from defs; **no full catalog** |
 | **Build** | Full `BUILDINGS`, wheel, unlocks, multi-cell; **supply** at place; **no power check** at place (web `tryPlace`) | **auto_turret** prototype; **supply** build gate; placement **not** blocked by power (matches web) |
 | **Combat** | Per-weapon `kind`, missiles, ballistics, railgun, shields, AOE layers | Hitscan-style projectile stub; **no weapon kinds** |
 | **Waves** | `updateWave`, `startNextWave`, variant pools, hero modifiers | `WaveSystem` + `WaveScaling` aligned on core formulas; **no hero wave modifiers** |
@@ -117,7 +117,7 @@
 
 - [x] C.6.1 `EconomySystem` passive helper.
 - [-] C.6.2 Kill credits (combat-only); **logistics bonus** still simplified.
-- [-] C.6.3 Power cap, stored, generation, drain — **tick only while `wave_combat_active`** (web `waveInProgress`); inactive: **`min(stored, cap)`** only; per-turret **`build_power_drain_per_sec`**; **per-shot power** (`tryConsumeShotPower`) / full **`updateResources`** still missing.
+- [-] C.6.3 Power cap, stored, generation, drain — **tick only while `wave_combat_active`**: CC **`powerGenPerSec`** (passive); turrets **`category === 'turrets'`** → **no passive drain** on web — Godot: **`_try_consume_shot_power`** per shot (`powerDrainPerSec × POWER_DRAIN_GLOBAL_MUL`); turret **pause** if `stored ≤ 0`; full **`getPassivePowerDrainPerSec`** / factories / shields still missing.
 - [-] C.6.4 Supply cap / `supplyUsed` / per-building costs — **enforced** for prototype turret (`supply_used` + `auto_turret.supplyCost`); cap from **CC `supplyCapAdd`**; depots / dynamic cap still missing.
 - [ ] C.6.5 Building `creditPayout` / intervals.
 - [ ] C.6.6 **`updateResources`** parity (modifiers, difficulty).

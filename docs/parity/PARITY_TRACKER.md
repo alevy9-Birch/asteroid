@@ -77,7 +77,7 @@ Status legend:
 
 - [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: **`WebParityDefs.RESET_RUN_*`** + **power tick only during `wave_combat_active`** (web `waveInProgress`); inactive **`min(stored,cap)`**; **supply** gate + cap from CC; **per-shot power / economy starvation** still missing; F3 diagnostics
+  Godot ref: **`WebParityDefs.RESET_RUN_*`** + power tick (CC gen only during wave) + **`POWER_DRAIN_GLOBAL_MUL`** shot cost from **`build_power_drain_per_sec`** (web `tryConsumeShotPower`); turret pause at 0 stored; inactive **`min(stored,cap)`**; **supply** gate; factory passive drain / economy starvation still missing; F3 diagnostics
 
 - [ ] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  

@@ -633,24 +633,38 @@ func _update_turrets(delta: float) -> void:
 	for i in range(turrets.size()):
 		var t = turrets[i]
 		var cooldown: float = t["cooldown"]
-		cooldown -= delta
 		var emp_disable: float = max(0.0, float(t.get("empDisable", 0.0)) - delta)
 		t["empDisable"] = emp_disable
 		if emp_disable > 0.0:
+			cooldown -= delta
 			t["cooldown"] = cooldown
 			turrets[i] = t
 			continue
+		var shot_drain := maxf(0.0, float(t.get("build_power_drain_per_sec", 0.0)))
+		# Web `updateDefenses`: draining turrets **pause** cooldown tick while `powerStored <= 0`.
+		if shot_drain > 0.0 and float(power_stored) <= 0.001:
+			t["cooldown"] = cooldown
+			turrets[i] = t
+			continue
+		cooldown -= delta
 		if cooldown > 0.0:
 			t["cooldown"] = cooldown
 			turrets[i] = t
 			continue
 		var tpos: Vector3 = t["pos"]
 		var best := combat_system.select_target_index(tpos, asteroids, live_range)
-		if best >= 0:
-			var apos: Vector3 = asteroids[best]["pos"]
-			_spawn_projectile(tpos + Vector3(0, 0.9, 0), apos, turret_damage * turret_damage_mult)
-			_flash_turret(t["node"])
-			t["cooldown"] = max(0.12, turret_cooldown - turret_cooldown_bonus)
+		if best < 0:
+			t["cooldown"] = cooldown
+			turrets[i] = t
+			continue
+		# Web: set `cooldown` before `tryConsumeShotPower`; failed pay still burns the interval.
+		t["cooldown"] = max(0.12, turret_cooldown - turret_cooldown_bonus)
+		if not _try_consume_shot_power(shot_drain, 1.0):
+			turrets[i] = t
+			continue
+		var apos: Vector3 = asteroids[best]["pos"]
+		_spawn_projectile(tpos + Vector3(0, 0.9, 0), apos, turret_damage * turret_damage_mult)
+		_flash_turret(t["node"])
 		turrets[i] = t
 
 
@@ -814,15 +828,24 @@ func _update_hud() -> void:
 
 func _update_power_economy(delta: float) -> void:
 	# Web `updateResources`: while `!waveInProgress`, no gen/drain — only `min(powerStored, powerCap)`.
-	# During active wave: `clamp(powerStored + gen*dt - drain*dt, 0, powerCap)`.
+	# During wave: passive `gen - drain` where drain uses `getPassivePowerDrainPerSec` (turrets/missiles = **0**; power is per-shot `tryConsumeShotPower` in `updateDefenses`).
 	if not _is_wave_combat_active():
 		power_stored = mini(power_stored, power_cap)
 		return
-	var drain := 0.0
-	for t in turrets:
-		drain += maxf(0.0, float(t.get("build_power_drain_per_sec", 0.0)))
-	var net := (command_center_power_gen_per_sec - drain) * delta
+	# Prototype: no factory/shield passive drains yet (`getPassivePowerDrainPerSec`); only CC gen ticks here.
+	var net := command_center_power_gen_per_sec * delta
 	power_stored = int(round(clampf(float(power_stored) + net, 0.0, float(power_cap))))
+
+
+## Web `tryConsumeShotPower(def, scale)` — `cost = max(0, powerDrainPerSec * POWER_DRAIN_GLOBAL_MUL * scale)`.
+func _try_consume_shot_power(drain_per_sec: float, scale: float = 1.0) -> bool:
+	var cost := maxf(0.0, drain_per_sec * WebParityDefs.POWER_DRAIN_GLOBAL_MUL * scale)
+	if cost <= 0.0:
+		return true
+	if float(power_stored) + 1e-6 < cost:
+		return false
+	power_stored = int(round(clampf(float(power_stored) - cost, 0.0, float(power_cap))))
+	return true
 
 
 func _update_passive_income(delta: float) -> void:
