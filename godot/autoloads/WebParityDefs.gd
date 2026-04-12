@@ -131,6 +131,15 @@ func prototype_command_center_power_gen_per_sec(fallback := 1.6) -> float:
 	return maxf(0.0, read_building_float("command_center", "powerGenPerSec", fallback))
 
 
+func prototype_command_center_credit_payout(fallback := 18) -> int:
+	return maxi(0, read_building_int("command_center", "creditPayout", fallback))
+
+
+## Web `updateResources` economy loop uses `creditIntervalSec` (min positive step).
+func prototype_command_center_credit_interval_sec(fallback := 1.0) -> float:
+	return maxf(0.05, read_building_float("command_center", "creditIntervalSec", fallback))
+
+
 ## Godot prototype “turret” maps to web **`auto_turret`** (`BuildingDef`).
 func prototype_auto_turret_credit_cost(fallback := 100) -> int:
 	return int(round(read_building_float("auto_turret", "creditCost", float(fallback))))

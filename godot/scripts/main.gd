@@ -33,11 +33,14 @@ var turret_footprint_h: int = 1
 var turret_supply_cost: int = 2
 ## Web **`command_center.supplyCapAdd`** at run start (prototype: no depot sim yet).
 var _run_supply_cap_start: int = 20
-## Web **`command_center.powerGenPerSec`** vs sum of placed turrets’ **`powerDrainPerSec`**.
+## Web **`command_center.powerGenPerSec`**; turret draw is per-shot (`tryConsumeShotPower` analog).
 var command_center_power_gen_per_sec: float = 1.6
 var turret_power_drain_per_sec: float = 1.6
+## Web **`command_center.creditPayout` / `creditIntervalSec`** during **`waveInProgress`** only.
+var command_center_credit_payout: int = 18
+var command_center_credit_interval_sec: float = 1.0
+var command_center_econ_timer: float = 0.0
 var center_max_hp: float = 1000.0
-const PASSIVE_CREDITS_PER_SEC := 5.0
 const PROJECTILE_SPEED := 42.0
 const PROJECTILE_LIFETIME := 1.3
 
@@ -122,7 +125,6 @@ var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
 var turret_cooldown_bonus := 0.0
 var diagnostics_visible := false
-var passive_credit_accum := 0.0
 var asteroid_pool: Array[MeshInstance3D] = []
 ## Web parity (`BaseDefenseGame.ts`): first wave starts only on player action; later waves use intermission auto-start.
 var first_wave_started := false
@@ -158,6 +160,8 @@ func _parity_apply_building_baseline() -> void:
 		turret_supply_cost = 2
 		command_center_power_gen_per_sec = 1.6
 		turret_power_drain_per_sec = 1.6
+		command_center_credit_payout = 18
+		command_center_credit_interval_sec = 1.0
 		return
 	center_max_hp = WebParityDefs.prototype_command_center_max_hp(center_max_hp)
 	command_center_hp = center_max_hp
@@ -176,6 +180,12 @@ func _parity_apply_building_baseline() -> void:
 	)
 	turret_power_drain_per_sec = WebParityDefs.prototype_auto_turret_power_drain_per_sec(
 		turret_power_drain_per_sec
+	)
+	command_center_credit_payout = WebParityDefs.prototype_command_center_credit_payout(
+		command_center_credit_payout
+	)
+	command_center_credit_interval_sec = WebParityDefs.prototype_command_center_credit_interval_sec(
+		command_center_credit_interval_sec
 	)
 
 
@@ -362,7 +372,7 @@ func _start_new_run() -> void:
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0
 	turret_cooldown_bonus = 0.0
-	passive_credit_accum = 0.0
+	command_center_econ_timer = 0.0
 	first_wave_started = false
 	var s = commander_system.apply_commander_defaults(selected_commander, {"commander": "none"})
 	selected_commander = String(s.commander)
@@ -855,13 +865,18 @@ func _try_consume_shot_power(drain_per_sec: float, scale: float = 1.0) -> bool:
 
 
 func _update_passive_income(delta: float) -> void:
-	var r = economy_system.tick_passive_income(delta, passive_credit_accum, PASSIVE_CREDITS_PER_SEC)
-	passive_credit_accum = float(r.accum)
-	var earned := int(r.earned)
-	if earned <= 0:
+	# Web `updateResources`: building payouts (CC `creditPayout` / `creditIntervalSec`) only while `waveInProgress`.
+	if not _is_wave_combat_active():
 		return
-	credits = economy_system.add_income(credits, earned)
-	money_earned += earned
+	var payout := command_center_credit_payout
+	if payout <= 0:
+		return
+	var interval := command_center_credit_interval_sec
+	command_center_econ_timer += delta
+	while command_center_econ_timer >= interval:
+		command_center_econ_timer -= interval
+		credits = economy_system.add_income(credits, payout)
+		money_earned += payout
 
 
 func _update_diagnostics() -> void:
@@ -908,7 +923,10 @@ func _spawn_projectile(from_pos: Vector3, to_pos: Vector3, damage: float) -> voi
 
 
 func _update_projectiles(delta: float) -> void:
-	var r = combat_system.step_projectiles(delta, projectiles, asteroids, wave, kill_credit_bonus)
+	var kill_mul := WebParityDefs.balance_var_f("asteroidKillCreditMul", 1.45)
+	var r = combat_system.step_projectiles(
+		delta, projectiles, asteroids, wave, kill_credit_bonus, kill_mul
+	)
 	projectiles = r.projectiles
 	asteroids = r.asteroids
 	var payout_total := int(r.payout_total)

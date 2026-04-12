@@ -89,8 +89,7 @@ static func compute_spawn_window_duration_sec(to_spawn: int, wave: int, diff: St
 ## Web `spawnAsteroid()` base stats (`ASTEROID_HP_GLOBAL_MUL`, `getEnemyScalingWave`, `getDifficultyScale`).
 const ASTEROID_HP_GLOBAL_MUL := 0.78
 
-## Web `getAsteroidKillReward` + `VARS.asteroidKillCreditMul` (1.45) + `(1 + wave * 0.025)`.
-const ASTEROID_KILL_CREDIT_MUL := 1.45
+## Web `getAsteroidKillReward` + `VARS.asteroidKillCreditMul` + `(1 + wave * 0.025)` — mul from **`balanceVars`** in Godot.
 
 static func asteroid_kill_reward_base(variant: String, split_level: int) -> int:
 	match variant:
@@ -118,9 +117,15 @@ static func asteroid_kill_reward_base(variant: String, split_level: int) -> int:
 			return 14
 
 
-static func asteroid_kill_payout(variant: String, split_level: int, wave: int, upgrade_flat_bonus: int) -> int:
+static func asteroid_kill_payout(
+	variant: String,
+	split_level: int,
+	wave: int,
+	upgrade_flat_bonus: int,
+	credit_mul: float = 1.45,
+) -> int:
 	var b := asteroid_kill_reward_base(variant, split_level)
-	var scaled := int(round(float(b) * ASTEROID_KILL_CREDIT_MUL * (1.0 + float(wave) * 0.025)))
+	var scaled := int(round(float(b) * credit_mul * (1.0 + float(wave) * 0.025)))
 	return scaled + upgrade_flat_bonus
 
 
