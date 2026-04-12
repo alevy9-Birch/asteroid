@@ -140,6 +140,8 @@ var command_center_pos := Vector3.ZERO
 var money_earned := 0
 var money_spent := 0
 var asteroids_killed := 0
+## Web `statsPowerProduced`: gross CC **`powerGenPerSec * dt`** during **`waveInProgress`** (prototype has no other generators).
+var power_produced := 0.0
 var run_score := 0
 var best_score := 0
 var upgrade_core := false
@@ -480,6 +482,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0
+	power_produced = 0.0
 	run_score = 0
 	upgrade_core = false
 	upgrade_factory = false
@@ -1157,9 +1160,9 @@ func _update_power_economy(delta: float) -> void:
 	var econ_drain := 0.0
 	for e in economy_buildings:
 		econ_drain += maxf(0.0, float(e.get("passive_power_drain_per_sec", 0.0)))
-	var net := (
-		command_center_power_gen_per_sec - econ_drain * WebParityDefs.POWER_DRAIN_GLOBAL_MUL
-	) * delta
+	var gen := maxf(0.0, command_center_power_gen_per_sec)
+	power_produced += gen * delta
+	var net := (gen - econ_drain * WebParityDefs.POWER_DRAIN_GLOBAL_MUL) * delta
 	power_stored = int(round(clampf(float(power_stored) + net, 0.0, float(power_cap))))
 
 
@@ -1218,7 +1221,7 @@ func _update_diagnostics() -> void:
 		return
 	var fps := int(round(Engine.get_frames_per_second()))
 	var mem_mb := Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
-	diagnostics_label.text = "FPS %d | Tur %d | Fac %d | Ast %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | Mem %.1f MB" % [
+	diagnostics_label.text = "FPS %d | Tur %d | Fac %d | Ast %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | PowProd %.0f | Mem %.1f MB" % [
 		fps,
 		turrets.size(),
 		economy_buildings.size(),
@@ -1230,6 +1233,7 @@ func _update_diagnostics() -> void:
 		int(power_cap),
 		int(supply_used),
 		int(supply_cap),
+		power_produced,
 		mem_mb,
 	]
 
@@ -1325,7 +1329,17 @@ func _update_research_labels() -> void:
 
 
 func _finalize_run_score() -> void:
-	run_score = score_system.compute_run_score(wave, asteroids_killed, money_earned, money_spent)
+	if sandbox_run:
+		run_score = 0
+	else:
+		run_score = score_system.compute_run_score(
+			wave,
+			asteroids_killed,
+			money_earned,
+			money_spent,
+			power_produced,
+			game_difficulty,
+		)
 	gameover_hint.text = gameover_controller.format_hint(
 		wave, asteroids_killed, money_earned, money_spent, selected_commander
 	)
@@ -1407,6 +1421,7 @@ func _sync_game_state_runtime() -> void:
 	game_state.money_earned = money_earned
 	game_state.money_spent = money_spent
 	game_state.asteroids_killed = asteroids_killed
+	game_state.power_produced = power_produced
 	game_state.run_score = run_score
 	game_state.best_score = best_score
 	game_state.wave_ready = _compute_wave_ready()

@@ -34,6 +34,8 @@ var wave_ready := true
 var money_earned := 0
 var money_spent := 0
 var asteroids_killed := 0
+## Web `runStats.powerProduced` (gross gen during active waves).
+var power_produced := 0.0
 var run_score := 0
 var best_score := 0
 
@@ -70,6 +72,7 @@ func reset_run() -> void:
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0
+	power_produced = 0.0
 	run_score = 0
 	upgrade_core = false
 	upgrade_factory = false

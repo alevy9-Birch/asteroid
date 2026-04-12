@@ -113,9 +113,9 @@ Status legend:
 
 ## 12) Score / Persistence
 
-- [ ] `computeRunScore` parity by difficulty multipliers  
+- [-] `computeRunScore` parity by difficulty multipliers  
   Web ref: `src/highScores.ts` (`computeRunScore`)  
-  Godot ref: simplified scoring currently
+  Godot ref: **`ScoreSystem.compute_run_score`** — web coefficients (wave×180, kills×12, money ±, power×0.08), **`difficulty_score_mul`**, **`power_produced`** (CC gross gen during wave combat); sandbox final score **0**; in-run **`game_difficulty`** defaults **hard** until UI exposes other modes
 
 - [ ] Leaderboard persistence and ordering parity  
   Web ref: `src/highScores.ts` (`addScoreRecord`, sort/top rules)  

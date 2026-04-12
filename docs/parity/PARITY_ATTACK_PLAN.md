@@ -15,7 +15,7 @@
 | **Economy** | `updateResources`: power cap from batteries, CC + factory drains, payouts gated by wave + power | **CC** + prototype **`factory_business`** (`creditPayout`/`interval`, passive drain × **`POWER_DRAIN_GLOBAL_MUL`**, payout freeze at 0 power); **kill mul** from **`balanceVars`**; nuclear / pylons / full loop TBD |
 | **Combat** | `updateDefenses`: `kind` hitscan/missiles/ballistic/railgun/shield, `tryConsumeShotPower`, EMP | **Projectile stub** + per-shot power for prototype turret |
 | **Waves** | `updateWave`, pools, hero/upgrade modifiers | **`WaveSystem`** + **`WaveScaling`** core math; **no hero modifiers** |
-| **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **3 prototype research slots**: labels + **×0.93 costs** from JSON (`turret_targeting`, `unlock_factory`, `generator_efficiency`); effects still placeholder; **`ScoreSystem`** simplified |
+| **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **3 prototype research slots**: labels + **×0.93 costs** from JSON; effects still placeholder; **`computeRunScore`** formula + difficulty mul + **`powerProduced`** in **`ScoreSystem`**; sandbox score **0** (web parity) |
 | **UI** | Rich HUD, wheel, research, gameover stats | Menu / pause / gameover + wave ring + **sandbox** banner + **sell refund** hint + commander on gameover |
 | **Audio** | `useGameAudio` / bus mix | **`AudioService`**: `game_over` plays **`res://audio/game_over.wav`** if present; other events still stub |
 
@@ -136,7 +136,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### L — Score, persistence, validation
 
 - [x] L.1 **ScoreSystem** simplified + best score file.
-- [ ] L.2 **`highScores.ts`** `computeRunScore` parity + difficulty multipliers.
+- [-] L.2 **`highScores.ts`** `computeRunScore` parity + difficulty multipliers. **Partial:** same coefficients + **`powerProduced`** + easy/medium/hard/brutal/deadly mul; **`game_difficulty`** wired from run state (UI to change diff TBD); commander boards / full record shape TBD.
 - [ ] L.3 Leaderboard ordering + persistence parity.
 - [ ] L.4 Full **`PARITY_TRACKER.md`** matrix pass.
 - [ ] L.5 Document **approved intentional differences** + release milestone tag.
