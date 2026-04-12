@@ -17,7 +17,7 @@
 | **Waves** | `updateWave`, pools, hero/upgrade modifiers | **`WaveSystem`** + **`WaveScaling`** core math; **no hero modifiers** |
 | **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **3 prototype research slots**: labels + **×0.93 costs** from JSON; effects still placeholder; **`computeRunScore`** formula + difficulty mul + **`powerProduced`** in **`ScoreSystem`**; sandbox score **0** (web parity) |
 | **UI** | Rich HUD, wheel, research, gameover stats | Menu / pause / gameover + wave ring + **sandbox** banner + **sell refund** hint + commander on gameover |
-| **Audio** | `useGameAudio` / bus mix | **`AudioService`**: `game_over` plays **`res://audio/game_over.wav`** if present; other events still stub |
+| **Audio** | `useGameAudio` / bus mix | **`AudioService`**: optional **`res://audio/game_over.wav`** + **`res://audio/sfx/*.ogg`** (web filenames); **asteroid_impact** / **asteroid_destroyed** wired; music buses TBD |
 
 ---
 
@@ -131,7 +131,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### K — Audio
 
 - [-] K.1 **AudioService** API + call sites; **`game_over`** optional one-shot clip.
-- [ ] K.2 Map web events 1:1 + buses + assets.
+- [-] K.2 Map web events 1:1 + buses + assets. **Partial:** **`emit_event`** plays matching clips from **`godot/audio/sfx/`** when copied from web **`public/audio/sfx/`**; **asteroid_impact**, **asteroid_destroyed** (variant → laser small/large); **game_over** fallback **`metal_impact.ogg`**; music / master bus parity TBD.
 
 ### L — Score, persistence, validation
 
@@ -160,7 +160,7 @@ From repo **`space-ship`** with **Godot 4.x** on `PATH`:
 3. **Defs smoke:** `godot --path godot --headless res://dev/HeadlessSmoke.tscn` — exit **0** if **`WebParityDefs.ok`**.
 4. **Regenerate data:** `node scripts/parity/extract_web_defs.mjs` after TS changes.
 
-**Optional asset (C.4 / K.1):** add `godot/audio/game_over.wav` (any short SFX) to hear defeat audio.
+**Optional assets (C.4 / K.1 / K.2):** `godot/audio/game_over.wav` for defeat; copy web **`public/audio/sfx/*.ogg`** → **`godot/audio/sfx/`** for build/emp/AOE/upgrades/lasers/impacts (see **`AudioService.gd`** map).
 
 ---
 

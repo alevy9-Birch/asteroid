@@ -758,6 +758,7 @@ func _update_asteroids(delta: float) -> void:
 		var hit = impacts[k]
 		var i := int(hit["index"])
 		command_center_hp -= float(hit["damage"])
+		audio_service.emit_event("asteroid_impact", {})
 		_remove_asteroid(i, "impact")
 		if phase != AppPhase.PLAYING:
 			return
@@ -1315,6 +1316,8 @@ func _update_projectiles(delta: float) -> void:
 	for j in range(kills.size() - 1, -1, -1):
 		var ai = int(kills[j])
 		if ai >= 0 and ai < asteroids.size():
+			var kv := String(asteroids[ai].get("variant", "normal"))
+			audio_service.emit_event("asteroid_destroyed", {"variant": kv, "reason": "combat"})
 			_remove_asteroid(ai, "combat")
 		if phase != AppPhase.PLAYING:
 			break
