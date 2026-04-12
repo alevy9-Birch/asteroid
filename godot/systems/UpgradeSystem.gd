@@ -6,9 +6,10 @@ const SLOT_UPGRADE_IDS := {
 	"core": "turret_targeting",
 	"factory": "unlock_factory",
 	"logistics": "generator_efficiency",
+	"nuclear": "unlock_nuclear_plant",
 }
 
-const FALLBACK_COSTS := {"core": 120, "factory": 140, "logistics": 160}
+const FALLBACK_COSTS := {"core": 120, "factory": 140, "logistics": 160, "nuclear": 950}
 
 
 func _upgrade_id(which: String) -> String:
@@ -52,6 +53,13 @@ func try_buy_upgrade(which: String, state: Dictionary) -> Dictionary:
 		out.upgrade_logistics = true
 		out.turret_range_bonus = 3.5
 		out.turret_cooldown_bonus = 0.06
+	elif which == "nuclear":
+		if out.upgrade_nuclear or out.credits < cost:
+			out.ok = false
+			return out
+		out.credits -= cost
+		out.money_spent += cost
+		out.upgrade_nuclear = true
 	else:
 		out.ok = false
 		return out
@@ -69,3 +77,7 @@ func label_factory(owned: bool) -> String:
 
 func label_logistics(owned: bool) -> String:
 	return WebParityDefs.research_display_line(_upgrade_id("logistics"), "O", owned)
+
+
+func label_nuclear(owned: bool) -> String:
+	return WebParityDefs.research_display_line(_upgrade_id("nuclear"), "N", owned)

@@ -55,6 +55,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var research_core_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchCore
 @onready var research_factory_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchFactory
 @onready var research_logistics_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchLogistics
+@onready var research_nuclear_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchNuclear
 @onready var menu_overlay: PanelContainer = $MenuOverlay
 @onready var pause_overlay: PanelContainer = $PauseOverlay
 @onready var gameover_overlay: PanelContainer = $GameOverOverlay
@@ -96,7 +97,7 @@ var all_menu_buttons: Array[Button] = []
 var turrets: Array = []
 ## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
 var economy_buildings: Array = []
-## **`turret`** | **`factory`** (I) | **`depot_s`** / **`depot_l`** (O). **B** cycles unlocked modes.
+## **`turret`** | **`factory`** (I) | **`depot_s`** / **`depot_l`** (O) | **`nuclear`** (N research). **B** cycles unlocked modes.
 var build_mode := "turret"
 var factory_cost: int = 160
 var factory_supply_cost: int = 4
@@ -117,6 +118,13 @@ var depot_l_supply_cap_add: int = 30
 var depot_l_supply_cost: int = 0
 var depot_l_footprint_w: int = 3
 var depot_l_footprint_h: int = 3
+## Web **`nuclear_plant`**: **`powerGenPerSec`** during wave iff **`credits > 0`** (web: no gen when broke).
+var nuclear_plants: Array = []
+var nuclear_cost: int = 1200
+var nuclear_power_gen_per_sec: float = 34.0
+var nuclear_supply_cost: int = 0
+var nuclear_footprint_w: int = 4
+var nuclear_footprint_h: int = 4
 var asteroids: Array = []
 var projectiles: Array = []
 var wave := 0
@@ -142,13 +150,14 @@ var command_center_pos := Vector3.ZERO
 var money_earned := 0
 var money_spent := 0
 var asteroids_killed := 0
-## Web `statsPowerProduced`: gross CC **`powerGenPerSec * dt`** during **`waveInProgress`** (prototype has no other generators).
+## Web `statsPowerProduced`: gross gen **`gen * dt`** during **`waveInProgress`** (CC + nuclears when **`credits > 0`**).
 var power_produced := 0.0
 var run_score := 0
 var best_score := 0
 var upgrade_core := false
 var upgrade_factory := false
 var upgrade_logistics := false
+var upgrade_nuclear := false
 var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
@@ -210,6 +219,11 @@ func _parity_apply_building_baseline() -> void:
 		depot_l_supply_cost = 0
 		depot_l_footprint_w = 3
 		depot_l_footprint_h = 3
+		nuclear_cost = 1200
+		nuclear_power_gen_per_sec = 34.0
+		nuclear_supply_cost = 0
+		nuclear_footprint_w = 4
+		nuclear_footprint_h = 4
 		_recompute_power_cap()
 		_recompute_supply_cap()
 		return
@@ -260,6 +274,12 @@ func _parity_apply_building_baseline() -> void:
 	var dlfp := WebParityDefs.prototype_supply_depot_l_footprint()
 	depot_l_footprint_w = dlfp.x
 	depot_l_footprint_h = dlfp.y
+	nuclear_cost = WebParityDefs.prototype_nuclear_plant_credit_cost(nuclear_cost)
+	nuclear_power_gen_per_sec = WebParityDefs.prototype_nuclear_plant_power_gen_per_sec(nuclear_power_gen_per_sec)
+	nuclear_supply_cost = WebParityDefs.prototype_nuclear_plant_supply_cost(nuclear_supply_cost)
+	var nfp := WebParityDefs.prototype_nuclear_plant_footprint()
+	nuclear_footprint_w = nfp.x
+	nuclear_footprint_h = nfp.y
 	_recompute_power_cap()
 	_recompute_supply_cap()
 
@@ -273,7 +293,11 @@ func _recompute_supply_cap() -> void:
 
 
 func _recompute_power_cap() -> void:
-	var new_cap := WebParityDefs.prototype_run_power_cap(turrets.size(), economy_buildings.size())
+	var new_cap := WebParityDefs.prototype_run_power_cap(
+		turrets.size(),
+		economy_buildings.size(),
+		nuclear_plants.size(),
+	)
 	power_cap = new_cap
 	power_stored = mini(power_stored, power_cap)
 
@@ -286,6 +310,8 @@ func _placed_for_build() -> Array:
 		out.append(e)
 	for d in supply_depots:
 		out.append(d)
+	for n in nuclear_plants:
+		out.append(n)
 	return out
 
 
@@ -297,6 +323,8 @@ func _toggle_build_mode() -> void:
 	if upgrade_logistics:
 		modes.append("depot_s")
 		modes.append("depot_l")
+	if upgrade_nuclear:
+		modes.append("nuclear")
 	if modes.size() <= 1:
 		build_mode = "turret"
 		return
@@ -387,6 +415,8 @@ func _input(event: InputEvent) -> void:
 		_try_buy_upgrade("factory")
 	if event.is_action_pressed("buy_upgrade_logistics") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("logistics")
+	if event.is_action_pressed("buy_upgrade_nuclear") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
+		_try_buy_upgrade("nuclear")
 	if event.is_action_pressed("toggle_build_mode") and phase == AppPhase.PLAYING:
 		_toggle_build_mode()
 	if event.is_action_pressed("toggle_diagnostics"):
@@ -514,6 +544,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	upgrade_core = false
 	upgrade_factory = false
 	upgrade_logistics = false
+	upgrade_nuclear = false
 	turret_damage_mult = 1.0
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0
@@ -612,6 +643,9 @@ func _clear_entities() -> void:
 	for d in supply_depots:
 		var dn: Node = d["node"]
 		dn.queue_free()
+	for np in nuclear_plants:
+		var nn: Node = np["node"]
+		nn.queue_free()
 	for a in asteroids:
 		var an: Node = a["node"]
 		an.queue_free()
@@ -621,6 +655,7 @@ func _clear_entities() -> void:
 	turrets.clear()
 	economy_buildings.clear()
 	supply_depots.clear()
+	nuclear_plants.clear()
 	asteroids.clear()
 	projectiles.clear()
 	asteroid_pool.clear()
@@ -988,6 +1023,52 @@ func _handle_play_left_click() -> void:
 		})
 		_recompute_supply_cap()
 		return
+	if build_mode == "nuclear":
+		if not upgrade_nuclear:
+			return
+		if nuclear_supply_cost > 0 and supply_used + nuclear_supply_cost > supply_cap:
+			return
+		if not build_system.can_place_turret(
+			place_c,
+			command_center_pos,
+			_placed_for_build(),
+			credits,
+			nuclear_cost,
+			4.8,
+			1.6,
+			GRID_SIZE,
+			100.0,
+			nuclear_footprint_w,
+			nuclear_footprint_h,
+		):
+			return
+		credits -= nuclear_cost
+		money_spent += nuclear_cost
+		supply_used += nuclear_supply_cost
+		audio_service.emit_event("build_place")
+		var nnode := MeshInstance3D.new()
+		var nm := BoxMesh.new()
+		var nsx := 0.88 * GRID_SIZE * float(nuclear_footprint_w)
+		var nsz := 0.88 * GRID_SIZE * float(nuclear_footprint_h)
+		nm.size = Vector3(nsx, minf(3.0, 1.0 * GRID_SIZE * 1.4), nsz)
+		nnode.mesh = nm
+		var nmat := StandardMaterial3D.new()
+		nmat.albedo_color = Color(0.55, 0.95, 0.42, 0.96)
+		nnode.material_override = nmat
+		nnode.position = Vector3(place_c.x, 1.0, place_c.z)
+		world_3d.add_child(nnode)
+		nuclear_plants.append({
+			"node": nnode,
+			"pos": place_c,
+			"footprint_w": nuclear_footprint_w,
+			"footprint_h": nuclear_footprint_h,
+			"build_credit_cost": nuclear_cost,
+			"build_supply_cost": nuclear_supply_cost,
+			"power_gen_per_sec": nuclear_power_gen_per_sec,
+			"built_in_inactive_phase": current_inactive_phase,
+		})
+		_recompute_power_cap()
+		return
 	if turret_supply_cost > 0 and supply_used + turret_supply_cost > supply_cap:
 		return
 	if not build_system.can_place_turret(
@@ -1042,6 +1123,7 @@ func _pick_sell_structure(target: Vector3, max_dist: float) -> Dictionary:
 		{"kind": "turret", "arr": turrets},
 		{"kind": "economy", "arr": economy_buildings},
 		{"kind": "depot", "arr": supply_depots},
+		{"kind": "nuclear", "arr": nuclear_plants},
 	]
 	for spec in specs:
 		var arr: Array = spec["arr"]
@@ -1075,7 +1157,12 @@ func _apply_sell_refund(t: Dictionary) -> void:
 func _handle_play_right_click() -> void:
 	if _is_wave_combat_active():
 		return
-	if turrets.is_empty() and economy_buildings.is_empty() and supply_depots.is_empty():
+	if (
+		turrets.is_empty()
+		and economy_buildings.is_empty()
+		and supply_depots.is_empty()
+		and nuclear_plants.is_empty()
+	):
 		return
 	var target := _crosshair_world_on_ground()
 	var sel := _pick_sell_structure(target, 3.4)
@@ -1096,13 +1183,20 @@ func _handle_play_right_click() -> void:
 		var e1 = economy_buildings[ei]
 		_apply_sell_refund(e1)
 		economy_buildings.remove_at(ei)
-	else:
+	elif kind == "depot":
 		var di := int(sel.get("index", -1))
 		if di < 0 or di >= supply_depots.size():
 			return
 		var d1 = supply_depots[di]
 		_apply_sell_refund(d1)
 		supply_depots.remove_at(di)
+	else:
+		var ni := int(sel.get("index", -1))
+		if ni < 0 or ni >= nuclear_plants.size():
+			return
+		var n1 = nuclear_plants[ni]
+		_apply_sell_refund(n1)
+		nuclear_plants.remove_at(ni)
 	_recompute_supply_cap()
 	_recompute_power_cap()
 
@@ -1165,15 +1259,19 @@ func _update_hud() -> void:
 		gi += " | Fac %d" % economy_buildings.size()
 	if supply_depots.size() > 0:
 		gi += " | Dep %d" % supply_depots.size()
+	if nuclear_plants.size() > 0:
+		gi += " | Nuc %d" % nuclear_plants.size()
 	gameplay_info.text = gi
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	var bm := "turret"
-	if upgrade_factory or upgrade_logistics:
+	if upgrade_factory or upgrade_logistics or upgrade_nuclear:
 		bm = build_mode
 		if bm == "depot_s":
 			bm = "depot S"
 		elif bm == "depot_l":
 			bm = "depot L"
+		elif bm == "nuclear":
+			bm = "nuclear plant"
 	look_readout.text = "%s | Build: %s | B toggle" % [
 		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),
 		bm,
@@ -1191,6 +1289,9 @@ func _update_power_economy(delta: float) -> void:
 	for e in economy_buildings:
 		econ_drain += maxf(0.0, float(e.get("passive_power_drain_per_sec", 0.0)))
 	var gen := maxf(0.0, command_center_power_gen_per_sec)
+	if credits > 0:
+		for np in nuclear_plants:
+			gen += maxf(0.0, float(np.get("power_gen_per_sec", 0.0)))
 	power_produced += gen * delta
 	var net := (gen - econ_drain * WebParityDefs.POWER_DRAIN_GLOBAL_MUL) * delta
 	power_stored = int(round(clampf(float(power_stored) + net, 0.0, float(power_cap))))
@@ -1251,10 +1352,11 @@ func _update_diagnostics() -> void:
 		return
 	var fps := int(round(Engine.get_frames_per_second()))
 	var mem_mb := Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
-	diagnostics_label.text = "FPS %d | Tur %d | Fac %d | Ast %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | PowProd %.0f | %s | Mem %.1f MB" % [
+	diagnostics_label.text = "FPS %d | Tur %d | Fac %d | Nuc %d | Ast %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | PowProd %.0f | %s | Mem %.1f MB" % [
 		fps,
 		turrets.size(),
 		economy_buildings.size(),
+		nuclear_plants.size(),
 		asteroids.size(),
 		asteroid_pool.size(),
 		str(wave_combat_active),
@@ -1334,6 +1436,7 @@ func _try_buy_upgrade(which: String) -> void:
 		"upgrade_core": upgrade_core,
 		"upgrade_factory": upgrade_factory,
 		"upgrade_logistics": upgrade_logistics,
+		"upgrade_nuclear": upgrade_nuclear,
 		"turret_damage_mult": turret_damage_mult,
 		"kill_credit_bonus": kill_credit_bonus,
 		"turret_range_bonus": turret_range_bonus,
@@ -1347,6 +1450,7 @@ func _try_buy_upgrade(which: String) -> void:
 	upgrade_core = bool(out.upgrade_core)
 	upgrade_factory = bool(out.upgrade_factory)
 	upgrade_logistics = bool(out.upgrade_logistics)
+	upgrade_nuclear = bool(out.upgrade_nuclear)
 	turret_damage_mult = float(out.turret_damage_mult)
 	kill_credit_bonus = int(out.kill_credit_bonus)
 	turret_range_bonus = float(out.turret_range_bonus)
@@ -1359,6 +1463,7 @@ func _update_research_labels() -> void:
 	research_core_label.text = upgrade_system.label_core(upgrade_core)
 	research_factory_label.text = upgrade_system.label_factory(upgrade_factory)
 	research_logistics_label.text = upgrade_system.label_logistics(upgrade_logistics)
+	research_nuclear_label.text = upgrade_system.label_nuclear(upgrade_nuclear)
 
 
 func _finalize_run_score() -> void:

@@ -213,14 +213,19 @@ func prototype_auto_turret_footprint() -> Vector2i:
 	return Vector2i(maxi(1, ww), maxi(1, hh))
 
 
-## Web `updateResources`: `powerCap` = base + Σ `powerCapAdd` on alive buildings. Prototype: **RESET_RUN_POWER_CAP** + CC + turret/factory **`powerCapAdd`** counts (usually 0).
-func prototype_run_power_cap(turret_count: int, factory_business_count: int = 0) -> int:
+## Web `updateResources`: `powerCap` = base + Σ `powerCapAdd` on alive buildings. Prototype: **RESET_RUN_POWER_CAP** + CC + turret/factory + **`nuclear_plant`** counts (usually 0).
+func prototype_run_power_cap(
+	turret_count: int,
+	factory_business_count: int = 0,
+	nuclear_plant_count: int = 0,
+) -> int:
 	var cap := RESET_RUN_POWER_CAP
 	if not ok:
 		return maxi(1, cap)
 	cap += read_building_int("command_center", "powerCapAdd", 0)
 	cap += read_building_int("auto_turret", "powerCapAdd", 0) * maxi(0, turret_count)
 	cap += read_building_int("factory_business", "powerCapAdd", 0) * maxi(0, factory_business_count)
+	cap += read_building_int("nuclear_plant", "powerCapAdd", 0) * maxi(0, nuclear_plant_count)
 	return maxi(1, cap)
 
 
@@ -304,4 +309,29 @@ func prototype_supply_depot_l_footprint() -> Vector2i:
 		return Vector2i(3, 3)
 	var ww := int(sz.get("w", 3))
 	var hh := int(sz.get("h", 3))
+	return Vector2i(maxi(1, ww), maxi(1, hh))
+
+
+## Web **`nuclear_plant`**: large power gen; **`credits <= 0`** → no gen (handled in **`main._update_power_economy`**).
+func prototype_nuclear_plant_credit_cost(fallback := 1200) -> int:
+	return int(round(read_building_float("nuclear_plant", "creditCost", float(fallback))))
+
+
+func prototype_nuclear_plant_power_gen_per_sec(fallback := 34.0) -> float:
+	return maxf(0.0, read_building_float("nuclear_plant", "powerGenPerSec", fallback))
+
+
+func prototype_nuclear_plant_supply_cost(fallback := 0) -> int:
+	return maxi(0, read_building_int("nuclear_plant", "supplyCost", fallback))
+
+
+func prototype_nuclear_plant_footprint() -> Vector2i:
+	var b := get_building("nuclear_plant")
+	if b.is_empty():
+		return Vector2i(4, 4)
+	var sz = b.get("size", {})
+	if typeof(sz) != TYPE_DICTIONARY:
+		return Vector2i(4, 4)
+	var ww := int(sz.get("w", 4))
+	var hh := int(sz.get("h", 4))
 	return Vector2i(maxi(1, ww), maxi(1, hh))

@@ -47,7 +47,7 @@ Status legend:
 
 - [-] Grid scale and footprint rules for all building sizes  
   Web ref: `src/game/BaseDefenseGame.ts` (cell placement logic)  
-  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from **`auto_turret`** + **`factory_business`** + **`supply_depot_s`** / **`supply_depot_l`** defs; shared occupancy via **`_placed_for_build()`**; **B** cycles turret/factory/**depot S**/**depot L** when unlocked; more **`BuildingId`** types TBD
+  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from **`auto_turret`** + **`factory_business`** + depots + **`nuclear_plant`** (4×4); shared occupancy **`_placed_for_build()`**; **B** cycles unlocked modes; research **N** unlocks nuclear (web prereqs not enforced); more **`BuildingId`** types TBD
 
 - [-] Placement legality parity (wave restrictions, occupancy, command center constraints)  
   Web ref: `src/game/BaseDefenseGame.ts` (`tryPlace`: credits, supply, bounds — **no power check**)  
@@ -81,17 +81,17 @@ Status legend:
 
 - [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: **`WebParityDefs.RESET_RUN_*`** + power tick (CC gen only during wave) + per-shot power; **`power_cap`** = base + CC/turret **`powerCapAdd`** (prototype sums); **CC `creditPayout` / `creditIntervalSec`** during wave; kill mul **`balanceVars.asteroidKillCreditMul`**; **`supply_cap`** = CC base + sum of placed depot **`supplyCapAdd`** (**`supply_depot_s`** / **`supply_depot_l`**); **supply** gate; full **`updateResources`** / building catalog still partial; F3 diagnostics
+  Godot ref: **`WebParityDefs.RESET_RUN_*`** + power tick (CC + **`nuclear_plant`** **`powerGenPerSec`** during wave when **`credits > 0`**) + per-shot power; **`power_cap`** includes nuclear **`powerCapAdd`** count; **CC** + factory payouts during wave; kill mul **`balanceVars.asteroidKillCreditMul`**; **`supply_cap`** from CC + depots; **supply** gate; full **`updateResources`** still partial; F3 diagnostics
 
 - [-] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  
-  Godot ref: **CC** + **`factory_business`** during wave (timer freezes at 0 power if draining); passive drain × **`POWER_DRAIN_GLOBAL_MUL`**; supply depots raise cap only (no payout); refineries / full building set TBD
+  Godot ref: **CC** + **`factory_business`** during wave (timer freezes at 0 power if draining); passive drain × **`POWER_DRAIN_GLOBAL_MUL`**; **nuclear** adds power gen only (stops when **`credits <= 0`**); depots raise supply cap only; refineries / full building set TBD
 
 ## 8) Upgrades / Research
 
 - [-] Full research graph parity + prerequisites + refundability  
   Web ref: `src/App.tsx`, `src/game/BaseDefenseGame.ts`, `UPGRADES`  
-  Godot ref: 3 slots — **HUD + purchase cost** from **`parity_web_defs.json`** (×0.93); mapped ids `turret_targeting` / `unlock_factory` / `generator_efficiency`; **effects** still prototype; wave combat purchase guard preserved
+  Godot ref: **U/I/O/N** — **HUD + purchase cost** from **`parity_web_defs.json`** (×0.93); ids `turret_targeting` / `unlock_factory` / `generator_efficiency` / **`unlock_nuclear_plant`**; **prereqs** not enforced; **effects** prototype; wave combat purchase guard preserved
 
 - [ ] Hero research split parity  
   Web ref: `src/App.tsx` (normal vs hero research)  
