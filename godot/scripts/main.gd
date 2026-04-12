@@ -29,6 +29,8 @@ var turret_cost: int = 100
 var turret_range: float = 16.0
 var turret_damage: float = 28.0
 var turret_cooldown: float = 0.42
+var turret_footprint_w: int = 1
+var turret_footprint_h: int = 1
 var center_max_hp: float = 1000.0
 const PASSIVE_CREDITS_PER_SEC := 5.0
 const PROJECTILE_SPEED := 42.0
@@ -148,6 +150,20 @@ func _parity_apply_building_baseline() -> void:
 	turret_range = WebParityDefs.prototype_auto_turret_range(turret_range)
 	turret_damage = WebParityDefs.prototype_auto_turret_damage(turret_damage)
 	turret_cooldown = WebParityDefs.prototype_auto_turret_cooldown_sec(turret_cooldown)
+	var fp := WebParityDefs.prototype_auto_turret_footprint()
+	turret_footprint_w = fp.x
+	turret_footprint_h = fp.y
+
+
+func _check_command_center_defeat() -> void:
+	if phase != AppPhase.PLAYING:
+		return
+	if command_center_hp > 0.0:
+		return
+	command_center_hp = 0.0
+	_finalize_run_score()
+	audio_service.emit_event("game_over", {})
+	apply_phase(AppPhase.GAMEOVER)
 
 
 func _setup_world_visuals() -> void:
@@ -205,6 +221,7 @@ func _input(event: InputEvent) -> void:
 			apply_phase(AppPhase.values()[next])
 	if event.is_action_pressed("simulate_gameover"):
 		_finalize_run_score()
+		audio_service.emit_event("game_over", {})
 		apply_phase(AppPhase.GAMEOVER)
 	if event.is_action_pressed("start_wave") and phase == AppPhase.PLAYING:
 		# Web `startNextWave(true)` only when `waveReady` (manual early-start uses inactive timer > 0 after wave 1+).
@@ -541,10 +558,7 @@ func _update_asteroids(delta: float) -> void:
 		var i := int(hit["index"])
 		command_center_hp -= float(hit["damage"])
 		_remove_asteroid(i, "impact")
-		if command_center_hp <= 0.0:
-			command_center_hp = 0.0
-			_finalize_run_score()
-			apply_phase(AppPhase.GAMEOVER)
+		if phase != AppPhase.PLAYING:
 			return
 
 
@@ -580,6 +594,7 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 		for _n in range(int(eff["spawn_meteors"])):
 			var moff = Vector3(rand.randf_range(-2.5, 2.5), 0, rand.randf_range(-2.5, 2.5))
 			_spawn_asteroid_at(apos + moff, "meteor")
+	_check_command_center_defeat()
 
 
 func _update_turrets(delta: float) -> void:
@@ -648,23 +663,40 @@ func _handle_play_left_click() -> void:
 	if _is_wave_combat_active():
 		return
 	var pos := _crosshair_world_on_ground()
-	if not build_system.can_place_turret(pos, command_center_pos, turrets, credits, turret_cost, 4.8, 1.6, GRID_SIZE, 100.0, 1):
+	var place_c := build_system.snap_placement(pos, GRID_SIZE)
+	if not build_system.can_place_turret(
+		place_c,
+		command_center_pos,
+		turrets,
+		credits,
+		turret_cost,
+		4.8,
+		1.6,
+		GRID_SIZE,
+		100.0,
+		turret_footprint_w,
+		turret_footprint_h,
+	):
 		return
 	credits -= turret_cost
 	money_spent += turret_cost
 	audio_service.emit_event("build_place")
 	var node := MeshInstance3D.new()
 	var m := BoxMesh.new()
-	m.size = Vector3(1.8, 1.8, 1.8)
+	var sx := 0.88 * GRID_SIZE * float(turret_footprint_w)
+	var sz := 0.88 * GRID_SIZE * float(turret_footprint_h)
+	m.size = Vector3(sx, minf(2.4, 0.9 * GRID_SIZE * 1.2), sz)
 	node.mesh = m
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.45, 0.95, 0.60, 0.95)
 	node.material_override = mat
-	node.position = pos
+	node.position = Vector3(place_c.x, 0.9, place_c.z)
 	world_3d.add_child(node)
 	turrets.append({
 		"node": node,
-		"pos": pos,
+		"pos": place_c,
+		"footprint_w": turret_footprint_w,
+		"footprint_h": turret_footprint_h,
 		"cooldown": 0.1,
 		"built_in_inactive_phase": current_inactive_phase,
 	})
@@ -802,6 +834,8 @@ func _update_projectiles(delta: float) -> void:
 		var ai = int(kills[j])
 		if ai >= 0 and ai < asteroids.size():
 			_remove_asteroid(ai, "combat")
+		if phase != AppPhase.PLAYING:
+			break
 
 
 func _update_camera_motion(delta: float) -> void:

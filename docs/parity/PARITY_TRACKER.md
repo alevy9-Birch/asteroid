@@ -9,8 +9,8 @@ Status legend:
 
 - [-] App phase flow (`menu -> playing -> gameover`)  
   Web ref: `src/App.tsx` (`phase`, `setPhase`)  
-  Godot ref: `godot/scripts/main.gd` (`AppPhase`, `apply_phase`)  
-  Notes: Basic parity exists, but transition side effects differ.
+  Godot ref: `godot/scripts/main.gd` (`AppPhase`, `apply_phase`, `_check_command_center_defeat`)  
+  Notes: CC death from **impact + AOE** ends run; `AudioService.emit_event("game_over")` stub; gameover UI still simpler than web.
 
 - [ ] Session reset parity (all runtime fields, unlocks, wave state, per-run stats)  
   Web ref: `src/App.tsx` (`startNewRun`, `goToMenu`, `INITIAL_STATE`)  
@@ -43,7 +43,7 @@ Status legend:
 
 - [-] Grid scale and footprint rules for all building sizes  
   Web ref: `src/game/BaseDefenseGame.ts` (cell placement logic)  
-  Godot ref: `godot/systems/BuildSystem.gd` (grid snap + footprint occupancy + 101x101 bounds); still single building family
+  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from `WebParityDefs` / `auto_turret.size`, rectangular cell occupancy; still single building **type** in sim
 
 - [-] Placement legality parity (wave restrictions, occupancy, command center constraints)  
   Web ref: `src/game/BaseDefenseGame.ts`  

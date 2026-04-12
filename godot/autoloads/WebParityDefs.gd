@@ -127,3 +127,16 @@ func prototype_auto_turret_cooldown_sec(fallback := 0.42) -> float:
 	if fr <= 0.0:
 		return fallback
 	return 1.0 / maxf(0.04, fr)
+
+
+## Web `BuildingDef.size` { w, h } in grid cells (min 1×1).
+func prototype_auto_turret_footprint() -> Vector2i:
+	var b := get_building("auto_turret")
+	if b.is_empty():
+		return Vector2i(1, 1)
+	var sz = b.get("size", {})
+	if typeof(sz) != TYPE_DICTIONARY:
+		return Vector2i(1, 1)
+	var ww := int(sz.get("w", 1))
+	var hh := int(sz.get("h", 1))
+	return Vector2i(maxi(1, ww), maxi(1, hh))
