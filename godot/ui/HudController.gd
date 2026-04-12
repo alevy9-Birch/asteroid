@@ -14,11 +14,15 @@ func format_gameplay_info(
 	supply_cap: int,
 	wave_ready: bool,
 	spawn_status: String,
+	refund_hint: String = "",
 ) -> String:
 	var wr := "wait"
 	if wave_ready:
 		wr = "ready"
-	return "Wave %d | %dc | HP %d/%d | P %d/%d | S %d/%d | Tur %d | Ast %d | Space:%s | %s | LMB/RMB | P pause" % [
+	var tail := " | LMB/RMB | P pause"
+	if not refund_hint.is_empty():
+		tail = " | %s%s" % [refund_hint, tail]
+	return "Wave %d | %dc | HP %d/%d | P %d/%d | S %d/%d | Tur %d | Ast %d | Space:%s | %s%s" % [
 		wave,
 		credits,
 		center_hp,
@@ -31,6 +35,7 @@ func format_gameplay_info(
 		asteroid_count,
 		wr,
 		spawn_status,
+		tail,
 	]
 
 func format_look_info(yaw: float, pitch: float) -> String:

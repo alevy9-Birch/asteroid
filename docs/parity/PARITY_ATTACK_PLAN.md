@@ -16,7 +16,7 @@
 | **Combat** | `updateDefenses`: `kind` hitscan/missiles/ballistic/railgun/shield, `tryConsumeShotPower`, EMP | **Projectile stub** + per-shot power for prototype turret |
 | **Waves** | `updateWave`, pools, hero/upgrade modifiers | **`WaveSystem`** + **`WaveScaling`** core math; **no hero modifiers** |
 | **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **3 prototype research slots**: labels + **×0.93 costs** from JSON (`turret_targeting`, `unlock_factory`, `generator_efficiency`); effects still placeholder; **`ScoreSystem`** simplified |
-| **UI** | Rich HUD, wheel, research, gameover stats | Menu / pause / gameover + wave ring + compact HUD |
+| **UI** | Rich HUD, wheel, research, gameover stats | Menu / pause / gameover + wave ring + **sandbox** banner + **sell refund** hint + commander on gameover |
 | **Audio** | `useGameAudio` / bus mix | **`AudioService`**: `game_over` plays **`res://audio/game_over.wav`** if present; other events still stub |
 
 ---
@@ -60,8 +60,8 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [-] C.2 **Teardown on new run**: clear turrets/asteroids/projectiles/pool/CC; **`_parity_apply_building_baseline`** each start; **`_sync_game_state_runtime`**; extend when missiles/shields exist.
 - [-] C.3 **Defeat**: CC HP ≤ 0 → game over; verify **impact + AOE** paths.
 - [-] C.4 **`game_over`** optional **`AudioStreamPlayer`** clip at **`res://audio/game_over.wav`**; full bus mix / catalog TBD.
-- [ ] C.5 **Gameover UI**: waves survived, stats grid, commander, leaderboard hooks.
-- [ ] C.6 **Sandbox**: flag + “score not saved” behavior.
+- [-] C.5 **Gameover UI**: waves survived, stats grid, commander, leaderboard hooks. **Partial:** hint line includes **commander** id; full stats grid / leaderboard TBD.
+- [-] C.6 **Sandbox**: **Sandbox** menu run sets flag; **no `save_best_score`** on game over; HUD + gameover copy; **Play Again** keeps sandbox/normal mode.
 
 ### D — Input, camera, shell UX
 
@@ -79,7 +79,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [-] E.3 **Footprint from defs** for prototype turret; generalize to all **`BuildingId`** sizes.
 - [-] E.4 **Supply** gate + sell returns **`build_supply_cost`**; **unlock** graph missing.
 - [-] E.5 Sell refund **100% / 50%** by inactive phase; **`build_credit_cost`** per placement.
-- [ ] E.6 Refund affordance UI (inactive-only hints).
+- [-] E.6 Refund affordance UI (inactive-only hints). **Partial:** gameplay bar shows **100% sell** hint during inactive between waves.
 - [ ] E.7 Drag build/sell timing vs web.
 
 ### F — Waves & asteroids

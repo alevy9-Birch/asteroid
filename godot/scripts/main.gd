@@ -86,6 +86,8 @@ var pause_controller = PauseControllerScript.new()
 var gameover_controller = GameOverControllerScript.new()
 var hud_controller = HudControllerScript.new()
 var selected_commander := "none"
+## Web sandbox-style run: **no** high-score write on game over; **Play Again** keeps the same mode.
+var sandbox_run := false
 var master_volume := 0.85
 var menu_cursor := Vector2.ZERO
 var highlighted_button: Button
@@ -313,15 +315,17 @@ func _collect_buttons() -> void:
 
 
 func _connect_button_handlers() -> void:
-	($MenuOverlay/MenuVBox/StartButton as Button).pressed.connect(func() -> void: _start_new_run())
-	($MenuOverlay/MenuVBox/SandboxButton as Button).pressed.connect(func() -> void: _start_new_run())
+	($MenuOverlay/MenuVBox/StartButton as Button).pressed.connect(func() -> void: _start_new_run(false))
+	($MenuOverlay/MenuVBox/SandboxButton as Button).pressed.connect(func() -> void: _start_new_run(true))
 	($MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolMinus as Button).pressed.connect(func() -> void: _adjust_volume(-0.05))
 	($MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolPlus as Button).pressed.connect(func() -> void: _adjust_volume(0.05))
 	($PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolMinus as Button).pressed.connect(func() -> void: _adjust_volume(-0.05))
 	($PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolPlus as Button).pressed.connect(func() -> void: _adjust_volume(0.05))
 	($PauseOverlay/PauseVBox/ResumeButton as Button).pressed.connect(func() -> void: apply_phase(AppPhase.PLAYING))
 	($PauseOverlay/PauseVBox/PauseMenuButton as Button).pressed.connect(func() -> void: apply_phase(AppPhase.MENU))
-	($GameOverOverlay/GameOverVBox/PlayAgainButton as Button).pressed.connect(func() -> void: _start_new_run())
+	($GameOverOverlay/GameOverVBox/PlayAgainButton as Button).pressed.connect(
+		func() -> void: _start_new_run(sandbox_run)
+	)
 	($GameOverOverlay/GameOverVBox/GameOverMenuButton as Button).pressed.connect(func() -> void: apply_phase(AppPhase.MENU))
 
 
@@ -350,7 +354,8 @@ func apply_phase(next_phase: AppPhase) -> void:
 	_update_hud()
 
 
-func _start_new_run() -> void:
+func _start_new_run(is_sandbox: bool = false) -> void:
+	sandbox_run = is_sandbox
 	# Web `resetRun`–style teardown: all per-run entity arrays + CC node (C.1.2).
 	_clear_entities()
 	# Refresh JSON-derived baselines each run (parity extract can change without editor restart).
@@ -835,8 +840,11 @@ func _update_hud() -> void:
 		spawn_status = "Cleanup (%d asteroids)" % asteroids.size()
 	elif first_wave_started and wave > 0 and inactive_time_left_sec > 0.0:
 		spawn_status = "Inactive %.0fs (Space early / wait auto)" % inactive_time_left_sec
+	var refund_hint := ""
+	if not _is_wave_combat_active() and first_wave_started and inactive_time_left_sec > 0.0:
+		refund_hint = "Sell (RMB): 100% if built this break"
 	var wave_ready := _compute_wave_ready()
-	gameplay_info.text = hud_controller.format_gameplay_info(
+	var gi := hud_controller.format_gameplay_info(
 		wave,
 		credits,
 		int(command_center_hp),
@@ -849,7 +857,11 @@ func _update_hud() -> void:
 		int(supply_cap),
 		wave_ready,
 		spawn_status,
+		refund_hint,
 	)
+	if sandbox_run:
+		gi = "SANDBOX (no hiscore save) | " + gi
+	gameplay_info.text = gi
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	look_readout.text = hud_controller.format_look_info(camera_system.yaw, camera_system.pitch)
 
@@ -1003,12 +1015,20 @@ func _update_research_labels() -> void:
 
 func _finalize_run_score() -> void:
 	run_score = score_system.compute_run_score(wave, asteroids_killed, money_earned, money_spent)
-	gameover_hint.text = gameover_controller.format_hint(wave, asteroids_killed, money_earned, money_spent)
+	gameover_hint.text = gameover_controller.format_hint(
+		wave, asteroids_killed, money_earned, money_spent, selected_commander
+	)
+	if sandbox_run:
+		gameover_hint.text += " | Sandbox (score not saved)"
 	gameover_score.text = "Score: %d" % run_score
-	if run_score > best_score:
+	if sandbox_run:
+		gameover_best.text = "Best: %d (sandbox run)" % best_score
+	elif run_score > best_score:
 		best_score = run_score
 		score_system.save_best_score(best_score)
-	gameover_best.text = "Best: %d" % best_score
+		gameover_best.text = "Best: %d" % best_score
+	else:
+		gameover_best.text = "Best: %d" % best_score
 
 
 func _ensure_fullscreen_and_capture() -> void:

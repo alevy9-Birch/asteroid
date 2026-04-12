@@ -10,7 +10,7 @@ Status legend:
 - [-] App phase flow (`menu -> playing -> gameover`)  
   Web ref: `src/App.tsx` (`phase`, `setPhase`)  
   Godot ref: `godot/scripts/main.gd` (`AppPhase`, `apply_phase`, `_check_command_center_defeat`)  
-  Notes: CC death from **impact + AOE** ends run; `AudioService.emit_event("game_over")` stub; gameover UI still simpler than web.
+  Notes: CC death from **impact + AOE** ends run; **Sandbox** runs skip best-score save; gameover hint includes **commander**; full web gameover stats/leaderboard still TBD.
 
 - [-] Session reset parity (all runtime fields, unlocks, wave state, per-run stats)  
   Web ref: `src/App.tsx` (`startNewRun`, `goToMenu`, `INITIAL_STATE`)  
@@ -103,7 +103,7 @@ Status legend:
 
 - [-] Full HUD parity (**wave timer ring** done; discovery toast, wheel categories, stats cards pending)  
   Web ref: `src/App.tsx` JSX overlays  
-  Godot ref: partial HUD only
+  Godot ref: partial HUD; **inactive sell 100%** hint; **sandbox** banner when applicable
 
 ## 11) Audio
 
