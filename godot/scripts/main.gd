@@ -93,6 +93,17 @@ var menu_cursor := Vector2.ZERO
 var highlighted_button: Button
 var all_menu_buttons: Array[Button] = []
 var turrets: Array = []
+## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
+var economy_buildings: Array = []
+## **`turret`** | **`factory`**. Factory placement after research **I** (`upgrade_factory` ≈ **`unlock_factory`**).
+var build_mode := "turret"
+var factory_cost: int = 160
+var factory_supply_cost: int = 4
+var factory_credit_payout: int = 8
+var factory_credit_interval_sec: float = 1.0
+var factory_passive_power_drain: float = 0.6
+var factory_footprint_w: int = 2
+var factory_footprint_h: int = 2
 var asteroids: Array = []
 var projectiles: Array = []
 var wave := 0
@@ -166,6 +177,13 @@ func _parity_apply_building_baseline() -> void:
 		turret_power_drain_per_sec = 1.6
 		command_center_credit_payout = 18
 		command_center_credit_interval_sec = 1.0
+		factory_cost = 160
+		factory_supply_cost = 4
+		factory_credit_payout = 8
+		factory_credit_interval_sec = 1.0
+		factory_passive_power_drain = 0.6
+		factory_footprint_w = 2
+		factory_footprint_h = 2
 		_recompute_power_cap()
 		return
 	center_max_hp = WebParityDefs.prototype_command_center_max_hp(center_max_hp)
@@ -192,13 +210,41 @@ func _parity_apply_building_baseline() -> void:
 	command_center_credit_interval_sec = WebParityDefs.prototype_command_center_credit_interval_sec(
 		command_center_credit_interval_sec
 	)
+	factory_cost = WebParityDefs.prototype_factory_business_credit_cost(factory_cost)
+	factory_supply_cost = WebParityDefs.prototype_factory_business_supply_cost(factory_supply_cost)
+	factory_credit_payout = WebParityDefs.prototype_factory_business_credit_payout(factory_credit_payout)
+	factory_credit_interval_sec = WebParityDefs.prototype_factory_business_credit_interval_sec(
+		factory_credit_interval_sec
+	)
+	factory_passive_power_drain = WebParityDefs.prototype_factory_business_power_drain_per_sec(
+		factory_passive_power_drain
+	)
+	var ffp := WebParityDefs.prototype_factory_business_footprint()
+	factory_footprint_w = ffp.x
+	factory_footprint_h = ffp.y
 	_recompute_power_cap()
 
 
 func _recompute_power_cap() -> void:
-	var new_cap := WebParityDefs.prototype_run_power_cap(turrets.size())
+	var new_cap := WebParityDefs.prototype_run_power_cap(turrets.size(), economy_buildings.size())
 	power_cap = new_cap
 	power_stored = mini(power_stored, power_cap)
+
+
+func _placed_for_build() -> Array:
+	var out: Array = []
+	for t in turrets:
+		out.append(t)
+	for e in economy_buildings:
+		out.append(e)
+	return out
+
+
+func _toggle_build_mode() -> void:
+	if not upgrade_factory:
+		build_mode = "turret"
+		return
+	build_mode = "factory" if build_mode == "turret" else "turret"
 
 
 func _check_command_center_defeat() -> void:
@@ -282,6 +328,8 @@ func _input(event: InputEvent) -> void:
 		_try_buy_upgrade("factory")
 	if event.is_action_pressed("buy_upgrade_logistics") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("logistics")
+	if event.is_action_pressed("toggle_build_mode") and phase == AppPhase.PLAYING:
+		_toggle_build_mode()
 	if event.is_action_pressed("toggle_diagnostics"):
 		diagnostics_visible = not diagnostics_visible
 		diagnostics_label.visible = diagnostics_visible
@@ -356,6 +404,7 @@ func apply_phase(next_phase: AppPhase) -> void:
 
 func _start_new_run(is_sandbox: bool = false) -> void:
 	sandbox_run = is_sandbox
+	build_mode = "turret"
 	# Web `resetRun`–style teardown: all per-run entity arrays + CC node (C.1.2).
 	_clear_entities()
 	# Refresh JSON-derived baselines each run (parity extract can change without editor restart).
@@ -444,6 +493,7 @@ func _process(delta: float) -> void:
 	_update_camera_motion(delta)
 	_update_passive_income(delta)
 	_update_power_economy(delta)
+	_update_economy_buildings(delta)
 	var combat_before := _is_wave_combat_active()
 	_update_asteroids(delta)
 	var st = wave_system.tick(delta, _wave_state_dict(), asteroids.size(), Callable(self, "_spawn_asteroid"))
@@ -473,6 +523,9 @@ func _clear_entities() -> void:
 	for t in turrets:
 		var n: Node = t["node"]
 		n.queue_free()
+	for e in economy_buildings:
+		var en: Node = e["node"]
+		en.queue_free()
 	for a in asteroids:
 		var an: Node = a["node"]
 		an.queue_free()
@@ -480,6 +533,7 @@ func _clear_entities() -> void:
 		var pn: Node = p["node"]
 		pn.queue_free()
 	turrets.clear()
+	economy_buildings.clear()
 	asteroids.clear()
 	projectiles.clear()
 	asteroid_pool.clear()
@@ -738,12 +792,61 @@ func _handle_play_left_click() -> void:
 		return
 	var pos := _crosshair_world_on_ground()
 	var place_c := build_system.snap_placement(pos, GRID_SIZE)
+	if build_mode == "factory":
+		if not upgrade_factory:
+			return
+		if factory_supply_cost > 0 and supply_used + factory_supply_cost > supply_cap:
+			return
+		if not build_system.can_place_turret(
+			place_c,
+			command_center_pos,
+			_placed_for_build(),
+			credits,
+			factory_cost,
+			4.8,
+			1.6,
+			GRID_SIZE,
+			100.0,
+			factory_footprint_w,
+			factory_footprint_h,
+		):
+			return
+		credits -= factory_cost
+		money_spent += factory_cost
+		supply_used += factory_supply_cost
+		audio_service.emit_event("build_place")
+		var fnode := MeshInstance3D.new()
+		var fm := BoxMesh.new()
+		var fsx := 0.88 * GRID_SIZE * float(factory_footprint_w)
+		var fsz := 0.88 * GRID_SIZE * float(factory_footprint_h)
+		fm.size = Vector3(fsx, minf(2.4, 0.95 * GRID_SIZE * 1.2), fsz)
+		fnode.mesh = fm
+		var fmat := StandardMaterial3D.new()
+		fmat.albedo_color = Color(0.35, 0.72, 0.42, 0.95)
+		fnode.material_override = fmat
+		fnode.position = Vector3(place_c.x, 0.9, place_c.z)
+		world_3d.add_child(fnode)
+		economy_buildings.append({
+			"node": fnode,
+			"pos": place_c,
+			"footprint_w": factory_footprint_w,
+			"footprint_h": factory_footprint_h,
+			"build_credit_cost": factory_cost,
+			"build_supply_cost": factory_supply_cost,
+			"passive_power_drain_per_sec": factory_passive_power_drain,
+			"credit_payout": factory_credit_payout,
+			"credit_interval_sec": factory_credit_interval_sec,
+			"econ_timer": 0.0,
+			"built_in_inactive_phase": current_inactive_phase,
+		})
+		_recompute_power_cap()
+		return
 	if turret_supply_cost > 0 and supply_used + turret_supply_cost > supply_cap:
 		return
 	if not build_system.can_place_turret(
 		place_c,
 		command_center_pos,
-		turrets,
+		_placed_for_build(),
 		credits,
 		turret_cost,
 		4.8,
@@ -784,28 +887,61 @@ func _handle_play_left_click() -> void:
 	_recompute_power_cap()
 
 
+func _pick_sell_structure(target: Vector3, max_dist: float) -> Dictionary:
+	var ti := build_system.pick_sell_target(turrets, target, max_dist)
+	var ei := build_system.pick_sell_target(economy_buildings, target, max_dist)
+	var pick_t := ti >= 0
+	var pick_e := ei >= 0
+	if not pick_t and not pick_e:
+		return {"kind": "none", "index": -1}
+	var dt := max_dist
+	var de := max_dist
+	if pick_t:
+		dt = (turrets[ti]["pos"] as Vector3).distance_to(target)
+	if pick_e:
+		de = (economy_buildings[ei]["pos"] as Vector3).distance_to(target)
+	if pick_t and (not pick_e or dt <= de):
+		return {"kind": "turret", "index": ti}
+	return {"kind": "economy", "index": ei}
+
+
+func _apply_sell_refund(t: Dictionary) -> void:
+	var node: Node = t["node"]
+	node.queue_free()
+	var built_phase := int(t.get("built_in_inactive_phase", -999))
+	var full_refund := not _is_wave_combat_active() and built_phase == current_inactive_phase
+	var paid := int(t.get("build_credit_cost", 0))
+	var refund := paid if full_refund else int(floor(paid * 0.5))
+	credits += refund
+	var sup_paid := int(t.get("build_supply_cost", 0))
+	supply_used = maxi(0, supply_used - sup_paid)
+	audio_service.emit_event("build_sell")
+
+
 func _handle_play_right_click() -> void:
 	if _is_wave_combat_active():
 		return
-	if turrets.is_empty():
+	if turrets.is_empty() and economy_buildings.is_empty():
 		return
 	var target := _crosshair_world_on_ground()
-	var best := build_system.pick_sell_target(turrets, target, 3.4)
-	if best < 0:
+	var sel := _pick_sell_structure(target, 3.4)
+	var kind := String(sel.get("kind", "none"))
+	if kind == "none":
 		return
-	var t = turrets[best]
-	var node: Node = t["node"]
-	node.queue_free()
-	turrets.remove_at(best)
-	# Web `sellLookedAt`: 100% if same inactive phase and not in wave, else 50%.
-	var built_phase := int(t.get("built_in_inactive_phase", -999))
-	var full_refund := not _is_wave_combat_active() and built_phase == current_inactive_phase
-	var paid := int(t.get("build_credit_cost", turret_cost))
-	var refund := paid if full_refund else int(floor(paid * 0.5))
-	credits += refund
-	var sup_paid := int(t.get("build_supply_cost", turret_supply_cost))
-	supply_used = maxi(0, supply_used - sup_paid)
-	audio_service.emit_event("build_sell")
+	if kind == "turret":
+		var ti := int(sel.get("index", -1))
+		if ti < 0 or ti >= turrets.size():
+			return
+		var t1 = turrets[ti]
+		_apply_sell_refund(t1)
+		turrets.remove_at(ti)
+	else:
+		var ei := int(sel.get("index", -1))
+		if ei < 0 or ei >= economy_buildings.size():
+			return
+		var e1 = economy_buildings[ei]
+		_apply_sell_refund(e1)
+		economy_buildings.remove_at(ei)
 	_recompute_power_cap()
 
 
@@ -861,9 +997,17 @@ func _update_hud() -> void:
 	)
 	if sandbox_run:
 		gi = "SANDBOX (no hiscore save) | " + gi
+	if economy_buildings.size() > 0:
+		gi += " | Fac %d" % economy_buildings.size()
 	gameplay_info.text = gi
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
-	look_readout.text = hud_controller.format_look_info(camera_system.yaw, camera_system.pitch)
+	var bm := "turret"
+	if upgrade_factory:
+		bm = build_mode
+	look_readout.text = "%s | Build: %s | B toggle" % [
+		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),
+		bm,
+	]
 
 
 func _update_power_economy(delta: float) -> void:
@@ -872,8 +1016,13 @@ func _update_power_economy(delta: float) -> void:
 	if not _is_wave_combat_active():
 		power_stored = mini(power_stored, power_cap)
 		return
-	# Prototype: no factory/shield passive drains yet (`getPassivePowerDrainPerSec`); only CC gen ticks here.
-	var net := command_center_power_gen_per_sec * delta
+	# Economy buildings: web `getPassivePowerDrainPerSec` includes **`category === 'economy'`** (× `POWER_DRAIN_GLOBAL_MUL`).
+	var econ_drain := 0.0
+	for e in economy_buildings:
+		econ_drain += maxf(0.0, float(e.get("passive_power_drain_per_sec", 0.0)))
+	var net := (
+		command_center_power_gen_per_sec - econ_drain * WebParityDefs.POWER_DRAIN_GLOBAL_MUL
+	) * delta
 	power_stored = int(round(clampf(float(power_stored) + net, 0.0, float(power_cap))))
 
 
@@ -903,14 +1052,39 @@ func _update_passive_income(delta: float) -> void:
 		money_earned += payout
 
 
+func _update_economy_buildings(delta: float) -> void:
+	# Web `updateResources` economy loop: **`creditPayout` / `creditIntervalSec`** during wave; pause timer if draining and **no power**.
+	if not _is_wave_combat_active():
+		return
+	for i in range(economy_buildings.size()):
+		var e = economy_buildings[i]
+		var drain := maxf(0.0, float(e.get("passive_power_drain_per_sec", 0.0)))
+		if drain > 0.0 and float(power_stored) <= 0.001:
+			continue
+		var payout := int(e.get("credit_payout", 0))
+		if payout <= 0:
+			continue
+		var interval := maxf(0.05, float(e.get("credit_interval_sec", 1.0)))
+		var timer := float(e.get("econ_timer", 0.0)) + delta
+		while timer >= interval:
+			timer -= interval
+			if drain > 0.0 and float(power_stored) <= 0.001:
+				break
+			credits = economy_system.add_income(credits, payout)
+			money_earned += payout
+		e["econ_timer"] = timer
+		economy_buildings[i] = e
+
+
 func _update_diagnostics() -> void:
 	if not diagnostics_visible:
 		return
 	var fps := int(round(Engine.get_frames_per_second()))
 	var mem_mb := Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
-	diagnostics_label.text = "FPS %d | Turrets %d | Asteroids %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | Mem %.1f MB" % [
+	diagnostics_label.text = "FPS %d | Tur %d | Fac %d | Ast %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | Mem %.1f MB" % [
 		fps,
 		turrets.size(),
+		economy_buildings.size(),
 		asteroids.size(),
 		asteroid_pool.size(),
 		str(wave_combat_active),

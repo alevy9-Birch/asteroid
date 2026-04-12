@@ -9,6 +9,7 @@ func ensure_default_actions() -> void:
 	_add_action_if_missing("buy_upgrade_factory", KEY_I)
 	_add_action_if_missing("buy_upgrade_logistics", KEY_O)
 	_add_action_if_missing("toggle_diagnostics", KEY_F3)
+	_add_action_if_missing("toggle_build_mode", KEY_B)
 	_add_action_if_missing("move_forward", KEY_W)
 	_add_action_if_missing("move_left", KEY_A)
 	_add_action_if_missing("move_back", KEY_S)

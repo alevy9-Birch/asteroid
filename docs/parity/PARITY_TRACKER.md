@@ -43,7 +43,7 @@ Status legend:
 
 - [-] Grid scale and footprint rules for all building sizes  
   Web ref: `src/game/BaseDefenseGame.ts` (cell placement logic)  
-  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from `WebParityDefs` / `auto_turret.size`, rectangular cell occupancy; still single building **type** in sim
+  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from **`auto_turret`** + **`factory_business`** defs; shared occupancy via **`_placed_for_build()`**; more **`BuildingId`** types TBD
 
 - [-] Placement legality parity (wave restrictions, occupancy, command center constraints)  
   Web ref: `src/game/BaseDefenseGame.ts` (`tryPlace`: credits, supply, bounds — **no power check**)  
@@ -81,7 +81,7 @@ Status legend:
 
 - [-] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  
-  Godot ref: **CC** `creditPayout` / `creditIntervalSec` during wave; factories/refineries not modeled
+  Godot ref: **CC** + **`factory_business`** during wave (timer freezes at 0 power if draining); passive drain × **`POWER_DRAIN_GLOBAL_MUL`**; refineries / full building set TBD
 
 ## 8) Upgrades / Research
 
