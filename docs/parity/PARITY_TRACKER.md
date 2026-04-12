@@ -113,7 +113,7 @@ Status legend:
 
 - [-] Audio event parity and music phase behavior  
   Web ref: `src/audio/gameAudioEngine.ts`, `src/audio/useGameAudio.ts`  
-  Godot ref: **`AudioService`** — optional **`res://audio/sfx/`** (web OGG names) for **build_place/sell**, **aoe_pop**, **emp_pulse**, **upgrade_purchase**, **asteroid_impact**, **asteroid_destroyed**; **`game_over.wav`** or fallback **`metal_impact.ogg`**; music phases / Howler-style master volume TBD
+  Godot ref: **`AudioService`** — optional **`res://audio/sfx/`** (web OGG names) for **wave_start** / **wave_cleared** (edge-detected in **`_apply_wave_state`**), **build_place/sell**, **aoe_pop**, **emp_pulse**, **upgrade_purchase**, **asteroid_impact**, **asteroid_destroyed**; **`game_over.wav`** or fallback **`metal_impact.ogg`**; music phases / Howler-style master volume TBD
 
 ## 12) Score / Persistence
 

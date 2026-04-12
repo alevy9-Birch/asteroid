@@ -131,7 +131,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### K — Audio
 
 - [-] K.1 **AudioService** API + call sites; **`game_over`** optional one-shot clip.
-- [-] K.2 Map web events 1:1 + buses + assets. **Partial:** **`emit_event`** plays matching clips from **`godot/audio/sfx/`** when copied from web **`public/audio/sfx/`**; **asteroid_impact**, **asteroid_destroyed** (variant → laser small/large); **game_over** fallback **`metal_impact.ogg`**; music / master bus parity TBD.
+- [-] K.2 Map web events 1:1 + buses + assets. **Partial:** **`emit_event`** + optional **`godot/audio/sfx/`** (web filenames); **wave_start** / **wave_cleared** on **`wave_combat_active`** edges via **`_apply_wave_state`**; combat/build/upgrade/impact SFX; **game_over** fallback **`metal_impact.ogg`**; music / master bus parity TBD.
 
 ### L — Score, persistence, validation
 

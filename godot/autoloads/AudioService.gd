@@ -6,7 +6,10 @@ const GAME_OVER_STREAM_PATH := "res://audio/game_over.wav"
 
 ## Same **filenames** as web `public/audio/sfx/` — copy that folder to **`godot/audio/sfx/`** import in Godot.
 const SFX_DIR := "res://audio/sfx/"
+## Web **`wave_start` / `wave_cleared`** types are silent in TS; we map optional **`thr_whoosh`** / **`door_close`** if present in **`SFX_DIR`**.
 const OPTIONAL_SFX := {
+	"wave_start": "thr_whoosh.ogg",
+	"wave_cleared": "door_close.ogg",
 	"build_place": "door_open.ogg",
 	"build_sell": "door_close.ogg",
 	"emp_pulse": "emp_burst.ogg",

@@ -1418,6 +1418,7 @@ func _wave_state_dict() -> Dictionary:
 
 
 func _apply_wave_state(st: Dictionary) -> void:
+	var prev_combat := wave_combat_active
 	wave = int(st.get("wave", wave))
 	wave_combat_active = bool(st.get("wave_combat_active", wave_combat_active))
 	to_spawn = int(st.get("to_spawn", to_spawn))
@@ -1429,6 +1430,10 @@ func _apply_wave_state(st: Dictionary) -> void:
 	inactive_time_left_sec = float(st.get("inactive_time_left_sec", inactive_time_left_sec))
 	current_inactive_phase = int(st.get("current_inactive_phase", current_inactive_phase))
 	game_difficulty = str(st.get("difficulty", game_difficulty))
+	if wave_combat_active and not prev_combat:
+		audio_service.emit_event("wave_start", {})
+	if prev_combat and not wave_combat_active:
+		audio_service.emit_event("wave_cleared", {})
 	_sync_game_state_runtime()
 
 
