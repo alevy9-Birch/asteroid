@@ -61,7 +61,7 @@ Status legend:
 
 - [-] Asteroid variants and behavior parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`AsteroidVariant`, variant logic)  
-  Godot ref: variant speed/hp/impact + splitter/explosive/spawner/emp/colossus effects now implemented in `godot/systems/AsteroidSystem.gd`; targeting and exact balance still pending
+  Godot ref: **base HP / damage / speed** from `WaveScaling.asteroid_base_stats` (difficulty + `adj`/`powT` + global 0.78 HP mul); per-rock **`move_speed`**, **`impact_damage`**, **`impact_radius`** via `AsteroidSystem.compute_spawn_kinematics` (web variant muls + radius scale). Splitter child HP/speed approximations; **seeker targeting / gravity wells** still missing.
 
 ## 6) Combat / Projectiles / Effects
 

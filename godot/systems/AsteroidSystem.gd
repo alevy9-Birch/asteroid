@@ -11,14 +11,15 @@ func pick_variant(rand: RandomNumberGenerator, wave: int) -> String:
 		return ["normal", "splitter", "explosive"][rand.randi_range(0, 2)]
 	return VARIANTS[rand.randi_range(0, VARIANTS.size() - 1)]
 
-func update_asteroids(delta: float, asteroids: Array, command_center_pos: Vector3, speed: float, wave: int) -> Array:
+func update_asteroids(delta: float, asteroids: Array, command_center_pos: Vector3) -> Array:
 	var out := asteroids.duplicate(true)
 	for i in range(out.size() - 1, -1, -1):
 		var a = out[i]
 		var pos: Vector3 = a["pos"]
 		var dir := (command_center_pos - pos).normalized()
-		var variant := String(a.get("variant", "normal"))
-		pos += dir * speed * variant_speed_mul(variant) * (1.0 + wave * 0.06) * delta
+		## Web: per-asteroid `speed` after variant `speedMul`; set at spawn via `compute_spawn_kinematics`.
+		var spd := float(a.get("move_speed", 5.2))
+		pos += dir * spd * delta
 		a["pos"] = pos
 		var node: MeshInstance3D = a["node"]
 		node.position = pos
@@ -29,15 +30,17 @@ func update_asteroids(delta: float, asteroids: Array, command_center_pos: Vector
 		out[i] = a
 	return out
 
-func find_impacts(asteroids: Array, command_center_pos: Vector3, impact_distance: float) -> Array:
+func find_impacts(asteroids: Array, command_center_pos: Vector3) -> Array:
 	var hits: Array = []
 	for i in range(asteroids.size()):
 		var pos: Vector3 = asteroids[i]["pos"]
-		if pos.distance_to(command_center_pos) < impact_distance:
+		var rad := float(asteroids[i].get("impact_radius", 2.6))
+		if pos.distance_to(command_center_pos) < rad:
 			var variant := String(asteroids[i].get("variant", "normal"))
+			var dmg := float(asteroids[i].get("impact_damage", 70.0))
 			hits.append({
 				"index": i,
-				"damage": variant_impact_damage(variant),
+				"damage": dmg,
 				"variant": variant,
 			})
 	return hits
@@ -65,28 +68,73 @@ func variant_speed_mul(variant: String) -> float:
 		_:
 			return 1.0
 
-func variant_impact_damage(variant: String) -> float:
+## Web `spawnAsteroid` switch: `impactDamage / baseDamage`.
+func variant_impact_damage_mul(variant: String) -> float:
 	match variant:
 		"splitter":
-			return 49.0
+			return 0.7
 		"explosive":
-			return 48.0
+			return 0.68
 		"meteor":
-			return 102.0
+			return 1.45
 		"seeker":
-			return 71.0
+			return 1.02
 		"planet":
-			return 78.0
+			return 1.12
 		"gold":
-			return 67.0
+			return 0.95
 		"spawner":
-			return 57.0
+			return 0.82
 		"emp":
-			return 39.0
+			return 0.55
 		"colossus":
-			return 84.0
+			return 1.2
 		_:
-			return 70.0
+			return 1.0
+
+
+## Web impact radius in world units; scaled to Godot arena (legacy hit test used ~2.6 for normal).
+const _WEB_REF_RADIUS := 4.6
+
+func variant_impact_radius_web(variant: String) -> float:
+	match variant:
+		"splitter":
+			return 4.2
+		"explosive":
+			return 6.6
+		"meteor":
+			return 0.95
+		"seeker":
+			return 4.9
+		"planet":
+			return 7.6
+		"gold":
+			return 4.9
+		"spawner":
+			return 4.4
+		"emp":
+			return 5.8
+		"colossus":
+			return 10.5
+		_:
+			return 4.6
+
+
+func compute_spawn_kinematics(variant: String, base_hp: float, base_damage: float, base_speed: float) -> Dictionary:
+	var hp_m := variant_hp_mul(variant)
+	var sp_m := variant_speed_mul(variant)
+	var max_hp := maxi(40, int(round(base_hp * hp_m)))
+	var move_speed := base_speed * sp_m
+	var dmg_mul := variant_impact_damage_mul(variant)
+	var impact_damage := base_damage * dmg_mul
+	var r_web := variant_impact_radius_web(variant)
+	var impact_radius := r_web * (2.6 / _WEB_REF_RADIUS)
+	return {
+		"max_hp": float(max_hp),
+		"move_speed": move_speed,
+		"impact_damage": impact_damage,
+		"impact_radius": impact_radius,
+	}
 
 func variant_hp_mul(variant: String) -> float:
 	match variant:

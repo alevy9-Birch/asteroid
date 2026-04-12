@@ -28,8 +28,6 @@ const INACTIVE_DURATION_SEC := 60.0
 const TURRET_RANGE := 16.0
 const TURRET_DAMAGE := 28.0
 const TURRET_COOLDOWN := 0.42
-const ASTEROID_SPEED := 5.2
-const ASTEROID_BASE_HP := 60.0
 const CENTER_MAX_HP := 1000.0
 const PASSIVE_CREDITS_PER_SEC := 5.0
 const PROJECTILE_SPEED := 42.0
@@ -425,7 +423,14 @@ func _spawn_asteroid() -> void:
 		world_3d.add_child(node)
 	node.position = p
 	var variant := asteroid_system.pick_variant(rand, wave)
-	var hp := (ASTEROID_BASE_HP + wave * 7.0 + rand.randf_range(-10.0, 10.0)) * asteroid_system.variant_hp_mul(variant)
+	var ab := WaveScaling.asteroid_base_stats(wave, game_difficulty)
+	var kin := asteroid_system.compute_spawn_kinematics(
+		variant,
+		float(ab.get("base_hp", 100.0)),
+		float(ab.get("base_damage", 360.0)),
+		float(ab.get("base_speed", 15.0)),
+	)
+	var hp := float(kin.get("max_hp", 40.0))
 	var base_scale := asteroid_system.variant_size_mul(variant)
 	node.scale = Vector3(base_scale, base_scale, base_scale)
 	var mat_node := node.material_override as StandardMaterial3D
@@ -439,6 +444,9 @@ func _spawn_asteroid() -> void:
 		"splitLevel": 0,
 		"spawnCooldown": (6.0 if variant == "spawner" else 999.0),
 		"spawnReady": false,
+		"move_speed": float(kin.get("move_speed", 5.2)),
+		"impact_damage": float(kin.get("impact_damage", 70.0)),
+		"impact_radius": float(kin.get("impact_radius", 2.6)),
 	})
 
 
@@ -459,10 +467,27 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> 
 	if node.get_parent() == null:
 		world_3d.add_child(node)
 	node.position = pos
-	var hp := (ASTEROID_BASE_HP + wave * 7.0 + rand.randf_range(-6.0, 6.0)) * asteroid_system.variant_hp_mul(variant)
+	var ab2 := WaveScaling.asteroid_base_stats(wave, game_difficulty)
+	var kin2 := asteroid_system.compute_spawn_kinematics(
+		variant,
+		float(ab2.get("base_hp", 100.0)),
+		float(ab2.get("base_damage", 360.0)),
+		float(ab2.get("base_speed", 15.0)),
+	)
+	var hp2 := float(kin2.get("max_hp", 40.0))
+	var ms2 := float(kin2.get("move_speed", 5.2))
+	var idmg := float(kin2.get("impact_damage", 70.0))
+	var irad := float(kin2.get("impact_radius", 2.6))
+	if split_level > 0:
+		var hmul := 0.32
+		var smul := 1.12
+		if split_level == 1:
+			hmul = 0.55
+			smul = 1.05
+		hp2 = maxf(30.0, hp2 * hmul)
+		ms2 = maxf(8.0, ms2 * smul)
 	var base_scale := asteroid_system.variant_size_mul(variant)
 	if split_level > 0:
-		hp *= 0.58
 		node.scale = Vector3(base_scale * 0.72, base_scale * 0.72, base_scale * 0.72)
 	else:
 		node.scale = Vector3(base_scale, base_scale, base_scale)
@@ -472,16 +497,19 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> 
 	asteroids.append({
 		"node": node,
 		"pos": pos,
-		"hp": hp,
+		"hp": hp2,
 		"variant": variant,
 		"splitLevel": split_level,
 		"spawnCooldown": (6.0 if variant == "spawner" else 999.0),
 		"spawnReady": false,
+		"move_speed": ms2,
+		"impact_damage": idmg,
+		"impact_radius": irad,
 	})
 
 
 func _update_asteroids(delta: float) -> void:
-	asteroids = asteroid_system.update_asteroids(delta, asteroids, command_center_pos, ASTEROID_SPEED, wave)
+	asteroids = asteroid_system.update_asteroids(delta, asteroids, command_center_pos)
 	for i in range(asteroids.size() - 1, -1, -1):
 		var a = asteroids[i]
 		if bool(a.get("spawnReady", false)):
@@ -489,7 +517,7 @@ func _update_asteroids(delta: float) -> void:
 			a["spawnCooldown"] = 6.0
 			asteroids[i] = a
 			_spawn_asteroid_at(Vector3(a["pos"]) + Vector3(rand.randf_range(-3.0, 3.0), 0, rand.randf_range(-3.0, 3.0)), "meteor")
-	var impacts = asteroid_system.find_impacts(asteroids, command_center_pos, 2.6)
+	var impacts = asteroid_system.find_impacts(asteroids, command_center_pos)
 	for k in range(impacts.size() - 1, -1, -1):
 		var hit = impacts[k]
 		var i := int(hit["index"])

@@ -68,7 +68,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 - [x] **C.3.1** Extract `AsteroidSystem.gd`; variant hooks (splitter, explosive, spawner, emp, colossus, …).
 - [ ] **C.3.2** Full variant list parity: `normal | splitter | explosive | meteor | seeker | planet | gold | spawner | emp | colossus` behaviors + tuning.
 - [ ] **C.3.3** Movement: seeker steering, pulsar slow, stasis, radar mark — match web fields on `Asteroid` type.
-- [ ] **C.3.4** Impact radii / damage parity (`impactRadius`, `impactDamage`).
+- [-] **C.3.4** Impact radii / damage parity — Godot stores **`impact_radius`** / **`impact_damage`** per rock from web `baseDamage` × variant mul + web radius scaled to arena (`2.6/4.6` vs normal 4.6). Command-center **distance scale** still approximate vs full web grid.
 - [ ] **C.3.5** Discovery toast / variant reveal rules.
 
 ### C.4 Build, placement, footprint, occupancy
