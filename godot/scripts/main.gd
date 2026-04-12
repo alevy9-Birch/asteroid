@@ -95,7 +95,7 @@ var all_menu_buttons: Array[Button] = []
 var turrets: Array = []
 ## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
 var economy_buildings: Array = []
-## **`turret`** | **`factory`**. Factory placement after research **I** (`upgrade_factory` ≈ **`unlock_factory`**).
+## **`turret`** | **`factory`** (research **I**) | **`depot`** (research **O**). **B** cycles unlocked modes.
 var build_mode := "turret"
 var factory_cost: int = 160
 var factory_supply_cost: int = 4
@@ -104,6 +104,13 @@ var factory_credit_interval_sec: float = 1.0
 var factory_passive_power_drain: float = 0.6
 var factory_footprint_w: int = 2
 var factory_footprint_h: int = 2
+## Web **`supply_depot_s`**: adds **`supplyCapAdd`** to run cap (sold / cleared removes it).
+var supply_depots: Array = []
+var depot_cost: int = 200
+var depot_supply_cap_add: int = 18
+var depot_supply_cost: int = 0
+var depot_footprint_w: int = 2
+var depot_footprint_h: int = 2
 var asteroids: Array = []
 var projectiles: Array = []
 var wave := 0
@@ -171,7 +178,6 @@ func _parity_apply_building_baseline() -> void:
 	if not WebParityDefs.ok:
 		command_center_hp = center_max_hp
 		_run_supply_cap_start = 20
-		supply_cap = 20
 		turret_supply_cost = 2
 		command_center_power_gen_per_sec = 1.6
 		turret_power_drain_per_sec = 1.6
@@ -184,7 +190,13 @@ func _parity_apply_building_baseline() -> void:
 		factory_passive_power_drain = 0.6
 		factory_footprint_w = 2
 		factory_footprint_h = 2
+		depot_cost = 200
+		depot_supply_cap_add = 18
+		depot_supply_cost = 0
+		depot_footprint_w = 2
+		depot_footprint_h = 2
 		_recompute_power_cap()
+		_recompute_supply_cap()
 		return
 	center_max_hp = WebParityDefs.prototype_command_center_max_hp(center_max_hp)
 	command_center_hp = center_max_hp
@@ -197,7 +209,6 @@ func _parity_apply_building_baseline() -> void:
 	turret_footprint_h = fp.y
 	turret_supply_cost = WebParityDefs.prototype_auto_turret_supply_cost(turret_supply_cost)
 	_run_supply_cap_start = WebParityDefs.prototype_command_center_supply_cap_add(_run_supply_cap_start)
-	supply_cap = _run_supply_cap_start
 	command_center_power_gen_per_sec = WebParityDefs.prototype_command_center_power_gen_per_sec(
 		command_center_power_gen_per_sec
 	)
@@ -222,7 +233,22 @@ func _parity_apply_building_baseline() -> void:
 	var ffp := WebParityDefs.prototype_factory_business_footprint()
 	factory_footprint_w = ffp.x
 	factory_footprint_h = ffp.y
+	depot_cost = WebParityDefs.prototype_supply_depot_s_credit_cost(depot_cost)
+	depot_supply_cap_add = WebParityDefs.prototype_supply_depot_s_supply_cap_add(depot_supply_cap_add)
+	depot_supply_cost = WebParityDefs.prototype_supply_depot_s_supply_cost(depot_supply_cost)
+	var dfp := WebParityDefs.prototype_supply_depot_s_footprint()
+	depot_footprint_w = dfp.x
+	depot_footprint_h = dfp.y
 	_recompute_power_cap()
+	_recompute_supply_cap()
+
+
+func _recompute_supply_cap() -> void:
+	var cap := _run_supply_cap_start
+	for d in supply_depots:
+		cap += int(d.get("supply_cap_add", 0))
+	supply_cap = maxi(0, cap)
+	supply_used = mini(supply_used, supply_cap)
 
 
 func _recompute_power_cap() -> void:
@@ -237,14 +263,25 @@ func _placed_for_build() -> Array:
 		out.append(t)
 	for e in economy_buildings:
 		out.append(e)
+	for d in supply_depots:
+		out.append(d)
 	return out
 
 
 func _toggle_build_mode() -> void:
-	if not upgrade_factory:
+	var modes: PackedStringArray = PackedStringArray()
+	modes.append("turret")
+	if upgrade_factory:
+		modes.append("factory")
+	if upgrade_logistics:
+		modes.append("depot")
+	if modes.size() <= 1:
 		build_mode = "turret"
 		return
-	build_mode = "factory" if build_mode == "turret" else "turret"
+	var idx := modes.find(build_mode)
+	if idx < 0:
+		idx = 0
+	build_mode = modes[(idx + 1) % modes.size()]
 
 
 func _check_command_center_defeat() -> void:
@@ -412,7 +449,6 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	wave = 0
 	credits = WebParityDefs.RESET_RUN_CREDITS
 	power_stored = WebParityDefs.RESET_RUN_POWER_STORED
-	supply_cap = _run_supply_cap_start
 	supply_used = WebParityDefs.RESET_RUN_SUPPLY_USED
 	command_center_hp = center_max_hp
 	wave_combat_active = false
@@ -526,6 +562,9 @@ func _clear_entities() -> void:
 	for e in economy_buildings:
 		var en: Node = e["node"]
 		en.queue_free()
+	for d in supply_depots:
+		var dn: Node = d["node"]
+		dn.queue_free()
 	for a in asteroids:
 		var an: Node = a["node"]
 		an.queue_free()
@@ -534,6 +573,7 @@ func _clear_entities() -> void:
 		pn.queue_free()
 	turrets.clear()
 	economy_buildings.clear()
+	supply_depots.clear()
 	asteroids.clear()
 	projectiles.clear()
 	asteroid_pool.clear()
@@ -841,6 +881,52 @@ func _handle_play_left_click() -> void:
 		})
 		_recompute_power_cap()
 		return
+	if build_mode == "depot":
+		if not upgrade_logistics:
+			return
+		if depot_supply_cost > 0 and supply_used + depot_supply_cost > supply_cap:
+			return
+		if not build_system.can_place_turret(
+			place_c,
+			command_center_pos,
+			_placed_for_build(),
+			credits,
+			depot_cost,
+			4.8,
+			1.6,
+			GRID_SIZE,
+			100.0,
+			depot_footprint_w,
+			depot_footprint_h,
+		):
+			return
+		credits -= depot_cost
+		money_spent += depot_cost
+		supply_used += depot_supply_cost
+		audio_service.emit_event("build_place")
+		var dnode := MeshInstance3D.new()
+		var dm := BoxMesh.new()
+		var dsx := 0.88 * GRID_SIZE * float(depot_footprint_w)
+		var dsz := 0.88 * GRID_SIZE * float(depot_footprint_h)
+		dm.size = Vector3(dsx, minf(2.2, 0.92 * GRID_SIZE * 1.1), dsz)
+		dnode.mesh = dm
+		var dmat := StandardMaterial3D.new()
+		dmat.albedo_color = Color(0.82, 0.62, 0.35, 0.95)
+		dnode.material_override = dmat
+		dnode.position = Vector3(place_c.x, 0.85, place_c.z)
+		world_3d.add_child(dnode)
+		supply_depots.append({
+			"node": dnode,
+			"pos": place_c,
+			"footprint_w": depot_footprint_w,
+			"footprint_h": depot_footprint_h,
+			"build_credit_cost": depot_cost,
+			"build_supply_cost": depot_supply_cost,
+			"supply_cap_add": depot_supply_cap_add,
+			"built_in_inactive_phase": current_inactive_phase,
+		})
+		_recompute_supply_cap()
+		return
 	if turret_supply_cost > 0 and supply_used + turret_supply_cost > supply_cap:
 		return
 	if not build_system.can_place_turret(
@@ -888,21 +974,28 @@ func _handle_play_left_click() -> void:
 
 
 func _pick_sell_structure(target: Vector3, max_dist: float) -> Dictionary:
-	var ti := build_system.pick_sell_target(turrets, target, max_dist)
-	var ei := build_system.pick_sell_target(economy_buildings, target, max_dist)
-	var pick_t := ti >= 0
-	var pick_e := ei >= 0
-	if not pick_t and not pick_e:
+	var best_kind := "none"
+	var best_idx := -1
+	var best_d := max_dist
+	var specs: Array = [
+		{"kind": "turret", "arr": turrets},
+		{"kind": "economy", "arr": economy_buildings},
+		{"kind": "depot", "arr": supply_depots},
+	]
+	for spec in specs:
+		var arr: Array = spec["arr"]
+		var kind: String = spec["kind"]
+		var idx := build_system.pick_sell_target(arr, target, max_dist)
+		if idx < 0:
+			continue
+		var d := (arr[idx]["pos"] as Vector3).distance_to(target)
+		if d < best_d:
+			best_d = d
+			best_idx = idx
+			best_kind = kind
+	if best_idx < 0:
 		return {"kind": "none", "index": -1}
-	var dt := max_dist
-	var de := max_dist
-	if pick_t:
-		dt = (turrets[ti]["pos"] as Vector3).distance_to(target)
-	if pick_e:
-		de = (economy_buildings[ei]["pos"] as Vector3).distance_to(target)
-	if pick_t and (not pick_e or dt <= de):
-		return {"kind": "turret", "index": ti}
-	return {"kind": "economy", "index": ei}
+	return {"kind": best_kind, "index": best_idx}
 
 
 func _apply_sell_refund(t: Dictionary) -> void:
@@ -921,7 +1014,7 @@ func _apply_sell_refund(t: Dictionary) -> void:
 func _handle_play_right_click() -> void:
 	if _is_wave_combat_active():
 		return
-	if turrets.is_empty() and economy_buildings.is_empty():
+	if turrets.is_empty() and economy_buildings.is_empty() and supply_depots.is_empty():
 		return
 	var target := _crosshair_world_on_ground()
 	var sel := _pick_sell_structure(target, 3.4)
@@ -935,13 +1028,21 @@ func _handle_play_right_click() -> void:
 		var t1 = turrets[ti]
 		_apply_sell_refund(t1)
 		turrets.remove_at(ti)
-	else:
+	elif kind == "economy":
 		var ei := int(sel.get("index", -1))
 		if ei < 0 or ei >= economy_buildings.size():
 			return
 		var e1 = economy_buildings[ei]
 		_apply_sell_refund(e1)
 		economy_buildings.remove_at(ei)
+	else:
+		var di := int(sel.get("index", -1))
+		if di < 0 or di >= supply_depots.size():
+			return
+		var d1 = supply_depots[di]
+		_apply_sell_refund(d1)
+		supply_depots.remove_at(di)
+	_recompute_supply_cap()
 	_recompute_power_cap()
 
 
@@ -999,10 +1100,12 @@ func _update_hud() -> void:
 		gi = "SANDBOX (no hiscore save) | " + gi
 	if economy_buildings.size() > 0:
 		gi += " | Fac %d" % economy_buildings.size()
+	if supply_depots.size() > 0:
+		gi += " | Dep %d" % supply_depots.size()
 	gameplay_info.text = gi
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	var bm := "turret"
-	if upgrade_factory:
+	if upgrade_factory or upgrade_logistics:
 		bm = build_mode
 	look_readout.text = "%s | Build: %s | B toggle" % [
 		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),

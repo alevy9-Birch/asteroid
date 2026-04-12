@@ -43,7 +43,7 @@ Status legend:
 
 - [-] Grid scale and footprint rules for all building sizes  
   Web ref: `src/game/BaseDefenseGame.ts` (cell placement logic)  
-  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from **`auto_turret`** + **`factory_business`** defs; shared occupancy via **`_placed_for_build()`**; more **`BuildingId`** types TBD
+  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from **`auto_turret`** + **`factory_business`** + **`supply_depot_s`** defs; shared occupancy via **`_placed_for_build()`**; **B** cycles turret/factory/depot when unlocked; more **`BuildingId`** types TBD
 
 - [-] Placement legality parity (wave restrictions, occupancy, command center constraints)  
   Web ref: `src/game/BaseDefenseGame.ts` (`tryPlace`: credits, supply, bounds — **no power check**)  
@@ -77,11 +77,11 @@ Status legend:
 
 - [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: **`WebParityDefs.RESET_RUN_*`** + power tick (CC gen only during wave) + per-shot power; **`power_cap`** = base + CC/turret **`powerCapAdd`** (prototype sums); **CC `creditPayout` / `creditIntervalSec`** during wave; kill mul **`balanceVars.asteroidKillCreditMul`**; **supply** gate; factories / full **`updateResources`** still missing; F3 diagnostics
+  Godot ref: **`WebParityDefs.RESET_RUN_*`** + power tick (CC gen only during wave) + per-shot power; **`power_cap`** = base + CC/turret **`powerCapAdd`** (prototype sums); **CC `creditPayout` / `creditIntervalSec`** during wave; kill mul **`balanceVars.asteroidKillCreditMul`**; **`supply_cap`** = CC base + sum of placed **`supply_depot_s`** **`supplyCapAdd`**; **supply** gate; full **`updateResources`** / building catalog still partial; F3 diagnostics
 
 - [-] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  
-  Godot ref: **CC** + **`factory_business`** during wave (timer freezes at 0 power if draining); passive drain × **`POWER_DRAIN_GLOBAL_MUL`**; refineries / full building set TBD
+  Godot ref: **CC** + **`factory_business`** during wave (timer freezes at 0 power if draining); passive drain × **`POWER_DRAIN_GLOBAL_MUL`**; supply depots raise cap only (no payout); refineries / full building set TBD
 
 ## 8) Upgrades / Research
 

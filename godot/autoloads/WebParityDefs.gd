@@ -255,3 +255,28 @@ func prototype_factory_business_footprint() -> Vector2i:
 	var ww := int(sz.get("w", 2))
 	var hh := int(sz.get("h", 2))
 	return Vector2i(maxi(1, ww), maxi(1, hh))
+
+
+## Web **`supply_depot_s`** — raises global supply cap (`supplyCapAdd`).
+func prototype_supply_depot_s_credit_cost(fallback := 200) -> int:
+	return int(round(read_building_float("supply_depot_s", "creditCost", float(fallback))))
+
+
+func prototype_supply_depot_s_supply_cap_add(fallback := 18) -> int:
+	return maxi(0, read_building_int("supply_depot_s", "supplyCapAdd", fallback))
+
+
+func prototype_supply_depot_s_supply_cost(fallback := 0) -> int:
+	return maxi(0, read_building_int("supply_depot_s", "supplyCost", fallback))
+
+
+func prototype_supply_depot_s_footprint() -> Vector2i:
+	var b := get_building("supply_depot_s")
+	if b.is_empty():
+		return Vector2i(2, 2)
+	var sz = b.get("size", {})
+	if typeof(sz) != TYPE_DICTIONARY:
+		return Vector2i(2, 2)
+	var ww := int(sz.get("w", 2))
+	var hh := int(sz.get("h", 2))
+	return Vector2i(maxi(1, ww), maxi(1, hh))
