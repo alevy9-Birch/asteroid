@@ -11,12 +11,14 @@ const CENTER_MAX_HP := 1000.0
 
 var phase: AppPhase = AppPhase.MENU
 var wave := 0
-var credits := 350
+var credits := 1550
 var command_center_hp := CENTER_MAX_HP
 var wave_spawning := false
 var spawn_remaining := 0
 var spawn_timer := 0.0
 var intermission_timer := 0.0
+var inactive_time_left_sec := 0.0
+var current_inactive_phase := 0
 
 var money_earned := 0
 var money_spent := 0
@@ -35,12 +37,14 @@ var turret_cooldown_bonus := 0.0
 
 func reset_run() -> void:
 	wave = 0
-	credits = 350
+	credits = 1550
 	command_center_hp = CENTER_MAX_HP
 	wave_spawning = false
 	spawn_remaining = 0
 	spawn_timer = 0.0
 	intermission_timer = 0.0
+	inactive_time_left_sec = 0.0
+	current_inactive_phase = 0
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0

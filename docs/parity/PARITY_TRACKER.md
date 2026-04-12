@@ -49,15 +49,15 @@ Status legend:
   Web ref: `src/game/BaseDefenseGame.ts`  
   Godot ref: occupancy + center exclusion; **build/sell blocked while `wave_spawning` or any asteroids remain (after first manual wave)** — matches web `waveInProgress` guard; full building-class rules pending
 
-- [ ] Sell/refund parity by building type and state  
+- [-] Sell/refund parity by building type and state  
   Web ref: `src/game/BaseDefenseGame.ts`  
-  Godot ref: flat refund currently
+  Godot ref: **100% vs 50%** for single turret type using `built_in_inactive_phase` vs `current_inactive_phase` (same as web inactive-phase rule); per-`creditCost` when multiple buildings exist — pending
 
 ## 5) Waves / Asteroids
 
 - [-] Wave state machine (ready/in-progress/spawn progress/cleanup)  
   Web ref: `src/game/BaseDefenseGame.ts` (`waveReady`, `waveInProgress`, timers)  
-  Godot ref: simplified spawn + cleanup; **first wave no longer auto-starts** — intermission auto-advance gated on `first_wave_started` (manual Space) like web `firstWaveStarted`
+  Godot ref: simplified spawn + cleanup; **first wave manual** (`first_wave_started`); **60s inactive** between waves (`inactive_time_left_sec`); **auto next wave at 0**; **Space early-start only while timer > 0** (wave 2+). Spawn window / `toSpawn` formula still simplified.
 
 - [-] Asteroid variants and behavior parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`AsteroidVariant`, variant logic)  
@@ -75,9 +75,9 @@ Status legend:
 
 ## 7) Economy / Power / Supply
 
-- [ ] Credits/supply/power full parity  
+- [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: credits only, simplified economy
+  Godot ref: **starting credits 1550** (web `resetRun`); supply/power still missing
 
 - [ ] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  
@@ -85,9 +85,9 @@ Status legend:
 
 ## 8) Upgrades / Research
 
-- [ ] Full research graph parity + prerequisites + refundability  
+- [-] Full research graph parity + prerequisites + refundability  
   Web ref: `src/App.tsx`, `src/game/BaseDefenseGame.ts`, `UPGRADES`  
-  Godot ref: simplified 3-upgrade placeholder
+  Godot ref: simplified 3-upgrade placeholder; **purchase keys disabled during wave combat** (web `waveInProgress` guard pattern)
 
 - [ ] Hero research split parity  
   Web ref: `src/App.tsx` (normal vs hero research)  

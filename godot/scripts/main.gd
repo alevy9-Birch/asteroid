@@ -21,7 +21,10 @@ const MENU_HIGHLIGHT_COLOR := Color(0.20, 0.45, 0.85, 1.0)
 const MENU_DEFAULT_COLOR := Color(1, 1, 1, 1)
 const GRID_SIZE := 2.0
 const TURRET_COST := 100
-const SELL_REFUND := 50
+## Web `resetRun()` starting credits.
+const STARTING_CREDITS := 1550
+## Web `inactiveDurationSec`.
+const INACTIVE_DURATION_SEC := 60.0
 const TURRET_RANGE := 16.0
 const TURRET_DAMAGE := 28.0
 const TURRET_COOLDOWN := 0.42
@@ -79,12 +82,15 @@ var turrets: Array = []
 var asteroids: Array = []
 var projectiles: Array = []
 var wave := 0
-var credits := 350
+var credits := STARTING_CREDITS
 var command_center_hp := CENTER_MAX_HP
 var wave_spawning := false
 var spawn_remaining := 0
 var spawn_timer := 0.0
 var intermission_timer := 0.0
+## Web `inactiveTimeLeftSec` / `currentInactivePhase` (sell refund + upgrade phase).
+var inactive_time_left_sec := 0.0
+var current_inactive_phase := 0
 var rand := RandomNumberGenerator.new()
 var command_center_node: MeshInstance3D
 var command_center_pos := Vector3.ZERO
@@ -178,15 +184,18 @@ func _input(event: InputEvent) -> void:
 		_finalize_run_score()
 		apply_phase(AppPhase.GAMEOVER)
 	if event.is_action_pressed("start_wave") and phase == AppPhase.PLAYING:
-		var st = wave_system.start_next_wave(_wave_state_dict(), asteroids.size())
-		_apply_wave_state(st)
-		if wave > 0 or wave_spawning or spawn_remaining > 0:
-			first_wave_started = true
-	if event.is_action_pressed("buy_upgrade_core") and phase == AppPhase.PLAYING:
+		# Web `startNextWave(true)`: manual early-start only while inactive timer > 0 (after wave 1+).
+		var block_manual := first_wave_started and wave > 0 and inactive_time_left_sec <= 0.0
+		if not block_manual:
+			var st = wave_system.start_next_wave(_wave_state_dict(), asteroids.size())
+			_apply_wave_state(st)
+			if wave > 0 or wave_spawning or spawn_remaining > 0:
+				first_wave_started = true
+	if event.is_action_pressed("buy_upgrade_core") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("core")
-	if event.is_action_pressed("buy_upgrade_factory") and phase == AppPhase.PLAYING:
+	if event.is_action_pressed("buy_upgrade_factory") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("factory")
-	if event.is_action_pressed("buy_upgrade_logistics") and phase == AppPhase.PLAYING:
+	if event.is_action_pressed("buy_upgrade_logistics") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("logistics")
 	if event.is_action_pressed("toggle_diagnostics"):
 		diagnostics_visible = not diagnostics_visible
@@ -261,12 +270,14 @@ func apply_phase(next_phase: AppPhase) -> void:
 func _start_new_run() -> void:
 	_clear_entities()
 	wave = 0
-	credits = 350
+	credits = STARTING_CREDITS
 	command_center_hp = CENTER_MAX_HP
 	wave_spawning = false
 	spawn_remaining = 0
 	spawn_timer = 0.0
 	intermission_timer = 0.0
+	inactive_time_left_sec = 0.0
+	current_inactive_phase = 0
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0
@@ -333,9 +344,14 @@ func _process(delta: float) -> void:
 		return
 	_update_camera_motion(delta)
 	_update_passive_income(delta)
+	var combat_before := _is_wave_combat_active()
+	_update_asteroids(delta)
+	# Web: when wave combat ends, begin inactive countdown (`inactiveTimeLeftSec = inactiveDurationSec`).
+	if combat_before and not _is_wave_combat_active():
+		if first_wave_started and wave > 0:
+			inactive_time_left_sec = INACTIVE_DURATION_SEC
 	var st = wave_system.tick(delta, _wave_state_dict(), asteroids.size(), Callable(self, "_spawn_asteroid"))
 	_apply_wave_state(st)
-	_update_asteroids(delta)
 	_update_turrets(delta)
 	_update_projectiles(delta)
 	_update_hud()
@@ -589,7 +605,8 @@ func _handle_play_left_click() -> void:
 	turrets.append({
 		"node": node,
 		"pos": pos,
-		"cooldown": 0.1
+		"cooldown": 0.1,
+		"built_in_inactive_phase": current_inactive_phase,
 	})
 
 
@@ -606,7 +623,11 @@ func _handle_play_right_click() -> void:
 	var node: Node = t["node"]
 	node.queue_free()
 	turrets.remove_at(best)
-	credits += SELL_REFUND
+	# Web `sellLookedAt`: 100% if same inactive phase and not in wave, else 50%.
+	var built_phase := int(t.get("built_in_inactive_phase", -999))
+	var full_refund := not _is_wave_combat_active() and built_phase == current_inactive_phase
+	var refund := TURRET_COST if full_refund else int(floor(TURRET_COST * 0.5))
+	credits += refund
 	audio_service.emit_event("build_sell")
 
 
@@ -616,6 +637,8 @@ func _update_hud() -> void:
 		spawn_status = "Spawning (%d left)" % spawn_remaining
 	elif not asteroids.is_empty():
 		spawn_status = "Cleanup (%d asteroids)" % asteroids.size()
+	elif first_wave_started and wave > 0 and inactive_time_left_sec > 0.0:
+		spawn_status = "Inactive %.0fs (Space early / wait auto)" % inactive_time_left_sec
 	gameplay_info.text = hud_controller.format_gameplay_info(
 		wave, credits, int(command_center_hp), int(CENTER_MAX_HP), turrets.size(), asteroids.size(), spawn_status
 	)
@@ -757,6 +780,8 @@ func _wave_state_dict() -> Dictionary:
 		"spawn_timer": spawn_timer,
 		"intermission_timer": intermission_timer,
 		"first_wave_started": first_wave_started,
+		"inactive_time_left_sec": inactive_time_left_sec,
+		"current_inactive_phase": current_inactive_phase,
 	}
 
 
@@ -766,6 +791,8 @@ func _apply_wave_state(st: Dictionary) -> void:
 	spawn_remaining = int(st.get("spawn_remaining", spawn_remaining))
 	spawn_timer = float(st.get("spawn_timer", spawn_timer))
 	intermission_timer = float(st.get("intermission_timer", intermission_timer))
+	inactive_time_left_sec = float(st.get("inactive_time_left_sec", inactive_time_left_sec))
+	current_inactive_phase = int(st.get("current_inactive_phase", current_inactive_phase))
 	_sync_game_state_runtime()
 
 
@@ -777,6 +804,8 @@ func _sync_game_state_runtime() -> void:
 	game_state.spawn_remaining = spawn_remaining
 	game_state.spawn_timer = spawn_timer
 	game_state.intermission_timer = intermission_timer
+	game_state.inactive_time_left_sec = inactive_time_left_sec
+	game_state.current_inactive_phase = current_inactive_phase
 	game_state.money_earned = money_earned
 	game_state.money_spent = money_spent
 	game_state.asteroids_killed = asteroids_killed

@@ -49,7 +49,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 
 ### C.1 Session / run lifecycle
 
-- [ ] **C.1.1** Initial credits / power / supply / upgrades on new run match `resetRun()` (web starts e.g. 1550 credits + power caps — Godot still 350 + no power).
+- [-] **C.1.1** Initial credits / power / supply / upgrades on new run match `resetRun()` (**credits 1550** in Godot + `GameState`; power/supply/upgrades still web-only).
 - [ ] **C.1.2** Session reset parity: all runtime arrays, timers, discovery, shields, projectiles cleared like web `resetRun()`.
 - [ ] **C.1.3** Defeat condition: command center destroyed → same transitions/audio/state as web.
 - [ ] **C.1.4** Post-defeat and menu flow matches `App.tsx` phase machine.
@@ -60,8 +60,8 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 - [x] **C.2.2** **First wave manual only** (web `firstWaveStarted`); no intermission auto-start until then. *(Implemented: `first_wave_started` + `WaveSystem` gate.)*
 - [ ] **C.2.3** Spawn **window** duration (`spawnWindowDurationSec`, `spawnWindowElapsedSec`, `spawnWindowEnded`) vs simple `spawn_remaining`.
 - [ ] **C.2.4** `toSpawn` count formula (difficulty + `getEnemyScalingWave` + burst exponent).
-- [ ] **C.2.5** Inactive phase timer (`inactiveDurationSec`, `inactiveTimeLeftSec`) and UI ring parity.
-- [ ] **C.2.6** `waveReady` / early-start rules (manual Space during inactive).
+- [-] **C.2.5** Inactive phase timer (`inactiveDurationSec` = 60s, `inactiveTimeLeftSec` countdown in `WaveSystem` + HUD hint). **UI ring** still missing.
+- [-] **C.2.6** Early-start rules: **manual Space only while inactive timer > 0** (after wave 1+); **auto-start when timer hits 0**. **`waveReady` flag** not yet mirrored.
 
 ### C.3 Asteroids
 
@@ -77,7 +77,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 - [x] **C.4.2** **Block build/sell during active wave** (web: `waveInProgress`; Godot: while spawning or any asteroids remain after first wave start). *(Implemented: `_is_wave_combat_active()`.)*
 - [ ] **C.4.3** Multi-cell footprints for all `BuildingDef.size` `{w,h}`.
 - [ ] **C.4.4** Placement rules: unlocked IDs, credit + **supply** cost, power cap, grid bounds, overlap command center.
-- [ ] **C.4.5** **Sell refund**: 100% if built in current inactive phase else `floor(creditCost * 0.5)` (web `sellLookedAt`); track `builtInInactivePhase` / `currentInactivePhase`.
+- [-] **C.4.5** **Sell refund** for prototype turret: **100%** if `built_in_inactive_phase == current_inactive_phase` and not in combat, else **`floor(cost * 0.5)`** (web `sellLookedAt`). Per-building `creditCost` when multiple types exist — pending.
 - [ ] **C.4.6** Refund sprite / sell affordance visibility during inactive only.
 - [ ] **C.4.7** Drag-build and drag-sell timing parity (web pointer handlers).
 
