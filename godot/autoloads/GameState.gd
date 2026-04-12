@@ -13,7 +13,7 @@ var credits := WebParityDefs.RESET_RUN_CREDITS
 ## Max command center HP (mirrors web `command_center.maxHp` when synced from `WebParityDefs`).
 var command_center_max_hp := 1000.0
 var command_center_hp := 1000.0
-## Web `resetRun()` power/supply; **`power_stored`** updated each tick while playing (CC gen − turret drains).
+## Web `resetRun()` power/supply; **`power_stored`** follows `updateResources` (gen/drain only during wave combat).
 var power_cap := WebParityDefs.RESET_RUN_POWER_CAP
 var power_stored := WebParityDefs.RESET_RUN_POWER_STORED
 var supply_cap := WebParityDefs.RESET_RUN_SUPPLY_CAP

@@ -46,8 +46,8 @@ Status legend:
   Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from `WebParityDefs` / `auto_turret.size`, rectangular cell occupancy; still single building **type** in sim
 
 - [-] Placement legality parity (wave restrictions, occupancy, command center constraints)  
-  Web ref: `src/game/BaseDefenseGame.ts`  
-  Godot ref: occupancy + center exclusion; **build/sell blocked while `wave_spawning` or any asteroids remain (after first manual wave)**; **supply** `used + supplyCost ≤ cap` (cap from CC `supplyCapAdd`, cost from `auto_turret`); power/unlocks pending
+  Web ref: `src/game/BaseDefenseGame.ts` (`tryPlace`: credits, supply, bounds — **no power check**)  
+  Godot ref: occupancy + center exclusion; **build/sell blocked during active wave/cleanup**; **supply** gate; **power** not checked at place (web parity); **unlocks** pending
 
 - [-] Sell/refund parity by building type and state  
   Web ref: `src/game/BaseDefenseGame.ts`  
@@ -77,7 +77,7 @@ Status legend:
 
 - [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: **`WebParityDefs.RESET_RUN_*`** + **power tick** (CC `powerGenPerSec` − per-turret `powerDrainPerSec` from defs, clamped); **supply** gate + cap from CC; **power build gate / starvation** still missing; F3 diagnostics
+  Godot ref: **`WebParityDefs.RESET_RUN_*`** + **power tick only during `wave_combat_active`** (web `waveInProgress`); inactive **`min(stored,cap)`**; **supply** gate + cap from CC; **per-shot power / economy starvation** still missing; F3 diagnostics
 
 - [ ] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  

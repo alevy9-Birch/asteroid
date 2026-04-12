@@ -126,7 +126,7 @@ var passive_credit_accum := 0.0
 var asteroid_pool: Array[MeshInstance3D] = []
 ## Web parity (`BaseDefenseGame.ts`): first wave starts only on player action; later waves use intermission auto-start.
 var first_wave_started := false
-## Web `resetRun()` power/supply; **`power_stored`** ticks while playing (CC gen − turret drains, clamped to cap).
+## Web `resetRun()` power/supply; **`power_stored`**: gen/drain only while **`wave_combat_active`**, else `min(stored, cap)`.
 var power_cap := WebParityDefs.RESET_RUN_POWER_CAP
 var power_stored := WebParityDefs.RESET_RUN_POWER_STORED
 var supply_cap := WebParityDefs.RESET_RUN_SUPPLY_CAP
@@ -813,7 +813,11 @@ func _update_hud() -> void:
 
 
 func _update_power_economy(delta: float) -> void:
-	# Web analog: CC adds `powerGenPerSec` to stored; each combat building drains `powerDrainPerSec` (battery capped at `power_cap`).
+	# Web `updateResources`: while `!waveInProgress`, no gen/drain — only `min(powerStored, powerCap)`.
+	# During active wave: `clamp(powerStored + gen*dt - drain*dt, 0, powerCap)`.
+	if not _is_wave_combat_active():
+		power_stored = mini(power_stored, power_cap)
+		return
 	var drain := 0.0
 	for t in turrets:
 		drain += maxf(0.0, float(t.get("build_power_drain_per_sec", 0.0)))

@@ -10,8 +10,8 @@
 
 | Area | Web (reference) | Godot (current) |
 |------|-----------------|-----------------|
-| **State** | `BaseDefenseGame` + `App` state: credits, power, supply, buildings[], occupied grid, shields, missiles, heroes | Credits, CC HP, wave timers, turrets, asteroids, projectiles; **power** ticks (CC `powerGenPerSec` − turrets’ `powerDrainPerSec`, clamped); **supply** used/cap from defs; **no full building catalog** |
-| **Build** | Full `BUILDINGS`, wheel, unlocks, multi-cell, supply/power gates | **auto_turret** prototype; **supply** build gate (`supplyCost` vs cap from **`command_center.supplyCapAdd`**); **power** not gated on build yet |
+| **State** | `BaseDefenseGame` + `App` state: credits, power, supply, buildings[], occupied grid, shields, missiles, heroes | Credits, CC HP, wave timers, turrets, asteroids, projectiles; **power** gen/drain **only during `waveInProgress`** (else clamp to cap); **supply** used/cap from defs; **no full building catalog** |
+| **Build** | Full `BUILDINGS`, wheel, unlocks, multi-cell; **supply** at place; **no power check** at place (web `tryPlace`) | **auto_turret** prototype; **supply** build gate; placement **not** blocked by power (matches web) |
 | **Combat** | Per-weapon `kind`, missiles, ballistics, railgun, shields, AOE layers | Hitscan-style projectile stub; **no weapon kinds** |
 | **Waves** | `updateWave`, `startNextWave`, variant pools, hero modifiers | `WaveSystem` + `WaveScaling` aligned on core formulas; **no hero wave modifiers** |
 | **Economy** | `updateResources`, building payouts, drains | Passive credits tick; **kill credits** partially aligned; **no building economy** |
@@ -70,7 +70,7 @@
 
 ### C.1 Session / lifecycle
 
-- [-] C.1.1 **Starting credits** + **power/supply defaults** from `WebParityDefs` (`RESET_RUN_*` = web `resetRun()`); **CC max HP** from defs; **power** gen/drain tick while playing; **supply** build gate; **power build gate** still missing.
+- [-] C.1.1 **Starting credits** + **power/supply defaults** from `WebParityDefs` (`RESET_RUN_*` = web `resetRun()`); **CC max HP** from defs; **power** gen/drain only while **`wave_combat_active`** (web `waveInProgress`); inactive: clamp stored to cap; **supply** build gate; **no power-at-place** (web parity).
 - [ ] C.1.2 Clear **all** runtime arrays on new run (mirrors web `resetRun`: buildings, missiles, shields, timers, discovery, …).
 - [-] C.1.3 **Defeat:** CC HP ≤ 0 → finalize score, **game over phase**; **all damage paths** (impact + AOE to CC) must trigger defeat.
 - [ ] C.1.4 **Audio** event on defeat (web `gameOver`); Godot `AudioService.emit_event("game_over")` **wired when buses exist**.
@@ -99,7 +99,7 @@
 - [x] C.4.1 `BuildSystem` + sell pick.
 - [x] C.4.2 Block build/sell during active wave (`wave_combat_active` / cleanup).
 - [-] C.4.3 Multi-cell **footprint** for prototype turret from defs; **all** `BuildingId` sizes later.
-- [-] C.4.4 **Supply** build gate + sell returns **supply** (stored `build_supply_cost`); **power** build gate + unlock checks still missing; grid bounds as before.
+- [-] C.4.4 **Supply** build gate + sell returns **supply** (stored `build_supply_cost`); **unlocks** still missing; **power**: web does **not** gate placement — Godot matches; grid bounds as before.
 - [-] C.4.5 Sell refund 100% / 50% by inactive phase; **per-placement** `build_credit_cost` on each turret (web `creditCost` at build time); **multiple building types** still future work.
 - [ ] C.4.6 Refund affordance UI (inactive-only hints).
 - [ ] C.4.7 Pointer drag build/sell timing vs web.
@@ -117,7 +117,7 @@
 
 - [x] C.6.1 `EconomySystem` passive helper.
 - [-] C.6.2 Kill credits (combat-only); **logistics bonus** still simplified.
-- [-] C.6.3 Power cap, stored, generation, drain — **tick** while `PLAYING`: `power_stored += (CC powerGenPerSec − Σ turret powerDrainPerSec) * delta`, clamped; per-turret **`build_power_drain_per_sec`**; **starvation / weapon power costs** still missing.
+- [-] C.6.3 Power cap, stored, generation, drain — **tick only while `wave_combat_active`** (web `waveInProgress`); inactive: **`min(stored, cap)`** only; per-turret **`build_power_drain_per_sec`**; **per-shot power** (`tryConsumeShotPower`) / full **`updateResources`** still missing.
 - [-] C.6.4 Supply cap / `supplyUsed` / per-building costs — **enforced** for prototype turret (`supply_used` + `auto_turret.supplyCost`); cap from **CC `supplyCapAdd`**; depots / dynamic cap still missing.
 - [ ] C.6.5 Building `creditPayout` / intervals.
 - [ ] C.6.6 **`updateResources`** parity (modifiers, difficulty).
