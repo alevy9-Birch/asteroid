@@ -77,17 +77,17 @@ Status legend:
 
 - [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: **`WebParityDefs.RESET_RUN_*`** + power tick (CC gen only during wave) + per-shot power; **CC `creditPayout` / `creditIntervalSec`** credits during wave only; kill mul from **`balanceVars.asteroidKillCreditMul`**; **supply** gate; factories / dynamic power cap / full **`updateResources`** still missing; F3 diagnostics
+  Godot ref: **`WebParityDefs.RESET_RUN_*`** + power tick (CC gen only during wave) + per-shot power; **`power_cap`** = base + CC/turret **`powerCapAdd`** (prototype sums); **CC `creditPayout` / `creditIntervalSec`** during wave; kill mul **`balanceVars.asteroidKillCreditMul`**; **supply** gate; factories / full **`updateResources`** still missing; F3 diagnostics
 
-- [ ] Building economy production parity  
+- [-] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  
-  Godot ref: missing
+  Godot ref: **CC** `creditPayout` / `creditIntervalSec` during wave; factories/refineries not modeled
 
 ## 8) Upgrades / Research
 
 - [-] Full research graph parity + prerequisites + refundability  
   Web ref: `src/App.tsx`, `src/game/BaseDefenseGame.ts`, `UPGRADES`  
-  Godot ref: simplified 3-upgrade placeholder; **purchase keys disabled during wave combat** (web `waveInProgress` guard pattern)
+  Godot ref: 3 slots — **HUD + purchase cost** from **`parity_web_defs.json`** (×0.93); mapped ids `turret_targeting` / `unlock_factory` / `generator_efficiency`; **effects** still prototype; wave combat purchase guard preserved
 
 - [ ] Hero research split parity  
   Web ref: `src/App.tsx` (normal vs hero research)  
@@ -109,7 +109,7 @@ Status legend:
 
 - [-] Audio event parity and music phase behavior  
   Web ref: `src/audio/gameAudioEngine.ts`, `src/audio/useGameAudio.ts`  
-  Godot ref: `godot/autoloads/AudioService.gd` (stub + basic integration points)
+  Godot ref: **`AudioService`** in scene tree; **`game_over`** plays optional **`res://audio/game_over.wav`**; other events stub
 
 ## 12) Score / Persistence
 

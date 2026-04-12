@@ -15,9 +15,9 @@
 | **Economy** | `updateResources`: power cap from batteries, CC + factory drains, payouts gated by wave + power | **CC `powerGenPerSec`**, **CC `creditPayout`/`creditIntervalSec` during wave**; **kill credits** use **`balanceVars.asteroidKillCreditMul`**; no factories / nuclear / pylons |
 | **Combat** | `updateDefenses`: `kind` hitscan/missiles/ballistic/railgun/shield, `tryConsumeShotPower`, EMP | **Projectile stub** + per-shot power for prototype turret |
 | **Waves** | `updateWave`, pools, hero/upgrade modifiers | **`WaveSystem`** + **`WaveScaling`** core math; **no hero modifiers** |
-| **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **3 placeholder upgrades**; simplified **`ScoreSystem`** |
+| **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **3 prototype research slots**: labels + **×0.93 costs** from JSON (`turret_targeting`, `unlock_factory`, `generator_efficiency`); effects still placeholder; **`ScoreSystem`** simplified |
 | **UI** | Rich HUD, wheel, research, gameover stats | Menu / pause / gameover + wave ring + compact HUD |
-| **Audio** | `useGameAudio` / bus mix | **`AudioService`** stub |
+| **Audio** | `useGameAudio` / bus mix | **`AudioService`**: `game_over` plays **`res://audio/game_over.wav`** if present; other events still stub |
 
 ---
 
@@ -59,7 +59,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [-] C.1 **`resetRun` scalars**: credits, power cap/stored, supply; **CC maxHp** from defs; power/econ only during **`wave_combat_active`** (web **`waveInProgress`**); inactive power clamp.
 - [-] C.2 **Teardown on new run**: clear turrets/asteroids/projectiles/pool/CC; **`_parity_apply_building_baseline`** each start; **`_sync_game_state_runtime`**; extend when missiles/shields exist.
 - [-] C.3 **Defeat**: CC HP ≤ 0 → game over; verify **impact + AOE** paths.
-- [ ] C.4 **`game_over`** audio wired to real buses.
+- [-] C.4 **`game_over`** optional **`AudioStreamPlayer`** clip at **`res://audio/game_over.wav`**; full bus mix / catalog TBD.
 - [ ] C.5 **Gameover UI**: waves survived, stats grid, commander, leaderboard hooks.
 - [ ] C.6 **Sandbox**: flag + “score not saved” behavior.
 
@@ -110,7 +110,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [x] H.1 **EconomySystem** helpers (`add_income` / `spend`).
 - [-] H.2 **CC credits**: **`creditPayout` / `creditIntervalSec`** from defs, **only during wave combat** (replaces generic passive tick).
 - [ ] H.3 **Factory / refinery** payouts + **`powerDrainPerSec`** starvation (web **`updateResources`** loop).
-- [ ] H.4 **Power cap** from **`powerCapAdd`** buildings + batteries; not just **`RESET_RUN_POWER_CAP`**.
+- [-] H.4 **Power cap** recomputed: **`RESET_RUN_POWER_CAP` + CC `powerCapAdd` + per-turret `auto_turret.powerCapAdd`** (usually 0 until batteries); clamp **`power_stored`** on place/sell/new run.
 - [-] H.5 **Supply**: cap from CC **`supplyCapAdd`**; depots increase cap dynamically.
 - [ ] H.6 **`POWER_DRAIN_GLOBAL_MUL`** on all passive drains + shot costs (verify every path).
 - [ ] H.7 Nuclear plant “no credits → no gen” rule; Kingpin/Jupiter economy hooks.
@@ -118,7 +118,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### I — Upgrades, research, commanders
 
 - [x] I.1 **UpgradeSystem** placeholder + 3 keys.
-- [ ] I.2 Full graph: costs, prereqs, phase, refund, **`getEffectiveDef`** modifiers.
+- [-] I.2 Full graph: costs, prereqs, phase, refund, **`getEffectiveDef`** modifiers. **Partial:** purchase costs + HUD lines from **`parity_web_defs.json`** (web ×0.93); slot→id map in **`UpgradeSystem`**; gameplay effects not web-identical.
 - [x] I.3 **CommanderSystem** scaffold + menu selection string.
 - [ ] I.4 Commander-specific sim + UI (each **`HeroId`**).
 
@@ -126,11 +126,11 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 
 - [-] J.1 Gameplay info: credits, CC HP, wave, spawn line, **P/S**, **`waveReady`**.
 - [ ] J.2 Discovery / toast / wheel categories / stats cards.
-- [ ] J.3 Research panel driven by **`upgrades`** JSON (not hard-coded labels).
+- [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for 3 slots); full tree UI TBD.
 
 ### K — Audio
 
-- [x] K.1 **AudioService** API + call sites stubbed.
+- [-] K.1 **AudioService** API + call sites; **`game_over`** optional one-shot clip.
 - [ ] K.2 Map web events 1:1 + buses + assets.
 
 ### L — Score, persistence, validation
@@ -159,6 +159,8 @@ From repo **`space-ship`** with **Godot 4.x** on `PATH`:
 2. **Headless main:** `godot --path godot --headless` — stop with timeout; scan for `SCRIPT ERROR` / `Parse Error`.
 3. **Defs smoke:** `godot --path godot --headless res://dev/HeadlessSmoke.tscn` — exit **0** if **`WebParityDefs.ok`**.
 4. **Regenerate data:** `node scripts/parity/extract_web_defs.mjs` after TS changes.
+
+**Optional asset (C.4 / K.1):** add `godot/audio/game_over.wav` (any short SFX) to hear defeat audio.
 
 ---
 

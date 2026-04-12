@@ -135,6 +135,8 @@ var supply_cap := WebParityDefs.RESET_RUN_SUPPLY_CAP
 var supply_used := WebParityDefs.RESET_RUN_SUPPLY_USED
 
 func _ready() -> void:
+	add_child(audio_service)
+	audio_service.name = "AudioService"
 	_parity_apply_building_baseline()
 	_setup_world_visuals()
 	_setup_inputs()
@@ -162,6 +164,7 @@ func _parity_apply_building_baseline() -> void:
 		turret_power_drain_per_sec = 1.6
 		command_center_credit_payout = 18
 		command_center_credit_interval_sec = 1.0
+		_recompute_power_cap()
 		return
 	center_max_hp = WebParityDefs.prototype_command_center_max_hp(center_max_hp)
 	command_center_hp = center_max_hp
@@ -187,6 +190,13 @@ func _parity_apply_building_baseline() -> void:
 	command_center_credit_interval_sec = WebParityDefs.prototype_command_center_credit_interval_sec(
 		command_center_credit_interval_sec
 	)
+	_recompute_power_cap()
+
+
+func _recompute_power_cap() -> void:
+	var new_cap := WebParityDefs.prototype_run_power_cap(turrets.size())
+	power_cap = new_cap
+	power_stored = mini(power_stored, power_cap)
 
 
 func _check_command_center_defeat() -> void:
@@ -347,7 +357,6 @@ func _start_new_run() -> void:
 	_parity_apply_building_baseline()
 	wave = 0
 	credits = WebParityDefs.RESET_RUN_CREDITS
-	power_cap = WebParityDefs.RESET_RUN_POWER_CAP
 	power_stored = WebParityDefs.RESET_RUN_POWER_STORED
 	supply_cap = _run_supply_cap_start
 	supply_used = WebParityDefs.RESET_RUN_SUPPLY_USED
@@ -379,6 +388,7 @@ func _start_new_run() -> void:
 	_reset_camera()
 	_create_gameplay_entities()
 	_update_research_labels()
+	_recompute_power_cap()
 	_sync_game_state_runtime()
 	apply_phase(AppPhase.PLAYING)
 
@@ -766,6 +776,7 @@ func _handle_play_left_click() -> void:
 		"cooldown": 0.1,
 		"built_in_inactive_phase": current_inactive_phase,
 	})
+	_recompute_power_cap()
 
 
 func _handle_play_right_click() -> void:
@@ -790,6 +801,7 @@ func _handle_play_right_click() -> void:
 	var sup_paid := int(t.get("build_supply_cost", turret_supply_cost))
 	supply_used = maxi(0, supply_used - sup_paid)
 	audio_service.emit_event("build_sell")
+	_recompute_power_cap()
 
 
 func _update_hud() -> void:

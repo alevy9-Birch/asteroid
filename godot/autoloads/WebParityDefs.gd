@@ -96,6 +96,37 @@ func has_upgrade(id: String) -> bool:
 	return upgrades_by_id.has(id)
 
 
+## Web `applyUpgradeCostAdjust`: global ×0.93 on upgrade `creditCost`.
+const UPGRADE_CREDIT_COST_MUL := 0.93
+
+
+func discounted_upgrade_credit_cost(upgrade_id: String, fallback: int) -> int:
+	var u := get_upgrade(upgrade_id)
+	if u.is_empty():
+		return maxi(1, fallback)
+	var v = u.get("creditCost", fallback)
+	if typeof(v) != TYPE_INT and typeof(v) != TYPE_FLOAT:
+		return maxi(1, fallback)
+	return maxi(1, int(round(float(v) * UPGRADE_CREDIT_COST_MUL)))
+
+
+## HUD line for prototype research slots (hotkey + label + discounted cost + description).
+func research_display_line(upgrade_id: String, hotkey: String, owned: bool) -> String:
+	if not ok:
+		return "%s — (parity defs missing)" % hotkey
+	var u := get_upgrade(upgrade_id)
+	if u.is_empty():
+		return "%s — (no upgrade \"%s\")" % [hotkey, upgrade_id]
+	var label := String(u.get("label", upgrade_id))
+	var cost := discounted_upgrade_credit_cost(upgrade_id, 0)
+	var desc := String(u.get("description", ""))
+	if desc.length() > 64:
+		desc = desc.substr(0, 61) + "…"
+	if owned:
+		return "%s - %s (%dc) [OWNED]" % [hotkey, label, cost]
+	return "%s - %s (%dc) — %s" % [hotkey, label, cost, desc]
+
+
 func balance_var_f(key: String, default := 1.0) -> float:
 	var v = balance_vars.get(key, default)
 	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
@@ -180,3 +211,13 @@ func prototype_auto_turret_footprint() -> Vector2i:
 	var ww := int(sz.get("w", 1))
 	var hh := int(sz.get("h", 1))
 	return Vector2i(maxi(1, ww), maxi(1, hh))
+
+
+## Web `updateResources`: `powerCap` = base + Σ `powerCapAdd` on alive buildings. Prototype: **RESET_RUN_POWER_CAP** + CC + **`auto_turret.powerCapAdd` × turret count** (usually 0 until more defs).
+func prototype_run_power_cap(turret_count: int) -> int:
+	var cap := RESET_RUN_POWER_CAP
+	if not ok:
+		return maxi(1, cap)
+	cap += read_building_int("command_center", "powerCapAdd", 0)
+	cap += read_building_int("auto_turret", "powerCapAdd", 0) * maxi(0, turret_count)
+	return maxi(1, cap)
