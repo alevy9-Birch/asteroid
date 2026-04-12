@@ -27,6 +27,13 @@ func _purchase_cost(which: String) -> int:
 
 func try_buy_upgrade(which: String, state: Dictionary) -> Dictionary:
 	var out := state.duplicate(true)
+	var uid := _upgrade_id(which)
+	if uid.is_empty():
+		out.ok = false
+		return out
+	if WebParityDefs.ok and not WebParityDefs.prototype_upgrade_prereqs_satisfied(uid, out):
+		out.ok = false
+		return out
 	var cost := _purchase_cost(which)
 	if which == "core":
 		if out.upgrade_core or out.credits < cost:

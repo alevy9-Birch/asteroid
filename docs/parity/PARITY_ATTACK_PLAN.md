@@ -29,7 +29,7 @@ Single place to see what the port **actually runs** today (see **§3** for check
 - **Economy:** CC + factory payouts (wave only, factory starves at 0 power if draining); **nuclear** gen only if **`credits > 0`**; supply cap CC + depots; **`POWER_DRAIN_GLOBAL_MUL`** on economy passive + shots.
 - **Waves:** **`WaveSystem`** + **`WaveScaling`** (difficulty from menu); timer ring; F3 diagnostics.
 - **Score:** web **`computeRunScore`** coefficients + difficulty mul; **`power_produced`** tracks gross gen.
-- **Data:** **`parity_web_defs.json`** + **`WebParityDefs`** readers; **`balanceVars`** keys present (often **1** — extractor bakes **`VARS.C/P/S/E`** into building numbers).
+- **Data:** **`parity_web_defs.json`** + **`WebParityDefs`** readers (**`read_building_footprint`**, etc.); research **`prereqIds`** for the four slots; **`balanceVars`** keys present (often **1** — extractor bakes **`VARS.C/P/S/E`** into building numbers).
 
 ---
 
@@ -88,7 +88,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 
 - [x] E.1 **BuildSystem**: snap, footprint, occupancy, sell pick.
 - [x] E.2 Block build/sell during wave combat / cleanup (after first wave).
-- [-] E.3 **Footprint from defs** for prototype turret; generalize to all **`BuildingId`** sizes.
+- [x] E.3 **Footprint from defs**: **`WebParityDefs.read_building_footprint`** + prototype building readers (**`auto_turret`** / factory / depots / nuclear); future **`BuildingId`** use same helper.
 - [-] E.4 **Supply** gate + sell returns **`build_supply_cost`**; **unlock** graph missing.
 - [-] E.5 Sell refund **100% / 50%** by inactive phase; **`build_credit_cost`** per placement.
 - [-] E.6 Refund affordance UI (inactive-only hints). **Partial:** gameplay bar shows **100% sell** hint during inactive between waves.
@@ -130,7 +130,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### I — Upgrades, research, commanders
 
 - [x] I.1 **UpgradeSystem** placeholder + **U / I / O / N** keys (**`buy_upgrade_*`** + **`InputSystem`**).
-- [-] I.2 Full graph: costs, prereqs, phase, refund, **`getEffectiveDef`** modifiers. **Partial:** purchase costs + HUD lines from **`parity_web_defs.json`** (web ×0.93); slots U/I/O/N → ids in **`UpgradeSystem`**; prereqs not enforced; gameplay effects not web-identical.
+- [-] I.2 Full graph: costs, prereqs, phase, refund, **`getEffectiveDef`** modifiers. **Partial:** purchase costs + HUD lines from **`parity_web_defs.json`** (web ×0.93); slots U/I/O/N → ids in **`UpgradeSystem`**; **`prereqIds`** enforced via **`WebParityDefs.prototype_upgrade_prereqs_satisfied`** (unmapped nodes satisfied by their JSON chain — e.g. **N** requires **O** through **`unlock_grid_expansion`**); phase/refund/modifiers TBD; gameplay effects not web-identical.
 - [x] I.3 **CommanderSystem** scaffold + menu selection string.
 - [ ] I.4 Commander-specific sim + UI (each **`HeroId`**).
 
