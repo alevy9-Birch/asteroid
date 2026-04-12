@@ -124,7 +124,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 
 ### J — UI / HUD
 
-- [-] J.1 Gameplay info: credits, CC HP, wave, spawn line, **P/S**, **`waveReady`**.
+- [-] J.1 Gameplay info: credits, CC HP, wave, spawn line, **P/S**, **`waveReady`**, **Diff** (from menu **`GameDifficulty`**).
 - [ ] J.2 Discovery / toast / wheel categories / stats cards.
 - [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for 3 slots); full tree UI TBD.
 
@@ -136,7 +136,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### L — Score, persistence, validation
 
 - [x] L.1 **ScoreSystem** simplified + best score file.
-- [-] L.2 **`highScores.ts`** `computeRunScore` parity + difficulty multipliers. **Partial:** same coefficients + **`powerProduced`** + easy/medium/hard/brutal/deadly mul; **`game_difficulty`** wired from run state (UI to change diff TBD); commander boards / full record shape TBD.
+- [-] L.2 **`highScores.ts`** `computeRunScore` parity + difficulty multipliers. **Partial:** same coefficients + **`powerProduced`** + easy/medium/hard/brutal/deadly mul; main menu **`OptionButton`** sets **`game_difficulty`** (waves + score); commander boards / full record shape TBD.
 - [ ] L.3 Leaderboard ordering + persistence parity.
 - [ ] L.4 Full **`PARITY_TRACKER.md`** matrix pass.
 - [ ] L.5 Document **approved intentional differences** + release milestone tag.

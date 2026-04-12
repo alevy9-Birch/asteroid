@@ -59,6 +59,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var pause_overlay: PanelContainer = $PauseOverlay
 @onready var gameover_overlay: PanelContainer = $GameOverOverlay
 @onready var virtual_cursor: ColorRect = $VirtualCursor
+@onready var menu_difficulty_option: OptionButton = $MenuOverlay/MenuVBox/MenuDifficultyRow/MenuDifficultyOption
 @onready var menu_volume_value: Label = $MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolumeValue
 @onready var pause_volume_value: Label = $PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolumeValue
 @onready var gameover_hint: Label = $GameOverOverlay/GameOverVBox/GameOverHint
@@ -129,8 +130,9 @@ var spawn_window_duration_sec := 0.0
 var spawn_window_ended := false
 var spawn_timer := 0.0
 var intermission_timer := 0.0
-## Web default difficulty in `BaseDefenseGame` constructor.
+## Web **`GameDifficulty`** — menu **`MenuDifficultyOption`**; drives **`WaveScaling`** + **`computeRunScore`** mul.
 var game_difficulty := "hard"
+const MENU_DIFFICULTY_IDS: PackedStringArray = PackedStringArray(["easy", "medium", "hard", "brutal", "deadly"])
 ## Web `inactiveTimeLeftSec` / `currentInactivePhase` (sell refund + upgrade phase).
 var inactive_time_left_sec := 0.0
 var current_inactive_phase := 0
@@ -168,6 +170,7 @@ func _ready() -> void:
 	_setup_world_visuals()
 	_setup_inputs()
 	_collect_buttons()
+	_setup_menu_difficulty_option()
 	_connect_button_handlers()
 	rand.randomize()
 	_reset_camera()
@@ -416,6 +419,30 @@ func _collect_buttons() -> void:
 	]
 	for n in nodes:
 		all_menu_buttons.append(n as Button)
+	all_menu_buttons.append(menu_difficulty_option as Button)
+
+
+func _setup_menu_difficulty_option() -> void:
+	menu_difficulty_option.clear()
+	for diff_id in MENU_DIFFICULTY_IDS:
+		menu_difficulty_option.add_item(diff_id.capitalize())
+	var sel := MENU_DIFFICULTY_IDS.find(game_difficulty)
+	if sel < 0:
+		sel = 2
+	menu_difficulty_option.select(sel)
+	game_difficulty = MENU_DIFFICULTY_IDS[sel]
+	game_state.game_difficulty = game_difficulty
+	var diff_cb := Callable(self, "_on_menu_difficulty_selected")
+	if not menu_difficulty_option.item_selected.is_connected(diff_cb):
+		menu_difficulty_option.item_selected.connect(diff_cb)
+
+
+func _on_menu_difficulty_selected(index: int) -> void:
+	if index < 0 or index >= MENU_DIFFICULTY_IDS.size():
+		return
+	game_difficulty = MENU_DIFFICULTY_IDS[index]
+	game_state.game_difficulty = game_difficulty
+	_sync_game_state_runtime()
 
 
 func _connect_button_handlers() -> void:
@@ -1131,6 +1158,8 @@ func _update_hud() -> void:
 	)
 	if sandbox_run:
 		gi = "SANDBOX (no hiscore save) | " + gi
+	if phase == AppPhase.PLAYING:
+		gi += " | Diff: %s" % game_difficulty
 	if economy_buildings.size() > 0:
 		gi += " | Fac %d" % economy_buildings.size()
 	if supply_depots.size() > 0:
@@ -1221,7 +1250,7 @@ func _update_diagnostics() -> void:
 		return
 	var fps := int(round(Engine.get_frames_per_second()))
 	var mem_mb := Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
-	diagnostics_label.text = "FPS %d | Tur %d | Fac %d | Ast %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | PowProd %.0f | Mem %.1f MB" % [
+	diagnostics_label.text = "FPS %d | Tur %d | Fac %d | Ast %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | PowProd %.0f | %s | Mem %.1f MB" % [
 		fps,
 		turrets.size(),
 		economy_buildings.size(),
@@ -1234,6 +1263,7 @@ func _update_diagnostics() -> void:
 		int(supply_used),
 		int(supply_cap),
 		power_produced,
+		game_difficulty,
 		mem_mb,
 	]
 

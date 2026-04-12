@@ -23,6 +23,10 @@ Status legend:
   Godot ref: `godot/scripts/main.gd` (`_ensure_fullscreen_and_capture`)  
   Notes: Present, but recovery edge cases need strict parity checks.
 
+- [-] Run **difficulty** selection vs web run config  
+  Web ref: `App.tsx` / `runConfigRef` **`difficulty`**  
+  Godot ref: main menu **`MenuDifficultyOption`** → **`game_difficulty`** (**`WaveScaling`**, **`ScoreSystem.difficulty_score_mul`**); HUD / F3 show current diff
+
 - [-] Virtual cursor for menu/pause/gameover  
   Web ref: `src/App.tsx` (`pickMenuHitTarget`, menu cursor state)  
   Godot ref: `godot/scripts/main.gd` (menu cursor + highlights)  
@@ -103,7 +107,7 @@ Status legend:
 
 - [-] Full HUD parity (**wave timer ring** done; discovery toast, wheel categories, stats cards pending)  
   Web ref: `src/App.tsx` JSX overlays  
-  Godot ref: partial HUD; **inactive sell 100%** hint; **sandbox** banner when applicable
+  Godot ref: partial HUD; **inactive sell 100%** hint; **sandbox** banner when applicable; **Diff:** in gameplay bar during run
 
 ## 11) Audio
 
