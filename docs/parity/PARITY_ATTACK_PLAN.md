@@ -11,7 +11,7 @@
 | Area | Web (reference) | Godot (current) |
 |------|-----------------|-----------------|
 | **State** | `BaseDefenseGame` + `App` state: credits, power, supply, buildings[], occupied grid, shields, missiles, heroes | Credits, CC HP, wave timers, turrets, asteroids, projectiles; **power/supply fields** = web `resetRun()` defaults (**no drain/sim**); **no full building catalog** |
-| **Build** | Full `BUILDINGS`, wheel, unlocks, multi-cell, supply/power gates | Single **auto_turret**-mapped prototype; placement via `BuildSystem`; **footprint w×h** from JSON (when loaded) |
+| **Build** | Full `BUILDINGS`, wheel, unlocks, multi-cell, supply/power gates | **auto_turret** prototype; **supply** build gate (`supplyCost` vs cap from **`command_center.supplyCapAdd`**); **power** not gated on build yet |
 | **Combat** | Per-weapon `kind`, missiles, ballistics, railgun, shields, AOE layers | Hitscan-style projectile stub; **no weapon kinds** |
 | **Waves** | `updateWave`, `startNextWave`, variant pools, hero modifiers | `WaveSystem` + `WaveScaling` aligned on core formulas; **no hero wave modifiers** |
 | **Economy** | `updateResources`, building payouts, drains | Passive credits tick; **kill credits** partially aligned; **no building economy** |
@@ -99,7 +99,7 @@
 - [x] C.4.1 `BuildSystem` + sell pick.
 - [x] C.4.2 Block build/sell during active wave (`wave_combat_active` / cleanup).
 - [-] C.4.3 Multi-cell **footprint** for prototype turret from defs; **all** `BuildingId` sizes later.
-- [ ] C.4.4 Supply, power cap, unlock checks, grid bounds parity.
+- [-] C.4.4 **Supply** build gate + sell returns **supply** (stored `build_supply_cost`); **power** build gate + unlock checks still missing; grid bounds as before.
 - [-] C.4.5 Sell refund 100% / 50% by inactive phase; **per-placement** `build_credit_cost` on each turret (web `creditCost` at build time); **multiple building types** still future work.
 - [ ] C.4.6 Refund affordance UI (inactive-only hints).
 - [ ] C.4.7 Pointer drag build/sell timing vs web.
@@ -118,7 +118,7 @@
 - [x] C.6.1 `EconomySystem` passive helper.
 - [-] C.6.2 Kill credits (combat-only); **logistics bonus** still simplified.
 - [-] C.6.3 Power cap, stored, generation, drain order, starvation — **cap/stored fields** on `main` + `GameState` + diagnostics (web defaults); **no generation/drain sim**.
-- [-] C.6.4 Supply cap / `supplyUsed` / per-building costs — **cap/used fields** mirrored (defaults); **not enforced** on build.
+- [-] C.6.4 Supply cap / `supplyUsed` / per-building costs — **enforced** for prototype turret (`supply_used` + `auto_turret.supplyCost`); cap from **CC `supplyCapAdd`**; depots / dynamic cap still missing.
 - [ ] C.6.5 Building `creditPayout` / intervals.
 - [ ] C.6.6 **`updateResources`** parity (modifiers, difficulty).
 

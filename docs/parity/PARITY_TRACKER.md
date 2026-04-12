@@ -47,7 +47,7 @@ Status legend:
 
 - [-] Placement legality parity (wave restrictions, occupancy, command center constraints)  
   Web ref: `src/game/BaseDefenseGame.ts`  
-  Godot ref: occupancy + center exclusion; **build/sell blocked while `wave_spawning` or any asteroids remain (after first manual wave)** — matches web `waveInProgress` guard; full building-class rules pending
+  Godot ref: occupancy + center exclusion; **build/sell blocked while `wave_spawning` or any asteroids remain (after first manual wave)**; **supply** `used + supplyCost ≤ cap` (cap from CC `supplyCapAdd`, cost from `auto_turret`); power/unlocks pending
 
 - [-] Sell/refund parity by building type and state  
   Web ref: `src/game/BaseDefenseGame.ts`  

@@ -29,6 +29,10 @@ var turret_damage: float = 28.0
 var turret_cooldown: float = 0.42
 var turret_footprint_w: int = 1
 var turret_footprint_h: int = 1
+## Web **`auto_turret.supplyCost`** — blocks build when `supply_used + this > supply_cap`.
+var turret_supply_cost: int = 2
+## Web **`command_center.supplyCapAdd`** at run start (prototype: no depot sim yet).
+var _run_supply_cap_start: int = 20
 var center_max_hp: float = 1000.0
 const PASSIVE_CREDITS_PER_SEC := 5.0
 const PROJECTILE_SPEED := 42.0
@@ -146,6 +150,9 @@ func _ready() -> void:
 func _parity_apply_building_baseline() -> void:
 	if not WebParityDefs.ok:
 		command_center_hp = center_max_hp
+		_run_supply_cap_start = 20
+		supply_cap = 20
+		turret_supply_cost = 2
 		return
 	center_max_hp = WebParityDefs.prototype_command_center_max_hp(center_max_hp)
 	command_center_hp = center_max_hp
@@ -156,6 +163,9 @@ func _parity_apply_building_baseline() -> void:
 	var fp := WebParityDefs.prototype_auto_turret_footprint()
 	turret_footprint_w = fp.x
 	turret_footprint_h = fp.y
+	turret_supply_cost = WebParityDefs.prototype_auto_turret_supply_cost(turret_supply_cost)
+	_run_supply_cap_start = WebParityDefs.prototype_command_center_supply_cap_add(_run_supply_cap_start)
+	supply_cap = _run_supply_cap_start
 
 
 func _check_command_center_defeat() -> void:
@@ -315,7 +325,7 @@ func _start_new_run() -> void:
 	credits = WebParityDefs.RESET_RUN_CREDITS
 	power_cap = WebParityDefs.RESET_RUN_POWER_CAP
 	power_stored = WebParityDefs.RESET_RUN_POWER_STORED
-	supply_cap = WebParityDefs.RESET_RUN_SUPPLY_CAP
+	supply_cap = _run_supply_cap_start
 	supply_used = WebParityDefs.RESET_RUN_SUPPLY_USED
 	command_center_hp = center_max_hp
 	wave_combat_active = false
@@ -671,6 +681,8 @@ func _handle_play_left_click() -> void:
 		return
 	var pos := _crosshair_world_on_ground()
 	var place_c := build_system.snap_placement(pos, GRID_SIZE)
+	if turret_supply_cost > 0 and supply_used + turret_supply_cost > supply_cap:
+		return
 	if not build_system.can_place_turret(
 		place_c,
 		command_center_pos,
@@ -687,6 +699,7 @@ func _handle_play_left_click() -> void:
 		return
 	credits -= turret_cost
 	money_spent += turret_cost
+	supply_used += turret_supply_cost
 	audio_service.emit_event("build_place")
 	var node := MeshInstance3D.new()
 	var m := BoxMesh.new()
@@ -706,6 +719,7 @@ func _handle_play_left_click() -> void:
 		"footprint_h": turret_footprint_h,
 		## Web per-building `creditCost` at placement (sell/refund uses this, not live `turret_cost`).
 		"build_credit_cost": turret_cost,
+		"build_supply_cost": turret_supply_cost,
 		"cooldown": 0.1,
 		"built_in_inactive_phase": current_inactive_phase,
 	})
@@ -730,6 +744,8 @@ func _handle_play_right_click() -> void:
 	var paid := int(t.get("build_credit_cost", turret_cost))
 	var refund := paid if full_refund else int(floor(paid * 0.5))
 	credits += refund
+	var sup_paid := int(t.get("build_supply_cost", turret_supply_cost))
+	supply_used = maxi(0, supply_used - sup_paid)
 	audio_service.emit_event("build_sell")
 
 
@@ -772,6 +788,10 @@ func _update_hud() -> void:
 		int(center_max_hp),
 		turrets.size(),
 		asteroids.size(),
+		int(power_stored),
+		int(power_cap),
+		int(supply_used),
+		int(supply_cap),
 		wave_ready,
 		spawn_status,
 	)

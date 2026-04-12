@@ -8,14 +8,29 @@ func format_gameplay_info(
 	center_max_hp: int,
 	turret_count: int,
 	asteroid_count: int,
+	power_stored: int,
+	power_cap: int,
+	supply_used: int,
+	supply_cap: int,
 	wave_ready: bool,
 	spawn_status: String,
 ) -> String:
 	var wr := "wait"
 	if wave_ready:
 		wr = "ready"
-	return "Wave %d | Credits %d | Center HP %d/%d | Turrets %d | Asteroids %d | Space:%s | %s | LMB build / RMB sell / P pause" % [
-		wave, credits, center_hp, center_max_hp, turret_count, asteroid_count, wr, spawn_status
+	return "Wave %d | %dc | HP %d/%d | P %d/%d | S %d/%d | Tur %d | Ast %d | Space:%s | %s | LMB/RMB | P pause" % [
+		wave,
+		credits,
+		center_hp,
+		center_max_hp,
+		power_stored,
+		power_cap,
+		supply_used,
+		supply_cap,
+		turret_count,
+		asteroid_count,
+		wr,
+		spawn_status,
 	]
 
 func format_look_info(yaw: float, pitch: float) -> String:

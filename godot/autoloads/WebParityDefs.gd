@@ -110,14 +110,27 @@ func read_building_float(building_id: String, key: String, fallback: float) -> f
 	return fallback
 
 
+func read_building_int(building_id: String, key: String, fallback: int) -> int:
+	return int(round(read_building_float(building_id, key, float(fallback))))
+
+
 ## Godot prototype maps to web **`command_center`**.
 func prototype_command_center_max_hp(fallback := 1000.0) -> float:
 	return read_building_float("command_center", "maxHp", fallback)
 
 
+## Web: command center adds **`supplyCapAdd`** to the run supply ceiling (prototype: start cap = this; depots not modeled yet).
+func prototype_command_center_supply_cap_add(fallback := 20) -> int:
+	return maxi(0, read_building_int("command_center", "supplyCapAdd", fallback))
+
+
 ## Godot prototype “turret” maps to web **`auto_turret`** (`BuildingDef`).
 func prototype_auto_turret_credit_cost(fallback := 100) -> int:
 	return int(round(read_building_float("auto_turret", "creditCost", float(fallback))))
+
+
+func prototype_auto_turret_supply_cost(fallback := 2) -> int:
+	return maxi(0, read_building_int("auto_turret", "supplyCost", fallback))
 
 
 func prototype_auto_turret_range(fallback := 16.0) -> float:
