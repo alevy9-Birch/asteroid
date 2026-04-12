@@ -38,8 +38,8 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 
 ### B.2 Godot data consumption
 
-- [ ] **B.2.1** Import `parity_web_defs.json` at runtime or generate `.tres` / typed `.gd` resources for **all** building fields (size, hp, costs, power, combat, shield, economy, citadel conduits, etc.).
-- [ ] **B.2.2** Same for **UPGRADES** graph: prerequisites, refunds, phase locks, hero-specific trees.
+- [x] **B.2.1** Import `parity_web_defs.json` at runtime — **`WebParityDefs` autoload** indexes buildings/upgrades by `id`; JSON includes **size, color, maxHp, costs, supply/power/economy/combat scalars, kind/weaponKind** per extractor (re-run `extract_web_defs.mjs` after TS changes). Gameplay still uses prototype constants until build/combat consume defs.
+- [-] **B.2.2** **UPGRADES** in JSON: **id, label, category, creditCost** (×0.93 like web `UPGRADES` map), **prereqIds, unlockBuildingIds, description, heroId** — **modifiers / phase locks / refunds** not in JSON yet; Godot skill tree not driven by defs.
 - [ ] **B.2.3** Difficulty tables: mirror `getDifficultyScale` / wave scaling / `GameDifficulty` effects.
 - [ ] **B.2.4** Hero (`HeroId`) unlocks and per-hero building families.
 

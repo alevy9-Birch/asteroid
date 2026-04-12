@@ -13,6 +13,64 @@ function sliceBetween(startMarker, endMarker) {
   return e < 0 ? src.slice(s) : src.slice(s, e)
 }
 
+function parseVarsFromSrc(text) {
+  const d = { C: 1, P: 1, S: 1, E: 1, asteroidKillCreditMul: 1.45 }
+  const block = text.match(/const VARS = \{([^}]*)\}/s)
+  if (!block) return d
+  for (const m of block[1].matchAll(/\b([A-Za-z_][\w]*)\s*:\s*([0-9.]+)/g)) {
+    if (m[1] in d) d[m[1]] = Number(m[2])
+  }
+  return d
+}
+
+const VARS = parseVarsFromSrc(src)
+/** Matches `export const UPGRADES` map in BaseDefenseGame.ts (RAW costs × this). */
+const UPGRADE_CREDIT_COST_MUL = 0.93
+
+function parseBalanceExpr(raw) {
+  raw = raw.replace(/\s+/g, ' ').trim()
+  if (raw === '' || raw === 'undefined') return null
+  if (/^\d+\.?\d*$/.test(raw)) return Number(raw)
+
+  let m = raw.match(/^Math\.round\(\s*([0-9.]+)\s*\*\s*VARS\.([CPSE])\s*\)$/i)
+  if (m) return Math.round(Number(m[1]) * VARS[m[2]])
+  m = raw.match(/^Math\.round\(\s*VARS\.([CPSE])\s*\*\s*([0-9.]+)\s*\)$/i)
+  if (m) return Math.round(VARS[m[1]] * Number(m[2]))
+
+  m = raw.match(/^([0-9.]+)\s*\*\s*VARS\.([CPSE])$/i)
+  if (m) return Number(m[1]) * VARS[m[2]]
+  m = raw.match(/^VARS\.([CPSE])\s*\*\s*([0-9.]+)$/i)
+  if (m) return VARS[m[1]] * Number(m[2])
+
+  return null
+}
+
+function pickNum(chunk, key) {
+  const re = new RegExp(`\\b${key}:\\s*([^,\\n]+),`)
+  const m = chunk.match(re)
+  if (!m) return undefined
+  const v = parseBalanceExpr(m[1])
+  return v === null ? undefined : v
+}
+
+function pickHex(chunk, key) {
+  const m = chunk.match(new RegExp(`\\b${key}:\\s*(0x[0-9a-fA-F]+)`, 'i'))
+  return m ? parseInt(m[1], 16) : undefined
+}
+
+function pickStr(chunk, key) {
+  const m = chunk.match(new RegExp(`\\b${key}:\\s*'([^']*)'`))
+  return m ? m[1] : undefined
+}
+
+function pickStringIds(chunk, key) {
+  const m = chunk.match(new RegExp(`\\b${key}:\\s*\\[([^\\]]*)\\]`))
+  if (!m) return undefined
+  const inner = m[1]
+  const ids = [...inner.matchAll(/'([^']+)'/g)].map((x) => x[1])
+  return ids.length ? ids : undefined
+}
+
 function extractObjectsById(section) {
   const out = []
   const idMatches = [...section.matchAll(/id:\s*'([^']+)'/g)]
@@ -26,33 +84,83 @@ function extractObjectsById(section) {
   return out
 }
 
-const buildSection = sliceBetween('export const BUILDINGS', 'export const UPGRADES')
-const upgradeSection = sliceBetween('export const UPGRADES', 'type Projectile')
+// Stop before `UPGRADES_RAW` — `export const UPGRADES` appears much later and would swallow the whole upgrade list into "buildings".
+const buildSection = sliceBetween('export const BUILDINGS', 'const UPGRADES_RAW')
+const upgradeSection = sliceBetween('const UPGRADES_RAW:', 'export const UPGRADES:')
 
 const buildingDefs = extractObjectsById(buildSection).map(({ id, chunk }) => {
-  const label = (chunk.match(/label:\s*'([^']+)'/) ?? [null, id])[1]
-  const category = (chunk.match(/category:\s*'([^']+)'/) ?? [null, 'unknown'])[1]
-  const creditCost = Number((chunk.match(/creditCost:\s*([0-9.]+)/) ?? [null, '0'])[1])
-  const supplyCost = Number((chunk.match(/supplyCost:\s*([0-9.]+)/) ?? [null, '0'])[1])
-  const powerDrainPerSec = Number((chunk.match(/powerDrainPerSec:\s*([0-9.]+)/) ?? [null, '0'])[1])
-  return { id, label, category, creditCost, supplyCost, powerDrainPerSec }
+  const label = pickStr(chunk, 'label') ?? id
+  const category = pickStr(chunk, 'category') ?? 'unknown'
+  const out = { id, label, category }
+
+  const sz = chunk.match(/size:\s*\{\s*w:\s*(\d+)\s*,\s*h:\s*(\d+)\s*\}/)
+  if (sz) out.size = { w: Number(sz[1]), h: Number(sz[2]) }
+
+  const color = pickHex(chunk, 'color')
+  if (color !== undefined) out.color = color
+
+  for (const k of [
+    'maxHp',
+    'creditCost',
+    'supplyCost',
+    'supplyCapAdd',
+    'creditPayout',
+    'creditIntervalSec',
+    'powerGenPerSec',
+    'powerDrainPerSec',
+    'powerCapAdd',
+    'range',
+    'fireRate',
+    'damage',
+    'projectileSpeed',
+    'auraDamagePerSec',
+    'shotCreditCost',
+  ]) {
+    const v = pickNum(chunk, k)
+    if (v !== undefined) out[k] = v
+  }
+
+  const wk = pickStr(chunk, 'weaponKind')
+  if (wk !== undefined) out.weaponKind = wk
+
+  const kind = pickStr(chunk, 'kind')
+  if (kind !== undefined) out.kind = kind
+
+  return out
 })
 
 const upgradeDefs = extractObjectsById(upgradeSection).map(({ id, chunk }) => {
-  const label = (chunk.match(/label:\s*'([^']+)'/) ?? [null, id])[1]
-  const creditCost = Number((chunk.match(/creditCost:\s*([0-9.]+)/) ?? [null, '0'])[1])
-  const prereqRaw = (chunk.match(/prereqIds:\s*\[([^\]]*)\]/) ?? [null, ''])[1]
-  const prereqIds = prereqRaw ? [...prereqRaw.matchAll(/'([^']+)'/g)].map((x) => x[1]) : []
-  return { id, label, creditCost, prereqIds }
+  const label = pickStr(chunk, 'label') ?? id
+  const category = pickStr(chunk, 'category')
+  const out = { id, label }
+  if (category !== undefined) out.category = category
+
+  const cc = pickNum(chunk, 'creditCost')
+  if (cc !== undefined) out.creditCost = cc > 0 ? Math.round(cc * UPGRADE_CREDIT_COST_MUL) : cc
+
+  const prereq = pickStringIds(chunk, 'prereqIds')
+  if (prereq) out.prereqIds = prereq
+
+  const unlock = pickStringIds(chunk, 'unlockBuildingIds')
+  if (unlock) out.unlockBuildingIds = unlock
+
+  const desc = pickStr(chunk, 'description')
+  if (desc !== undefined) out.description = desc
+
+  const heroId = pickStr(chunk, 'heroId')
+  if (heroId !== undefined) out.heroId = heroId
+
+  return out
 })
 
 const payload = {
   generatedAt: new Date().toISOString(),
   source: 'src/game/BaseDefenseGame.ts',
+  balanceVars: { ...VARS },
   buildings: buildingDefs,
   upgrades: upgradeDefs,
 }
 
 mkdirSync(dirname(outPath), { recursive: true })
 writeFileSync(outPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
-console.log(`Wrote ${outPath}`)
+console.log(`Wrote ${outPath} (${buildingDefs.length} buildings, ${upgradeDefs.length} upgrades)`)

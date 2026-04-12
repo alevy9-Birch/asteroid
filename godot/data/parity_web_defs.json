@@ -1,23 +1,3343 @@
 {
-  "generatedAt": "2026-04-08T19:50:32.030Z",
+  "generatedAt": "2026-04-12T01:04:37.918Z",
   "source": "src/game/BaseDefenseGame.ts",
+  "balanceVars": {
+    "C": 1,
+    "P": 1,
+    "S": 1,
+    "E": 1,
+    "asteroidKillCreditMul": 1.45
+  },
   "buildings": [
     {
       "id": "command_center",
       "label": "Command Center",
       "category": "structural",
+      "size": {
+        "w": 5,
+        "h": 5
+      },
+      "color": 6333946,
+      "maxHp": 1000,
+      "creditCost": 1000,
+      "supplyCost": 0,
+      "supplyCapAdd": 20,
+      "creditPayout": 18,
+      "creditIntervalSec": 1,
+      "powerGenPerSec": 1.6
+    },
+    {
+      "id": "supply_depot_s",
+      "label": "Supply Depo (S)",
+      "category": "structural",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 6333946,
+      "maxHp": 300,
+      "creditCost": 200,
+      "supplyCost": 0,
+      "supplyCapAdd": 18
+    },
+    {
+      "id": "supply_depot_l",
+      "label": "Supply Depo (L)",
+      "category": "structural",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 6333946,
+      "maxHp": 500,
+      "creditCost": 300,
+      "supplyCost": 0,
+      "supplyCapAdd": 30
+    },
+    {
+      "id": "repair_bay",
+      "label": "Repair Bay",
+      "category": "structural",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 6333946,
+      "maxHp": 800,
+      "creditCost": 550,
+      "supplyCost": 0,
+      "powerDrainPerSec": 0,
+      "fireRate": 0.2,
+      "damage": 30,
+      "projectileSpeed": 9
+    },
+    {
+      "id": "support_node",
+      "label": "Support Node",
+      "category": "structural",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 6333946,
+      "maxHp": 200,
+      "creditCost": 200,
+      "supplyCost": 0,
+      "range": 8,
+      "fireRate": 0.2
+    },
+    {
+      "id": "reconstruction_yard",
+      "label": "Reconstruction Yard",
+      "category": "structural",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 6333946,
+      "maxHp": 900,
+      "creditCost": 700,
+      "supplyCost": 0,
+      "range": 10
+    },
+    {
+      "id": "factory_business",
+      "label": "Business",
+      "category": "economy",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 2278750,
+      "maxHp": 650,
       "creditCost": 160,
       "supplyCost": 4,
-      "powerDrainPerSec": 0
+      "creditPayout": 8,
+      "creditIntervalSec": 1,
+      "powerDrainPerSec": 0.6
     },
     {
       "id": "factory_factory",
       "label": "Factory",
       "category": "economy",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 2278750,
+      "maxHp": 1250,
       "creditCost": 480,
       "supplyCost": 10,
+      "creditPayout": 45,
+      "creditIntervalSec": 3,
+      "powerDrainPerSec": 0.9
+    },
+    {
+      "id": "factory_megacomplex",
+      "label": "Mega Factory",
+      "category": "economy",
+      "size": {
+        "w": 5,
+        "h": 5
+      },
+      "color": 2278750,
+      "maxHp": 3600,
+      "creditCost": 1700,
+      "supplyCost": 28,
+      "creditPayout": 240,
+      "creditIntervalSec": 6,
+      "powerDrainPerSec": 2.4
+    },
+    {
+      "id": "refinery",
+      "label": "Refinery",
+      "category": "economy",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 2278750,
+      "maxHp": 560,
+      "creditCost": 260,
+      "supplyCost": 4,
+      "creditPayout": 20,
+      "creditIntervalSec": 1,
+      "powerDrainPerSec": 2.2
+    },
+    {
+      "id": "mega_refinery",
+      "label": "Mega Refinery",
+      "category": "economy",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 2278750,
+      "maxHp": 1300,
+      "creditCost": 750,
+      "supplyCost": 10,
+      "creditPayout": 70,
+      "creditIntervalSec": 1,
+      "powerDrainPerSec": 5.4
+    },
+    {
+      "id": "chemical_installation",
+      "label": "Chemical Installation",
+      "category": "economy",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 2278750,
+      "maxHp": 900,
+      "creditCost": 1300,
+      "supplyCost": 10,
+      "creditPayout": 150,
+      "creditIntervalSec": 4,
+      "powerDrainPerSec": 1.1,
+      "auraDamagePerSec": 3.2
+    },
+    {
+      "id": "generator_small",
+      "label": "Generator (S)",
+      "category": "electrical",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 15381256,
+      "maxHp": 500,
+      "creditCost": 150,
+      "supplyCost": 3,
+      "powerGenPerSec": 5.5
+    },
+    {
+      "id": "generator_large",
+      "label": "Generator (L)",
+      "category": "electrical",
+      "size": {
+        "w": 4,
+        "h": 4
+      },
+      "color": 15381256,
+      "maxHp": 1100,
+      "creditCost": 520,
+      "supplyCost": 10,
+      "powerGenPerSec": 16
+    },
+    {
+      "id": "battery_small",
+      "label": "Battery (S)",
+      "category": "electrical",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 15381256,
+      "maxHp": 420,
+      "creditCost": 180,
+      "supplyCost": 0,
+      "powerCapAdd": 55
+    },
+    {
+      "id": "battery_large",
+      "label": "Battery (L)",
+      "category": "electrical",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 15381256,
+      "maxHp": 700,
+      "creditCost": 340,
+      "supplyCost": 0,
+      "powerCapAdd": 110
+    },
+    {
+      "id": "pylon",
+      "label": "Pylon",
+      "category": "electrical",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 15381256,
+      "maxHp": 180,
+      "creditCost": 120,
+      "supplyCost": 0,
+      "powerGenPerSec": 0
+    },
+    {
+      "id": "nuclear_plant",
+      "label": "Nuclear Plant",
+      "category": "electrical",
+      "size": {
+        "w": 4,
+        "h": 4
+      },
+      "color": 15381256,
+      "maxHp": 1400,
+      "creditCost": 1200,
+      "supplyCost": 0,
+      "creditIntervalSec": 1,
+      "powerGenPerSec": 34
+    },
+    {
+      "id": "auto_turret",
+      "label": "Auto-Turret",
+      "category": "turrets",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 16347926,
+      "maxHp": 260,
+      "creditCost": 90,
+      "supplyCost": 2,
+      "powerDrainPerSec": 1.6,
+      "range": 25.5,
+      "fireRate": 8.5,
+      "damage": 11,
+      "kind": "hitscan"
+    },
+    {
+      "id": "auto_turret_large",
+      "label": "Auto-Turret (L)",
+      "category": "turrets",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 16347926,
+      "maxHp": 680,
+      "creditCost": 320,
+      "supplyCost": 5,
+      "powerDrainPerSec": 2.6,
+      "range": 30,
+      "fireRate": 9.2,
+      "damage": 16,
+      "kind": "hitscan"
+    },
+    {
+      "id": "siege_cannon",
+      "label": "Siege Cannon",
+      "category": "turrets",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 16347926,
+      "maxHp": 520,
+      "creditCost": 260,
+      "supplyCost": 6,
+      "powerDrainPerSec": 0.9,
+      "range": 60,
+      "fireRate": 0.33,
+      "damage": 260,
+      "kind": "hitscan"
+    },
+    {
+      "id": "heavy_siege_gun",
+      "label": "Heavy Siege Cannon",
+      "category": "turrets",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 16347926,
+      "maxHp": 980,
+      "creditCost": 620,
+      "supplyCost": 10,
+      "powerDrainPerSec": 1.4,
+      "range": 66,
+      "fireRate": 0.24,
+      "damage": 420,
+      "kind": "hitscan"
+    },
+    {
+      "id": "aa_gun",
+      "label": "AA Gun",
+      "category": "turrets",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 16347926,
+      "maxHp": 620,
+      "creditCost": 630,
+      "supplyCost": 7,
+      "powerDrainPerSec": 1.1,
+      "range": 65,
+      "fireRate": 1.05,
+      "damage": 68,
+      "kind": "hitscan"
+    },
+    {
+      "id": "railgun",
+      "label": "Railgun",
+      "category": "turrets",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 16347926,
+      "maxHp": 900,
+      "creditCost": 900,
+      "supplyCost": 12,
+      "powerDrainPerSec": 0,
+      "range": 105,
+      "fireRate": 0.25,
+      "damage": 700,
+      "kind": "railgun"
+    },
+    {
+      "id": "missile_launcher_s",
+      "label": "Missile Launcher (S)",
+      "category": "missile",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 15680580,
+      "maxHp": 520,
+      "creditCost": 260,
+      "supplyCost": 6,
+      "powerDrainPerSec": 0.7,
+      "range": 46,
+      "fireRate": 1.1,
+      "damage": 200,
+      "projectileSpeed": 46,
+      "kind": "missiles"
+    },
+    {
+      "id": "missile_launcher_m",
+      "label": "Missile Launcher (M)",
+      "category": "missile",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 15680580,
+      "maxHp": 780,
+      "creditCost": 520,
+      "supplyCost": 10,
+      "powerDrainPerSec": 1,
+      "range": 52,
+      "fireRate": 1,
+      "damage": 280,
+      "projectileSpeed": 44,
+      "kind": "missiles"
+    },
+    {
+      "id": "portable_silo",
+      "label": "Portable Silo",
+      "category": "missile",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 15680580,
+      "maxHp": 420,
+      "creditCost": 280,
+      "supplyCost": 5,
+      "powerDrainPerSec": 0.8,
+      "range": 66,
+      "fireRate": 0.22,
+      "damage": 600,
+      "projectileSpeed": 48,
+      "kind": "missiles"
+    },
+    {
+      "id": "missile_silo",
+      "label": "Missile Silo",
+      "category": "missile",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 15680580,
+      "maxHp": 1100,
+      "creditCost": 700,
+      "supplyCost": 12,
+      "powerDrainPerSec": 1.2,
+      "range": 76,
+      "fireRate": 0.14,
+      "damage": 1000,
+      "projectileSpeed": 46,
+      "kind": "missiles"
+    },
+    {
+      "id": "nuclear_silo",
+      "label": "Nuclear Silo",
+      "category": "missile",
+      "size": {
+        "w": 5,
+        "h": 5
+      },
+      "color": 15680580,
+      "maxHp": 1900,
+      "creditCost": 1700,
+      "supplyCost": 20,
+      "powerDrainPerSec": 1.8,
+      "range": 90,
+      "fireRate": 0.08,
+      "damage": 2200,
+      "projectileSpeed": 44,
+      "kind": "missiles"
+    },
+    {
+      "id": "hydra_launcher",
+      "label": "Hydra Launcher",
+      "category": "missile",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 15680580,
+      "maxHp": 960,
+      "creditCost": 880,
+      "supplyCost": 14,
+      "powerDrainPerSec": 1.1,
+      "range": 60,
+      "fireRate": 0.2,
+      "damage": 120,
+      "projectileSpeed": 68,
+      "kind": "missiles"
+    },
+    {
+      "id": "shield_generator_m",
+      "label": "Shield Generator (M)",
+      "category": "energy",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 2282478,
+      "maxHp": 1100,
+      "creditCost": 600,
+      "supplyCost": 10,
+      "powerDrainPerSec": 0,
+      "range": 12,
+      "kind": "shield"
+    },
+    {
+      "id": "shield_generator_l",
+      "label": "Shield Generator (L)",
+      "category": "energy",
+      "size": {
+        "w": 5,
+        "h": 5
+      },
+      "color": 2282478,
+      "maxHp": 1900,
+      "creditCost": 1300,
+      "supplyCost": 18,
+      "powerDrainPerSec": 0,
+      "range": 24,
+      "kind": "shield"
+    },
+    {
+      "id": "tesla_tower",
+      "label": "Tesla Tower",
+      "category": "energy",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 2282478,
+      "maxHp": 760,
+      "creditCost": 520,
+      "supplyCost": 9,
+      "powerDrainPerSec": 7.2,
+      "range": 8,
+      "fireRate": 20,
+      "damage": 95,
+      "kind": "hitscan"
+    },
+    {
+      "id": "plasma_laser_s",
+      "label": "Plasma Laser (S)",
+      "category": "energy",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 2282478,
+      "maxHp": 380,
+      "creditCost": 260,
+      "supplyCost": 5,
+      "powerDrainPerSec": 5.4,
+      "range": 38,
+      "fireRate": 14,
+      "damage": 85,
+      "kind": "hitscan"
+    },
+    {
+      "id": "plasma_laser_m",
+      "label": "Plasma Laser (M)",
+      "category": "energy",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 2282478,
+      "maxHp": 760,
+      "creditCost": 620,
+      "supplyCost": 10,
+      "powerDrainPerSec": 9.4,
+      "range": 48,
+      "fireRate": 16,
+      "damage": 128,
+      "kind": "hitscan"
+    },
+    {
+      "id": "plasma_laser_l",
+      "label": "Plasma Laser (L)",
+      "category": "energy",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 2282478,
+      "maxHp": 1200,
+      "creditCost": 1050,
+      "supplyCost": 16,
+      "powerDrainPerSec": 14.5,
+      "range": 58,
+      "fireRate": 18,
+      "damage": 182,
+      "kind": "hitscan"
+    },
+    {
+      "id": "archangel_airfield",
+      "label": "Airfield",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 11032055,
+      "maxHp": 920,
+      "creditCost": 780,
+      "supplyCost": 14,
+      "powerDrainPerSec": 0.15,
+      "range": 42,
+      "fireRate": 14,
+      "damage": 9.2,
+      "projectileSpeed": 24
+    },
+    {
+      "id": "archangel_starport",
+      "label": "Starport",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 11032055,
+      "maxHp": 1050,
+      "creditCost": 1020,
+      "supplyCost": 16,
+      "powerDrainPerSec": 0.2,
+      "range": 36,
+      "fireRate": 0.19,
+      "damage": 302,
+      "projectileSpeed": 56
+    },
+    {
+      "id": "archangel_fueling_station",
+      "label": "Fueling Station",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 420,
+      "creditCost": 340,
+      "supplyCost": 6,
+      "powerDrainPerSec": 0.48
+    },
+    {
+      "id": "archangel_bulk_fueling_station",
+      "label": "Bulk Fueling Station",
+      "category": "hero",
+      "size": {
+        "w": 4,
+        "h": 4
+      },
+      "color": 11032055,
+      "maxHp": 980,
+      "creditCost": 820,
+      "supplyCost": 14,
+      "powerDrainPerSec": 1.15
+    },
+    {
+      "id": "archangel_munitions_plant",
+      "label": "Munitions Plant",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 400,
+      "creditCost": 290,
+      "supplyCost": 5
+    },
+    {
+      "id": "archangel_missile_factory",
+      "label": "Missile Factory",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 440,
+      "creditCost": 360,
+      "supplyCost": 6
+    },
+    {
+      "id": "dominion_orbital_cannon",
+      "label": "Orbital Cannon",
+      "category": "hero",
+      "size": {
+        "w": 5,
+        "h": 5
+      },
+      "color": 11032055,
+      "maxHp": 2400,
+      "creditCost": 2400,
+      "supplyCost": 24,
+      "range": 9999,
+      "fireRate": 0.2,
+      "damage": 560,
+      "kind": "hitscan"
+    },
+    {
+      "id": "dominion_flak_gun",
+      "label": "Flak Gun",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 520,
+      "creditCost": 420,
+      "supplyCost": 5,
+      "powerDrainPerSec": 0.55,
+      "range": 82,
+      "fireRate": 9,
+      "damage": 108,
+      "kind": "hitscan"
+    },
+    {
+      "id": "dominion_seeker_drone_spawner",
+      "label": "Seeker Drone Spawner",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 11032055,
+      "maxHp": 720,
+      "creditCost": 680,
+      "supplyCost": 8,
+      "powerDrainPerSec": 0.35,
+      "fireRate": 0.25,
+      "damage": 2.4,
+      "projectileSpeed": 17
+    },
+    {
+      "id": "dominion_defensive_bunker",
+      "label": "Defensive Bunker",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 11032055,
+      "maxHp": 1950,
+      "creditCost": 720,
+      "supplyCost": 10,
+      "powerDrainPerSec": 0.42,
+      "range": 38,
+      "fireRate": 5.5,
+      "damage": 38,
+      "kind": "hitscan"
+    },
+    {
+      "id": "dominion_laser_drill",
+      "label": "Laser Drill",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 480,
+      "creditCost": 590,
+      "supplyCost": 6,
+      "powerDrainPerSec": 1.1,
+      "range": 44,
+      "fireRate": 2.2,
+      "damage": 52,
+      "kind": "hitscan"
+    },
+    {
+      "id": "dominion_support_bay",
+      "label": "Support Bay",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 11032055,
+      "maxHp": 920,
+      "creditCost": 820,
+      "supplyCost": 8,
+      "powerDrainPerSec": 0.28,
+      "fireRate": 0.143,
+      "damage": 72,
+      "projectileSpeed": 11
+    },
+    {
+      "id": "nova_gravity_well",
+      "label": "Gravity Well",
+      "category": "hero",
+      "size": {
+        "w": 5,
+        "h": 5
+      },
+      "color": 11032055,
+      "maxHp": 1420,
+      "creditCost": 980,
+      "supplyCost": 10,
+      "powerDrainPerSec": 0.38
+    },
+    {
+      "id": "nova_photon_projector_s",
+      "label": "Photon Projector (S)",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 520,
+      "creditCost": 720,
+      "supplyCost": 6,
+      "powerDrainPerSec": 0.95,
+      "range": 58,
+      "fireRate": 0.13,
+      "damage": 220,
+      "projectileSpeed": 13,
+      "kind": "hitscan"
+    },
+    {
+      "id": "nova_photon_projector_l",
+      "label": "Photon Projector (L)",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 11032055,
+      "maxHp": 780,
+      "creditCost": 940,
+      "supplyCost": 8,
+      "powerDrainPerSec": 1.1,
+      "range": 72,
+      "fireRate": 0.1,
+      "damage": 310,
+      "projectileSpeed": 11,
+      "kind": "hitscan"
+    },
+    {
+      "id": "nova_shockwave_pulsar",
+      "label": "Shockwave Pulsar",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 11032055,
+      "maxHp": 680,
+      "creditCost": 760,
+      "supplyCost": 7,
+      "powerDrainPerSec": 0.52,
+      "range": 68,
+      "fireRate": 0.17,
+      "damage": 16,
+      "kind": "hitscan"
+    },
+    {
+      "id": "nova_universal_forcefield",
+      "label": "Universal Forcefield",
+      "category": "hero",
+      "size": {
+        "w": 5,
+        "h": 5
+      },
+      "color": 11032055,
+      "maxHp": 2200,
+      "creditCost": 1680,
+      "supplyCost": 14,
+      "powerDrainPerSec": 0,
+      "range": 86,
+      "kind": "shield"
+    },
+    {
+      "id": "nova_power_bank",
+      "label": "Power Bank",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 420,
+      "creditCost": 520,
+      "supplyCost": 4,
+      "powerDrainPerSec": 0.12,
+      "range": 12
+    },
+    {
+      "id": "citadel_repair_conduit",
+      "label": "Repair Conduit",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 1357990,
+      "maxHp": 560,
+      "creditCost": 520,
+      "supplyCost": 3,
+      "powerDrainPerSec": 0,
+      "range": 14,
+      "fireRate": 0.25,
+      "damage": 38,
+      "kind": "repair"
+    },
+    {
+      "id": "citadel_construction_conduit",
+      "label": "Construction Conduit",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 889992,
+      "maxHp": 920,
+      "creditCost": 980,
+      "supplyCost": 6,
+      "powerDrainPerSec": 0.35,
+      "kind": "construction"
+    },
+    {
+      "id": "citadel_defense_conduit",
+      "label": "Defense Conduit",
+      "category": "hero",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 6220500,
+      "maxHp": 220,
+      "creditCost": 220,
+      "supplyCost": 1,
+      "powerDrainPerSec": 0.08,
+      "kind": "defense"
+    },
+    {
+      "id": "citadel_attack_conduit",
+      "label": "Attack Conduit",
+      "category": "hero",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 3003583,
+      "maxHp": 210,
+      "creditCost": 240,
+      "supplyCost": 2,
+      "powerDrainPerSec": 0.2,
+      "kind": "attack"
+    },
+    {
+      "id": "citadel_efficiency_conduit",
+      "label": "Efficiency Conduit",
+      "category": "hero",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 10090212,
+      "maxHp": 200,
+      "creditCost": 260,
+      "supplyCost": 2,
+      "powerDrainPerSec": 0.15,
+      "kind": "efficiency"
+    },
+    {
+      "id": "citadel_range_conduit",
+      "label": "Range Conduit",
+      "category": "hero",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 13433841,
+      "maxHp": 200,
+      "creditCost": 230,
+      "supplyCost": 2,
+      "powerDrainPerSec": 0.12,
+      "kind": "range"
+    },
+    {
+      "id": "jupiter_mass_relay",
+      "label": "Mass Relay",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 12891645,
+      "maxHp": 820,
+      "creditCost": 980,
+      "supplyCost": 5,
+      "powerGenPerSec": 0,
+      "powerDrainPerSec": 0.15
+    },
+    {
+      "id": "jupiter_arc_thrower",
+      "label": "Arc Thrower",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 8490232,
+      "maxHp": 640,
+      "creditCost": 1100,
+      "supplyCost": 8,
+      "powerDrainPerSec": 0,
+      "range": 56,
+      "fireRate": 0.42,
+      "damage": 88,
+      "kind": "hitscan"
+    },
+    {
+      "id": "jupiter_overclock_augment",
+      "label": "Overclock Augment",
+      "category": "hero",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 16498468,
+      "maxHp": 210,
+      "creditCost": 340,
+      "supplyCost": 2,
       "powerDrainPerSec": 0
+    },
+    {
+      "id": "jupiter_radar_station",
+      "label": "Radar Station",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 3718648,
+      "maxHp": 780,
+      "creditCost": 860,
+      "supplyCost": 6,
+      "powerDrainPerSec": 0,
+      "range": 46
+    },
+    {
+      "id": "jupiter_recon_drone",
+      "label": "Recon Drone",
+      "category": "hero",
+      "size": {
+        "w": 1,
+        "h": 1
+      },
+      "color": 9741240,
+      "maxHp": 190,
+      "creditCost": 420,
+      "supplyCost": 3,
+      "powerDrainPerSec": 0.42,
+      "range": 22,
+      "fireRate": 12,
+      "damage": 4.4,
+      "kind": "hitscan"
+    },
+    {
+      "id": "jupiter_battery_complex",
+      "label": "Battery Complex",
+      "category": "hero",
+      "size": {
+        "w": 4,
+        "h": 4
+      },
+      "color": 15381256,
+      "maxHp": 1100,
+      "creditCost": 1180,
+      "supplyCost": 4,
+      "powerGenPerSec": 2.8,
+      "powerDrainPerSec": 0.08,
+      "powerCapAdd": 220
+    },
+    {
+      "id": "kingpin_data_array",
+      "label": "Data Array",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 11032055,
+      "maxHp": 260,
+      "creditCost": 520,
+      "supplyCost": 4,
+      "creditPayout": 520,
+      "creditIntervalSec": 34,
+      "powerDrainPerSec": 0.55
+    },
+    {
+      "id": "kingpin_investment_complex",
+      "label": "Investment Complex",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 12616956,
+      "maxHp": 720,
+      "creditCost": 780,
+      "supplyCost": 6,
+      "creditPayout": 12,
+      "powerDrainPerSec": 0.4
+    },
+    {
+      "id": "kingpin_cryptographic_decoder",
+      "label": "Cryptographic Decoder",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 15235577,
+      "maxHp": 520,
+      "creditCost": 640,
+      "supplyCost": 5,
+      "powerDrainPerSec": 0.22,
+      "range": 11
+    },
+    {
+      "id": "kingpin_indoctrinated_labor",
+      "label": "Indoctrinated Labor",
+      "category": "hero",
+      "size": {
+        "w": 2,
+        "h": 2
+      },
+      "color": 8141549,
+      "maxHp": 560,
+      "creditCost": 680,
+      "supplyCost": 5,
+      "powerDrainPerSec": 0.28,
+      "range": 11
+    },
+    {
+      "id": "kingpin_mineral_processor",
+      "label": "Mineral Processor",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 16020150,
+      "maxHp": 840,
+      "creditCost": 920,
+      "supplyCost": 7,
+      "powerDrainPerSec": 0.35,
+      "range": 13
+    },
+    {
+      "id": "kingpin_slag_cannon",
+      "label": "Slag Cannon",
+      "category": "hero",
+      "size": {
+        "w": 3,
+        "h": 3
+      },
+      "color": 16007006,
+      "maxHp": 920,
+      "creditCost": 720,
+      "supplyCost": 11,
+      "powerDrainPerSec": 1.25,
+      "range": 64,
+      "fireRate": 0.36,
+      "damage": 360,
+      "shotCreditCost": 24,
+      "kind": "hitscan"
     }
   ],
-  "upgrades": []
+  "upgrades": [
+    {
+      "id": "core_protocol",
+      "label": "Core Protocol",
+      "category": "structural",
+      "creditCost": 0,
+      "description": "Starting upgrade. Unlocks adjacent branches in the skill tree."
+    },
+    {
+      "id": "unlock_factory",
+      "label": "Unlock Factory Tier",
+      "category": "economy",
+      "creditCost": 512,
+      "unlockBuildingIds": [
+        "factory_factory"
+      ],
+      "description": "Unlocks the Factory building."
+    },
+    {
+      "id": "unlock_megacomplex",
+      "label": "Unlock Mega-Complex",
+      "category": "economy",
+      "creditCost": 1116,
+      "prereqIds": [
+        "unlock_factory"
+      ],
+      "unlockBuildingIds": [
+        "factory_megacomplex",
+        "chemical_installation"
+      ],
+      "description": "Unlocks the Mega-Complex building."
+    },
+    {
+      "id": "turret_targeting",
+      "label": "Turret Targeting Suite",
+      "category": "turrets",
+      "creditCost": 651,
+      "description": "Auto-Turret and Siege Cannon gain range and damage."
+    },
+    {
+      "id": "generator_efficiency",
+      "label": "Generator Efficiency",
+      "category": "electrical",
+      "creditCost": 446,
+      "description": "Generators produce 25% more power."
+    },
+    {
+      "id": "unlock_repair_infra",
+      "label": "Unlock Repair Bay",
+      "category": "structural",
+      "creditCost": 484,
+      "unlockBuildingIds": [
+        "repair_bay"
+      ],
+      "description": "Unlocks the Repair Bay."
+    },
+    {
+      "id": "unlock_reconstruction_yard",
+      "label": "Unlock Reconstruction Yard",
+      "category": "structural",
+      "creditCost": 725,
+      "prereqIds": [
+        "unlock_repair_infra"
+      ],
+      "unlockBuildingIds": [
+        "reconstruction_yard"
+      ],
+      "description": "Unlocks the Reconstruction Yard."
+    },
+    {
+      "id": "unlock_grid_expansion",
+      "label": "Unlock Grid Expansion",
+      "category": "electrical",
+      "creditCost": 651,
+      "prereqIds": [
+        "generator_efficiency"
+      ],
+      "unlockBuildingIds": [
+        "generator_large",
+        "battery_large"
+      ],
+      "description": "Unlocks the Large Generator and Large Battery."
+    },
+    {
+      "id": "unlock_pylon",
+      "label": "Unlock Pylon Network",
+      "category": "electrical",
+      "creditCost": 605,
+      "prereqIds": [
+        "generator_efficiency"
+      ],
+      "unlockBuildingIds": [
+        "pylon"
+      ],
+      "description": "Unlocks Pylon structures."
+    },
+    {
+      "id": "unlock_nuclear_plant",
+      "label": "Unlock Nuclear Plant",
+      "category": "electrical",
+      "creditCost": 1023,
+      "prereqIds": [
+        "unlock_grid_expansion"
+      ],
+      "unlockBuildingIds": [
+        "nuclear_plant"
+      ],
+      "description": "Unlocks the Nuclear Plant."
+    },
+    {
+      "id": "unlock_turret_t2",
+      "label": "Unlock Heavy Turrets",
+      "category": "turrets",
+      "creditCost": 605,
+      "unlockBuildingIds": [
+        "auto_turret_large",
+        "heavy_siege_gun",
+        "aa_gun"
+      ],
+      "description": "Unlocks larger and specialized turret/cannon platforms."
+    },
+    {
+      "id": "unlock_railgun",
+      "label": "Unlock Railgun",
+      "category": "turrets",
+      "creditCost": 884,
+      "prereqIds": [
+        "unlock_turret_t2"
+      ],
+      "unlockBuildingIds": [
+        "railgun"
+      ],
+      "description": "Unlocks the Railgun defense platform."
+    },
+    {
+      "id": "turret_range_1",
+      "label": "Turret Range I",
+      "category": "turrets",
+      "creditCost": 465,
+      "description": "All turrets gain a moderate range increase."
+    },
+    {
+      "id": "turret_range_2",
+      "label": "Turret Range II",
+      "category": "turrets",
+      "creditCost": 837,
+      "prereqIds": [
+        "turret_range_1"
+      ],
+      "description": "All turrets gain a large range increase."
+    },
+    {
+      "id": "turret_damage_1",
+      "label": "Turret Damage I",
+      "category": "turrets",
+      "creditCost": 512,
+      "description": "All turrets gain a moderate damage increase."
+    },
+    {
+      "id": "turret_damage_2",
+      "label": "Turret Damage II",
+      "category": "turrets",
+      "creditCost": 911,
+      "prereqIds": [
+        "turret_damage_1"
+      ],
+      "description": "All turrets gain a large damage increase."
+    },
+    {
+      "id": "unlock_missile_silos",
+      "label": "Unlock Silo Tech",
+      "category": "missile",
+      "creditCost": 651,
+      "unlockBuildingIds": [
+        "portable_silo",
+        "missile_silo",
+        "missile_launcher_m"
+      ],
+      "description": "Unlocks retargeting silo platforms."
+    },
+    {
+      "id": "unlock_nuclear_silo",
+      "label": "Unlock Nuclear Silo",
+      "category": "missile",
+      "creditCost": 1488,
+      "prereqIds": [
+        "unlock_missile_silos"
+      ],
+      "unlockBuildingIds": [
+        "nuclear_silo"
+      ],
+      "description": "Unlocks the Nuclear Silo platform."
+    },
+    {
+      "id": "unlock_hydra_launcher",
+      "label": "Unlock Hydra Launcher",
+      "category": "missile",
+      "creditCost": 1023,
+      "prereqIds": [
+        "unlock_missile_silos"
+      ],
+      "unlockBuildingIds": [
+        "hydra_launcher"
+      ],
+      "description": "Unlocks the Hydra burst launcher."
+    },
+    {
+      "id": "missile_payload_1",
+      "label": "Missile Payload I",
+      "category": "missile",
+      "creditCost": 605,
+      "description": "Improves explosive payload radius for non-Hydra missiles."
+    },
+    {
+      "id": "missile_payload_2",
+      "label": "Missile Payload II",
+      "category": "missile",
+      "creditCost": 1023,
+      "prereqIds": [
+        "missile_payload_1"
+      ],
+      "description": "Further improves explosive payload radius and damage."
+    },
+    {
+      "id": "unlock_shields",
+      "label": "Unlock Shield Generator",
+      "category": "energy",
+      "creditCost": 837,
+      "unlockBuildingIds": [
+        "shield_generator_m"
+      ],
+      "description": "Unlocks the Medium Shield Generator."
+    },
+    {
+      "id": "unlock_shield_large",
+      "label": "Unlock Large Shield",
+      "category": "energy",
+      "creditCost": 1395,
+      "prereqIds": [
+        "unlock_shields"
+      ],
+      "unlockBuildingIds": [
+        "shield_generator_l"
+      ],
+      "description": "Unlocks the Large Shield Generator."
+    },
+    {
+      "id": "shield_capacity_1",
+      "label": "Shield Capacity I",
+      "category": "energy",
+      "creditCost": 698,
+      "prereqIds": [
+        "unlock_shields"
+      ],
+      "description": "Increases shield field maximum health."
+    },
+    {
+      "id": "shield_capacity_2",
+      "label": "Shield Capacity II",
+      "category": "energy",
+      "creditCost": 1116,
+      "prereqIds": [
+        "shield_capacity_1"
+      ],
+      "description": "Greatly increases shield field maximum health."
+    },
+    {
+      "id": "shield_recharge_1",
+      "label": "Shield Recharge I",
+      "category": "energy",
+      "creditCost": 791,
+      "prereqIds": [
+        "unlock_shields"
+      ],
+      "description": "Increases shield recharge rate (still costs power to recharge)."
+    },
+    {
+      "id": "plasma_focus_1",
+      "label": "Plasma Focus I",
+      "category": "energy",
+      "creditCost": 605,
+      "unlockBuildingIds": [
+        "plasma_laser_s",
+        "plasma_laser_m"
+      ],
+      "description": "Plasma lasers gain damage and range."
+    },
+    {
+      "id": "plasma_focus_2",
+      "label": "Plasma Focus II",
+      "category": "energy",
+      "creditCost": 1070,
+      "prereqIds": [
+        "plasma_focus_1"
+      ],
+      "unlockBuildingIds": [
+        "plasma_laser_l"
+      ],
+      "description": "Plasma lasers gain more damage and become slightly more power efficient."
+    },
+    {
+      "id": "tesla_coils_1",
+      "label": "Tesla Coils I",
+      "category": "energy",
+      "creditCost": 651,
+      "unlockBuildingIds": [
+        "tesla_tower"
+      ],
+      "description": "Tesla tower zaps farther and hits harder."
+    },
+    {
+      "id": "logistics_1",
+      "label": "Logistics I",
+      "category": "structural",
+      "creditCost": 419,
+      "description": "Supply structures provide more maximum supply."
+    },
+    {
+      "id": "logistics_2",
+      "label": "Logistics II",
+      "category": "structural",
+      "creditCost": 791,
+      "prereqIds": [
+        "logistics_1"
+      ],
+      "description": "Supply structures provide significantly more maximum supply."
+    },
+    {
+      "id": "command_autonomy_1",
+      "label": "Command Autonomy I",
+      "category": "structural",
+      "creditCost": 651,
+      "description": "Command Centers generate more credits and power."
+    },
+    {
+      "id": "structural_fortification_1",
+      "label": "Structural Fortification I",
+      "category": "structural",
+      "creditCost": 512,
+      "description": "All structural buildings gain health."
+    },
+    {
+      "id": "structural_fortification_2",
+      "label": "Structural Fortification II",
+      "category": "structural",
+      "creditCost": 884,
+      "prereqIds": [
+        "structural_fortification_1"
+      ],
+      "description": "Further improves structural durability."
+    },
+    {
+      "id": "structural_auto_repair",
+      "label": "Structural Auto-Repair",
+      "category": "structural",
+      "creditCost": 884,
+      "prereqIds": [
+        "structural_fortification_1"
+      ],
+      "description": "All buildings passively repair up to 50% max health over time."
+    },
+    {
+      "id": "battery_capacity_1",
+      "label": "Battery Capacity I",
+      "category": "electrical",
+      "creditCost": 465,
+      "description": "Batteries increase max power storage more."
+    },
+    {
+      "id": "battery_capacity_2",
+      "label": "Battery Capacity II",
+      "category": "electrical",
+      "creditCost": 837,
+      "prereqIds": [
+        "battery_capacity_1"
+      ],
+      "description": "Batteries greatly increase max power storage."
+    },
+    {
+      "id": "power_distribution_1",
+      "label": "Power Distribution I",
+      "category": "electrical",
+      "creditCost": 558,
+      "description": "Energy weapons and missiles consume less power."
+    },
+    {
+      "id": "power_distribution_2",
+      "label": "Power Distribution II",
+      "category": "electrical",
+      "creditCost": 1023,
+      "prereqIds": [
+        "power_distribution_1"
+      ],
+      "description": "Further reduces power usage for high-tech systems."
+    },
+    {
+      "id": "nuclear_overclock_1",
+      "label": "Nuclear Overclock I",
+      "category": "electrical",
+      "creditCost": 884,
+      "description": "Nuclear plants generate more power (still require credits to run)."
+    },
+    {
+      "id": "economy_optimization_1",
+      "label": "Economy Optimization I",
+      "category": "economy",
+      "creditCost": 605,
+      "description": "Economy buildings produce more credits."
+    },
+    {
+      "id": "economy_optimization_2",
+      "label": "Economy Optimization II",
+      "category": "economy",
+      "creditCost": 1116,
+      "prereqIds": [
+        "economy_optimization_1"
+      ],
+      "description": "Further improves economy building output."
+    },
+    {
+      "id": "unlock_refinery",
+      "label": "Unlock Refinery",
+      "category": "economy",
+      "creditCost": 419,
+      "unlockBuildingIds": [
+        "refinery"
+      ],
+      "description": "Unlocks the Refinery building."
+    },
+    {
+      "id": "unlock_mega_refinery",
+      "label": "Unlock Mega Refinery",
+      "category": "economy",
+      "creditCost": 837,
+      "prereqIds": [
+        "unlock_refinery"
+      ],
+      "unlockBuildingIds": [
+        "mega_refinery"
+      ],
+      "description": "Unlocks the Mega Refinery building."
+    },
+    {
+      "id": "command_center_mk2",
+      "label": "Command Center Level 2",
+      "category": "structural",
+      "creditCost": 837,
+      "prereqIds": [
+        "command_autonomy_1"
+      ],
+      "description": "Command Centers provide more supply, power, and credits."
+    },
+    {
+      "id": "supply_depot_s_mk2",
+      "label": "Supply Depot (S) Level 2",
+      "category": "structural",
+      "creditCost": 419,
+      "prereqIds": [
+        "logistics_1"
+      ],
+      "description": "Small supply depots provide more supply."
+    },
+    {
+      "id": "supply_depot_l_mk2",
+      "label": "Supply Depot (L) Level 2",
+      "category": "structural",
+      "creditCost": 605,
+      "prereqIds": [
+        "logistics_2"
+      ],
+      "description": "Large supply depots provide more supply."
+    },
+    {
+      "id": "repair_bay_mk2",
+      "label": "Repair Bay Level 2",
+      "category": "structural",
+      "creditCost": 651,
+      "prereqIds": [
+        "structural_fortification_1"
+      ],
+      "description": "Repair drones heal faster and launch more frequently."
+    },
+    {
+      "id": "support_node_mk2",
+      "label": "Support Node Level 2",
+      "category": "structural",
+      "creditCost": 558,
+      "prereqIds": [
+        "structural_fortification_1"
+      ],
+      "description": "Support Node pulses heal more and cover more range."
+    },
+    {
+      "id": "reconstruction_yard_mk2",
+      "label": "Reconstruction Yard Level 2",
+      "category": "structural",
+      "creditCost": 791,
+      "prereqIds": [
+        "structural_fortification_2"
+      ],
+      "description": "Reconstruction Yards can rebuild from farther away."
+    },
+    {
+      "id": "factory_business_mk2",
+      "label": "Business Level 2",
+      "category": "economy",
+      "creditCost": 512,
+      "prereqIds": [
+        "economy_optimization_1"
+      ],
+      "description": "Businesses generate more credits."
+    },
+    {
+      "id": "factory_factory_mk2",
+      "label": "Factory Level 2",
+      "category": "economy",
+      "creditCost": 744,
+      "prereqIds": [
+        "unlock_factory"
+      ],
+      "description": "Factories generate more credits."
+    },
+    {
+      "id": "factory_megacomplex_mk2",
+      "label": "Mega-Complex Level 2",
+      "category": "economy",
+      "creditCost": 1163,
+      "prereqIds": [
+        "unlock_megacomplex"
+      ],
+      "description": "Mega-Complexes generate significantly more credits."
+    },
+    {
+      "id": "refinery_mk2",
+      "label": "Refinery Level 2",
+      "category": "economy",
+      "creditCost": 605,
+      "prereqIds": [
+        "unlock_refinery"
+      ],
+      "description": "Refineries output more credits with slightly better efficiency."
+    },
+    {
+      "id": "mega_refinery_mk2",
+      "label": "Mega Refinery Level 2",
+      "category": "economy",
+      "creditCost": 1023,
+      "prereqIds": [
+        "unlock_mega_refinery"
+      ],
+      "description": "Mega Refineries output more credits with slightly better efficiency."
+    },
+    {
+      "id": "chemical_installation_mk2",
+      "label": "Chemical Installation Level 2",
+      "category": "economy",
+      "creditCost": 1302,
+      "prereqIds": [
+        "unlock_megacomplex"
+      ],
+      "description": "Chemical installations produce more credits."
+    },
+    {
+      "id": "generator_small_mk2",
+      "label": "Generator (S) Level 2",
+      "category": "electrical",
+      "creditCost": 465,
+      "prereqIds": [
+        "generator_efficiency"
+      ],
+      "description": "Small generators produce more power."
+    },
+    {
+      "id": "generator_large_mk2",
+      "label": "Generator (L) Level 2",
+      "category": "electrical",
+      "creditCost": 837,
+      "prereqIds": [
+        "generator_efficiency"
+      ],
+      "description": "Large generators produce more power."
+    },
+    {
+      "id": "battery_small_mk2",
+      "label": "Battery (S) Level 2",
+      "category": "electrical",
+      "creditCost": 419,
+      "prereqIds": [
+        "battery_capacity_1"
+      ],
+      "description": "Small batteries provide more max power storage."
+    },
+    {
+      "id": "battery_large_mk2",
+      "label": "Battery (L) Level 2",
+      "category": "electrical",
+      "creditCost": 698,
+      "prereqIds": [
+        "battery_capacity_2"
+      ],
+      "description": "Large batteries provide more max power storage."
+    },
+    {
+      "id": "pylon_mk2",
+      "label": "Pylon Level 2",
+      "category": "electrical",
+      "creditCost": 605,
+      "prereqIds": [
+        "power_distribution_1"
+      ],
+      "description": "Pylons generate more network power."
+    },
+    {
+      "id": "nuclear_plant_mk2",
+      "label": "Nuclear Plant Level 2",
+      "category": "electrical",
+      "creditCost": 1116,
+      "prereqIds": [
+        "nuclear_overclock_1"
+      ],
+      "description": "Nuclear plants output more power and drain fewer credits."
+    },
+    {
+      "id": "auto_turret_mk2",
+      "label": "Auto-Turret Level 2",
+      "category": "turrets",
+      "creditCost": 465,
+      "prereqIds": [
+        "turret_targeting"
+      ],
+      "description": "Auto-Turrets fire faster and hit harder."
+    },
+    {
+      "id": "auto_turret_large_mk2",
+      "label": "Auto-Turret (L) Level 2",
+      "category": "turrets",
+      "creditCost": 744,
+      "prereqIds": [
+        "unlock_turret_t2"
+      ],
+      "description": "Large Auto-Turrets fire faster and hit harder."
+    },
+    {
+      "id": "siege_cannon_mk2",
+      "label": "Siege Cannon Level 2",
+      "category": "turrets",
+      "creditCost": 837,
+      "prereqIds": [
+        "turret_damage_1"
+      ],
+      "description": "Siege Cannons gain range and heavy-shot damage."
+    },
+    {
+      "id": "heavy_siege_gun_mk2",
+      "label": "Heavy Siege Cannon Level 2",
+      "category": "turrets",
+      "creditCost": 1163,
+      "prereqIds": [
+        "unlock_turret_t2"
+      ],
+      "description": "Heavy Siege Cannons gain range and heavy-shot damage."
+    },
+    {
+      "id": "aa_gun_mk2",
+      "label": "AA Gun Level 2",
+      "category": "turrets",
+      "creditCost": 884,
+      "prereqIds": [
+        "unlock_turret_t2"
+      ],
+      "description": "AA Guns gain per-shot damage and larger blast radius."
+    },
+    {
+      "id": "railgun_mk2",
+      "label": "Railgun Level 2",
+      "category": "turrets",
+      "creditCost": 1488,
+      "prereqIds": [
+        "unlock_railgun"
+      ],
+      "description": "Railguns gain range and much higher beam damage."
+    },
+    {
+      "id": "missile_launcher_s_mk2",
+      "label": "Missile Launcher (S) Level 2",
+      "category": "missile",
+      "creditCost": 605,
+      "prereqIds": [
+        "missile_payload_1"
+      ],
+      "description": "Small missile launchers fire faster and hit harder."
+    },
+    {
+      "id": "missile_launcher_m_mk2",
+      "label": "Missile Launcher (M) Level 2",
+      "category": "missile",
+      "creditCost": 837,
+      "prereqIds": [
+        "unlock_missile_silos"
+      ],
+      "description": "Medium missile launchers fire faster and hit harder."
+    },
+    {
+      "id": "portable_silo_mk2",
+      "label": "Portable Silo Level 2",
+      "category": "missile",
+      "creditCost": 884,
+      "prereqIds": [
+        "unlock_missile_silos"
+      ],
+      "description": "Portable silos gain range, damage, and blast radius."
+    },
+    {
+      "id": "missile_silo_mk2",
+      "label": "Missile Silo Level 2",
+      "category": "missile",
+      "creditCost": 1116,
+      "prereqIds": [
+        "unlock_missile_silos"
+      ],
+      "description": "Missile silos gain range, damage, and blast radius."
+    },
+    {
+      "id": "nuclear_silo_mk2",
+      "label": "Nuclear Silo Level 2",
+      "category": "missile",
+      "creditCost": 2046,
+      "prereqIds": [
+        "unlock_nuclear_silo"
+      ],
+      "description": "Nuclear silos gain extreme range and payload damage."
+    },
+    {
+      "id": "hydra_launcher_mk2",
+      "label": "Hydra Launcher Level 2",
+      "category": "missile",
+      "creditCost": 1256,
+      "prereqIds": [
+        "unlock_hydra_launcher"
+      ],
+      "description": "Hydra launchers fire faster and boost volley damage."
+    },
+    {
+      "id": "shield_generator_m_mk2",
+      "label": "Shield Generator (M) Level 2",
+      "category": "energy",
+      "creditCost": 1023,
+      "prereqIds": [
+        "shield_capacity_1"
+      ],
+      "description": "Medium shields gain capacity and recharge performance."
+    },
+    {
+      "id": "shield_generator_l_mk2",
+      "label": "Shield Generator (L) Level 2",
+      "category": "energy",
+      "creditCost": 1581,
+      "prereqIds": [
+        "unlock_shield_large"
+      ],
+      "description": "Large shields gain capacity and recharge performance."
+    },
+    {
+      "id": "tesla_tower_mk2",
+      "label": "Tesla Tower Level 2",
+      "category": "energy",
+      "creditCost": 930,
+      "prereqIds": [
+        "tesla_coils_1"
+      ],
+      "description": "Tesla towers zap harder and farther."
+    },
+    {
+      "id": "plasma_laser_s_mk2",
+      "label": "Plasma Laser (S) Level 2",
+      "category": "energy",
+      "creditCost": 884,
+      "prereqIds": [
+        "plasma_focus_1"
+      ],
+      "description": "Small plasma lasers gain beam damage and range."
+    },
+    {
+      "id": "plasma_laser_m_mk2",
+      "label": "Plasma Laser (M) Level 2",
+      "category": "energy",
+      "creditCost": 1209,
+      "prereqIds": [
+        "plasma_focus_1"
+      ],
+      "description": "Medium plasma lasers gain beam damage and range."
+    },
+    {
+      "id": "plasma_laser_l_mk2",
+      "label": "Plasma Laser (L) Level 2",
+      "category": "energy",
+      "creditCost": 1721,
+      "prereqIds": [
+        "plasma_focus_2"
+      ],
+      "description": "Large plasma lasers gain beam damage and range."
+    },
+    {
+      "id": "hero_archangel_core",
+      "label": "Archangel Logistic Core",
+      "category": "hero",
+      "creditCost": 0,
+      "unlockBuildingIds": [
+        "archangel_airfield",
+        "archangel_starport",
+        "archangel_fueling_station",
+        "archangel_munitions_plant",
+        "archangel_missile_factory"
+      ],
+      "description": "Unlocks Airfield, Starport, Fueling Station, Munitions Plant, and Missile Factory. Bulk Fueling requires a separate unlock.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_unlock_bulk_fueling",
+      "label": "Unlock Bulk Fueling Station",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "unlockBuildingIds": [
+        "archangel_bulk_fueling_station"
+      ],
+      "description": "Unlocks the large Bulk Fueling Station for faster pad refueling.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_fuel_efficiency_1",
+      "label": "Increase Fuel Efficiency I",
+      "category": "hero",
+      "creditCost": 391,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Fueling stations transfer aviation fuel to landed planes faster.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_fuel_efficiency_2",
+      "label": "Increase Fuel Efficiency II",
+      "category": "hero",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_archangel_fuel_efficiency_1"
+      ],
+      "description": "Further improves fuel transfer rate to aircraft on the pad.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_armor_piercing",
+      "label": "Armor Piercing Rounds",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Increases Airfield gunship damage.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_quick_reload",
+      "label": "Quick Reload",
+      "category": "hero",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Starport bombers reload volleys faster (shorter gap between missiles and between volleys).",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_tight_shift",
+      "label": "Tight Shift",
+      "category": "hero",
+      "creditCost": 725,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Each Airfield and Starport runs two planes: more sorties and overlapping refuel cycles.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_airfield_mk2",
+      "label": "Airfield Level 2",
+      "category": "hero",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Gunship platform: more range, damage, and rate of fire.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_starport_mk2",
+      "label": "Starport Level 2",
+      "category": "hero",
+      "creditCost": 818,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Bomber platform: heavier warheads and slightly faster launches.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_fueling_mk2",
+      "label": "Fueling Station Level 2",
+      "category": "hero",
+      "creditCost": 446,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Small fuel stations fuel landed aircraft faster.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_bulk_fueling_mk2",
+      "label": "Bulk Fueling Level 2",
+      "category": "hero",
+      "creditCost": 856,
+      "prereqIds": [
+        "hero_archangel_unlock_bulk_fueling"
+      ],
+      "description": "Bulk fuel stations fuel landed aircraft faster.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_munitions_mk2",
+      "label": "Munitions Plant Level 2",
+      "category": "hero",
+      "creditCost": 428,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Munitions plants convert credits into gunship rounds faster while planes are on the pad.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_missile_factory_mk2",
+      "label": "Missile Factory Level 2",
+      "category": "hero",
+      "creditCost": 502,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Missile factories load bomber ordnance faster while bombers are on the pad.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_missile_damage_1",
+      "label": "Missile Doctrine: Damage I",
+      "category": "hero",
+      "creditCost": 539,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Increases damage for standard missile buildings (S/M silos, portable, silo, nuclear, Hydra).",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_missile_damage_2",
+      "label": "Missile Doctrine: Damage II",
+      "category": "hero",
+      "creditCost": 911,
+      "prereqIds": [
+        "hero_archangel_missile_damage_1"
+      ],
+      "description": "Further increases missile damage across the missile line.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_missile_range_1",
+      "label": "Missile Doctrine: Range I",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Increases engagement range for missile platforms.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_missile_range_2",
+      "label": "Missile Doctrine: Range II",
+      "category": "hero",
+      "creditCost": 837,
+      "prereqIds": [
+        "hero_archangel_missile_range_1"
+      ],
+      "description": "Further increases missile range.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_missile_payload_1",
+      "label": "Missile Doctrine: Payload I",
+      "category": "hero",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_archangel_core"
+      ],
+      "description": "Improves blast radius for missile buildings (Hydra gains fire rate).",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_archangel_missile_payload_2",
+      "label": "Missile Doctrine: Payload II",
+      "category": "hero",
+      "creditCost": 874,
+      "prereqIds": [
+        "hero_archangel_missile_payload_1"
+      ],
+      "description": "Further improves payload radius and adds a touch of damage.",
+      "heroId": "archangel"
+    },
+    {
+      "id": "hero_dominion_core",
+      "label": "Dominion Command Mandate",
+      "category": "hero",
+      "creditCost": 0,
+      "unlockBuildingIds": [
+        "dominion_defensive_bunker",
+        "dominion_support_bay"
+      ],
+      "description": "Unlocks the Defensive Bunker and Support Bay.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_unlock_elite_weaponry",
+      "label": "Unlock Elite Weaponry",
+      "category": "hero",
+      "creditCost": 632,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "unlockBuildingIds": [
+        "dominion_orbital_cannon",
+        "dominion_flak_gun"
+      ],
+      "description": "Unlocks the Orbital Cannon and Flak Gun.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_unlock_advanced_tech",
+      "label": "Unlock Advanced Tech",
+      "category": "hero",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "unlockBuildingIds": [
+        "dominion_seeker_drone_spawner",
+        "dominion_laser_drill"
+      ],
+      "description": "Unlocks the Seeker Drone Spawner and Laser Drill.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_extended_support",
+      "label": "Extended Support",
+      "category": "hero",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "Support Bays can deploy up to two dropships at once.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_enhanced_power",
+      "label": "Enhanced Power",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "All Dominion structures deal additional damage.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_reinforced_plating",
+      "label": "Reinforced Plating",
+      "category": "hero",
+      "creditCost": 502,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "All Dominion structures gain increased maximum health.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_lead_rounds",
+      "label": "Lead Rounds",
+      "category": "hero",
+      "creditCost": 446,
+      "prereqIds": [
+        "hero_dominion_unlock_elite_weaponry"
+      ],
+      "description": "Orbital and Flak shrapnel counts are 50% higher (18 and 6 shards).",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_orbital_mk2",
+      "label": "Orbital Cannon Level 2",
+      "category": "hero",
+      "creditCost": 1023,
+      "prereqIds": [
+        "hero_dominion_unlock_elite_weaponry"
+      ],
+      "description": "Larger blast, harder hit, slightly faster cycle.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_flak_mk2",
+      "label": "Flak Gun Level 2",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_dominion_unlock_elite_weaponry"
+      ],
+      "description": "More range, damage, and rate of fire.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_bunker_mk2",
+      "label": "Defensive Bunker Level 2",
+      "category": "hero",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "Bunker gains durability and punch.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_spawner_mk2",
+      "label": "Seeker Spawner Level 2",
+      "category": "hero",
+      "creditCost": 595,
+      "prereqIds": [
+        "hero_dominion_unlock_advanced_tech"
+      ],
+      "description": "Drones launch faster and hit harder.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_drill_mk2",
+      "label": "Laser Drill Level 2",
+      "category": "hero",
+      "creditCost": 539,
+      "prereqIds": [
+        "hero_dominion_unlock_advanced_tech"
+      ],
+      "description": "Stronger beam and longer reach.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_support_mk2",
+      "label": "Support Bay Level 2",
+      "category": "hero",
+      "creditCost": 688,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "Dropships heal faster and fly quicker.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_turret_damage_1",
+      "label": "Turret Battery: Damage I",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "Increases damage for standard turrets.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_turret_damage_2",
+      "label": "Turret Battery: Damage II",
+      "category": "hero",
+      "creditCost": 856,
+      "prereqIds": [
+        "hero_dominion_turret_damage_1"
+      ],
+      "description": "Further increases turret damage.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_turret_range_1",
+      "label": "Turret Battery: Range I",
+      "category": "hero",
+      "creditCost": 446,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "Increases engagement range for turrets.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_turret_range_2",
+      "label": "Turret Battery: Range II",
+      "category": "hero",
+      "creditCost": 800,
+      "prereqIds": [
+        "hero_dominion_turret_range_1"
+      ],
+      "description": "Further increases turret range.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_turret_rof_1",
+      "label": "Turret Battery: Cycle I",
+      "category": "hero",
+      "creditCost": 465,
+      "prereqIds": [
+        "hero_dominion_core"
+      ],
+      "description": "Increases turret rate of fire.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_dominion_turret_rof_2",
+      "label": "Turret Battery: Cycle II",
+      "category": "hero",
+      "creditCost": 818,
+      "prereqIds": [
+        "hero_dominion_turret_rof_1"
+      ],
+      "description": "Further increases turret cadence.",
+      "heroId": "dominion"
+    },
+    {
+      "id": "hero_nova_core",
+      "label": "Nova Command Mandate",
+      "category": "hero",
+      "creditCost": 0,
+      "unlockBuildingIds": [
+        "nova_gravity_well",
+        "nova_photon_projector_s",
+        "nova_power_bank"
+      ],
+      "description": "Unlocks Gravity Well, Photon Projector (S), and Power Bank.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_unlock_advanced_weaponry",
+      "label": "Unlock Advanced Weaponry",
+      "category": "hero",
+      "creditCost": 595,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "unlockBuildingIds": [
+        "nova_photon_projector_l",
+        "nova_shockwave_pulsar"
+      ],
+      "description": "Unlocks Photon Projector (L) and the Shockwave Pulsar.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_unlock_forcefield",
+      "label": "Unlock Universal Forcefield",
+      "category": "hero",
+      "creditCost": 1097,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "unlockBuildingIds": [
+        "nova_universal_forcefield"
+      ],
+      "description": "Unlocks the map-wide Universal Forcefield (one per run).",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_shield_implosion",
+      "label": "Shield Implosion",
+      "category": "hero",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "When a shield generator or Universal Forcefield bubble is fully depleted by an asteroid, it releases a huge low-damage pulse.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_energized_power_bank",
+      "label": "Energized Power Bank",
+      "category": "hero",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "Power Banks also grant a small damage bonus to weapons in their aura.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_fission_blast",
+      "label": "Fission Blast",
+      "category": "hero",
+      "creditCost": 632,
+      "prereqIds": [
+        "hero_nova_unlock_advanced_weaponry"
+      ],
+      "description": "Photon orbs detonate in a large blast when their flight time ends.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_stasis_surge",
+      "label": "Stasis Surge",
+      "category": "hero",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_nova_unlock_advanced_weaponry"
+      ],
+      "description": "Shockwave Pulsar hits briefly lock asteroids in place.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_gravity_well_mk2",
+      "label": "Gravity Well Level 2",
+      "category": "hero",
+      "creditCost": 911,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "Sturdier well core; slightly lower idle power draw.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_photon_s_mk2",
+      "label": "Photon Projector (S) Level 2",
+      "category": "hero",
+      "creditCost": 800,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "Tighter emitter cycle, harder hits, and longer reach for the small projector.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_photon_l_mk2",
+      "label": "Photon Projector (L) Level 2",
+      "category": "hero",
+      "creditCost": 949,
+      "prereqIds": [
+        "hero_nova_unlock_advanced_weaponry"
+      ],
+      "description": "Heavy orb variant: more damage, wider trail burn, and punch-through speed.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_shockwave_mk2",
+      "label": "Shockwave Pulsar Level 2",
+      "category": "hero",
+      "creditCost": 856,
+      "prereqIds": [
+        "hero_nova_unlock_advanced_weaponry"
+      ],
+      "description": "Wider concussion front with a faster pulse cadence.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_forcefield_mk2",
+      "label": "Universal Forcefield Level 2",
+      "category": "hero",
+      "creditCost": 1283,
+      "prereqIds": [
+        "hero_nova_unlock_forcefield"
+      ],
+      "description": "Raises global barrier capacity and slightly extends coverage.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_power_bank_mk2",
+      "label": "Power Bank Level 2",
+      "category": "hero",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "Larger coupling field: wider efficiency aura and tougher hardware.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_energy_damage_1",
+      "label": "Energy Doctrine: Yield I",
+      "category": "energy",
+      "creditCost": 502,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "Boosts output from Tesla towers, plasma lasers, and Nova energy weapons.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_energy_damage_2",
+      "label": "Energy Doctrine: Yield II",
+      "category": "energy",
+      "creditCost": 856,
+      "prereqIds": [
+        "hero_nova_energy_damage_1"
+      ],
+      "description": "Further raises energy-weapon damage across the grid.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_energy_range_1",
+      "label": "Energy Doctrine: Reach I",
+      "category": "energy",
+      "creditCost": 539,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "Extends range on standard energy turrets and Nova emitters.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_energy_range_2",
+      "label": "Energy Doctrine: Reach II",
+      "category": "energy",
+      "creditCost": 911,
+      "prereqIds": [
+        "hero_nova_energy_range_1"
+      ],
+      "description": "Additional reach for Tesla, plasma, and Nova platforms.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_energy_cycle_1",
+      "label": "Energy Doctrine: Cycle I",
+      "category": "energy",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_nova_core"
+      ],
+      "description": "Improves fire rate on directed energy and shock systems.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_nova_energy_cycle_2",
+      "label": "Energy Doctrine: Cycle II",
+      "category": "energy",
+      "creditCost": 967,
+      "prereqIds": [
+        "hero_nova_energy_cycle_1"
+      ],
+      "description": "Further tightens energy-weapon cadence.",
+      "heroId": "nova"
+    },
+    {
+      "id": "hero_citadel_core",
+      "label": "Citadel Mandate",
+      "category": "hero",
+      "creditCost": 0,
+      "unlockBuildingIds": [
+        "citadel_defense_conduit",
+        "citadel_attack_conduit",
+        "citadel_range_conduit"
+      ],
+      "description": "Deploy basic conduits: Defense, Attack, and Range.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_unlock_advanced_conduits",
+      "label": "Unlock Advanced Conduits",
+      "category": "hero",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "unlockBuildingIds": [
+        "citadel_repair_conduit",
+        "citadel_construction_conduit",
+        "citadel_efficiency_conduit"
+      ],
+      "description": "Unlocks Repair, Construction, and Efficiency Conduits.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_struct_grid_1",
+      "label": "Citadel Structural Grid I",
+      "category": "structural",
+      "creditCost": 428,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Hardens core support structures.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_struct_grid_2",
+      "label": "Citadel Structural Grid II",
+      "category": "structural",
+      "creditCost": 725,
+      "prereqIds": [
+        "hero_citadel_struct_grid_1"
+      ],
+      "description": "Further reinforces support infrastructure.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_command_fortress",
+      "label": "Command Fortress",
+      "category": "structural",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Command Centers gain significantly more max health.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_conduit_integrity",
+      "label": "Conduit Integrity",
+      "category": "structural",
+      "creditCost": 502,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "All Citadel Conduits are harder to destroy.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_supply_lines",
+      "label": "Supply Lines",
+      "category": "structural",
+      "creditCost": 465,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Improves supply depots for expanded logistics.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_industrial_shell",
+      "label": "Industrial Shell",
+      "category": "economy",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Reinforces early economy buildings.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_repair_conduit_mk2",
+      "label": "Repair Conduit Level 2",
+      "category": "hero",
+      "creditCost": 595,
+      "prereqIds": [
+        "hero_citadel_unlock_advanced_conduits"
+      ],
+      "description": "Repair Conduits pulse faster and heal more per pulse.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_construction_conduit_mk2",
+      "label": "Construction Conduit Level 2",
+      "category": "hero",
+      "creditCost": 763,
+      "prereqIds": [
+        "hero_citadel_unlock_advanced_conduits"
+      ],
+      "description": "Larger discount aura and wider coordination radius (tuned in conduit logic).",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_defense_conduit_mk2",
+      "label": "Defense Conduit Level 2",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Stronger damage reduction and wider ward (tuned in conduit logic).",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_attack_conduit_mk2",
+      "label": "Attack Conduit Level 2",
+      "category": "hero",
+      "creditCost": 502,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Higher damage amp for nearby defenses (tuned in conduit logic).",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_efficiency_conduit_mk2",
+      "label": "Efficiency Conduit Level 2",
+      "category": "hero",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_citadel_unlock_advanced_conduits"
+      ],
+      "description": "Faster cadence boost for surrounding weapons (tuned in conduit logic).",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_range_conduit_mk2",
+      "label": "Range Conduit Level 2",
+      "category": "hero",
+      "creditCost": 474,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Additional reach granted to covered defenses (tuned in conduit logic).",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_defense_centers",
+      "label": "Defense Centers",
+      "category": "hero",
+      "creditCost": 818,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Each Command Center mounts an integrated turret (~2× Auto Turret), no power draw.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_enhanced_conductivity",
+      "label": "Enhanced Conductivity",
+      "category": "hero",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Increases the aura radius of all Citadel Conduits.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_sophisticated_repairs",
+      "label": "Sophisticated Repairs",
+      "category": "hero",
+      "creditCost": 632,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "All healing sources are more potent (nodes, conduits, drones, hangar ops).",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_last_stand",
+      "label": "Last Stand",
+      "category": "hero",
+      "creditCost": 874,
+      "prereqIds": [
+        "hero_citadel_command_fortress"
+      ],
+      "description": "When only one Command Center remains, it takes less damage and regenerates slowly.",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_citadel_focused_power",
+      "label": "Focused Power",
+      "category": "hero",
+      "creditCost": 800,
+      "prereqIds": [
+        "hero_citadel_core"
+      ],
+      "description": "Multiple conduits of the same type can stack their benefits (capped).",
+      "heroId": "citadel"
+    },
+    {
+      "id": "hero_jupiter_core",
+      "label": "Jupiter Directive",
+      "category": "hero",
+      "creditCost": 0,
+      "description": "Jupiter structures are gated behind specialized unlock research.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_unlock_support_machines",
+      "label": "Unlock Support Machines",
+      "category": "hero",
+      "creditCost": 391,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "unlockBuildingIds": [
+        "jupiter_overclock_augment",
+        "jupiter_radar_station",
+        "jupiter_recon_drone"
+      ],
+      "description": "Unlocks Overclock Augment, Radar Station, and Recon Drone.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_unlock_advanced_electrical",
+      "label": "Unlock Advanced Electrical Solutions",
+      "category": "hero",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "unlockBuildingIds": [
+        "jupiter_mass_relay",
+        "jupiter_battery_complex"
+      ],
+      "description": "Unlocks Mass Relay and Battery Complex.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_unlock_arc_thrower",
+      "label": "Unlock Arc Thrower",
+      "category": "hero",
+      "creditCost": 725,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "unlockBuildingIds": [
+        "jupiter_arc_thrower"
+      ],
+      "description": "Unlocks the Arc Thrower.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_grid_tuning_1",
+      "label": "Grid Tuning I",
+      "category": "electrical",
+      "creditCost": 446,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "description": "Generators and Mass Relays run a little cleaner.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_grid_tuning_2",
+      "label": "Grid Tuning II",
+      "category": "electrical",
+      "creditCost": 688,
+      "prereqIds": [
+        "hero_jupiter_grid_tuning_1"
+      ],
+      "description": "Further improves baseline electrical output.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_capacitance_1",
+      "label": "Capacitance Matrix I",
+      "category": "electrical",
+      "creditCost": 428,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "description": "Batteries and the Battery Complex store more headroom.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_capacitance_2",
+      "label": "Capacitance Matrix II",
+      "category": "electrical",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_jupiter_capacitance_1"
+      ],
+      "description": "Adds even more grid reserve.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_transmission_lines",
+      "label": "Transmission Lines",
+      "category": "electrical",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "description": "Pylon network bonus is stronger (global pylon synergy).",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_emergency_shunts",
+      "label": "Emergency Shunts",
+      "category": "electrical",
+      "creditCost": 502,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "description": "Radar and Arc Thrower shot draws are slightly cheaper.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_induction_weave",
+      "label": "Induction Weave",
+      "category": "electrical",
+      "creditCost": 474,
+      "prereqIds": [
+        "hero_jupiter_core"
+      ],
+      "description": "Recon Drone coil is more efficient; Overclock draws a little less.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_mass_relay_mk2",
+      "label": "Mass Relay Level 2",
+      "category": "hero",
+      "creditCost": 632,
+      "prereqIds": [
+        "hero_jupiter_unlock_advanced_electrical"
+      ],
+      "description": "Relays are tougher and idle draw drops further.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_arc_thrower_mk2",
+      "label": "Arc Thrower Level 2",
+      "category": "hero",
+      "creditCost": 800,
+      "prereqIds": [
+        "hero_jupiter_unlock_arc_thrower"
+      ],
+      "description": "Arc thrower reaches farther and hits harder per tier.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_overclock_mk2",
+      "label": "Overclock Augment Level 2",
+      "category": "hero",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_jupiter_unlock_support_machines"
+      ],
+      "description": "Stronger fire-rate boost to neighbors.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_radar_mk2",
+      "label": "Radar Station Level 2",
+      "category": "hero",
+      "creditCost": 688,
+      "prereqIds": [
+        "hero_jupiter_unlock_support_machines"
+      ],
+      "description": "Wider scan volume.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_recon_drone_mk2",
+      "label": "Recon Drone Level 2",
+      "category": "hero",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_jupiter_unlock_support_machines"
+      ],
+      "description": "More reach and coil damage; stronger induction below.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_battery_complex_mk2",
+      "label": "Battery Complex Level 2",
+      "category": "hero",
+      "creditCost": 856,
+      "prereqIds": [
+        "hero_jupiter_unlock_advanced_electrical"
+      ],
+      "description": "Larger reserve and stronger low-power production curve.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_enhanced_pinging",
+      "label": "Enhanced Pinging Systems",
+      "category": "hero",
+      "creditCost": 725,
+      "prereqIds": [
+        "hero_jupiter_unlock_support_machines"
+      ],
+      "description": "Radar Station marks more targets and keeps paint up longer.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_emergency_generator",
+      "label": "Emergency Generator",
+      "category": "hero",
+      "creditCost": 781,
+      "prereqIds": [
+        "hero_jupiter_unlock_advanced_electrical"
+      ],
+      "description": "When your stored energy hits empty, Battery Complex output surges briefly.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_jupiter_arc_supercharge",
+      "label": "Arc Supercharge",
+      "category": "hero",
+      "creditCost": 856,
+      "prereqIds": [
+        "hero_jupiter_unlock_arc_thrower"
+      ],
+      "description": "Arc Thrower can spend extreme energy for a devastating top-tier chain.",
+      "heroId": "jupiter"
+    },
+    {
+      "id": "hero_kingpin_core",
+      "label": "Kingpin Directive",
+      "category": "hero",
+      "creditCost": 0,
+      "description": "Syndicate structures are gated behind specialized unlock research.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_unlock_advanced_economic_solutions",
+      "label": "Unlock Advanced Economic Solutions",
+      "category": "hero",
+      "creditCost": 381,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "unlockBuildingIds": [
+        "kingpin_data_array",
+        "kingpin_investment_complex"
+      ],
+      "description": "Unlocks the Data Array and Investment Complex.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_unlock_production_enhancements",
+      "label": "Unlock Production Enhancements",
+      "category": "hero",
+      "creditCost": 484,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "unlockBuildingIds": [
+        "kingpin_cryptographic_decoder",
+        "kingpin_indoctrinated_labor",
+        "kingpin_mineral_processor"
+      ],
+      "description": "Unlocks the Cryptographic Decoder, Indoctrinated Labor, and Mineral Processor.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_unlock_slag_cannon",
+      "label": "Unlock Slag Cannon",
+      "category": "hero",
+      "creditCost": 642,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "unlockBuildingIds": [
+        "kingpin_slag_cannon"
+      ],
+      "description": "Unlocks the Slag Cannon.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_factory_dividends_1",
+      "label": "Preferred Stock I",
+      "category": "economy",
+      "creditCost": 428,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "description": "Factory output adds more credits per payout.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_factory_dividends_2",
+      "label": "Preferred Stock II",
+      "category": "economy",
+      "creditCost": 595,
+      "prereqIds": [
+        "hero_kingpin_factory_dividends_1"
+      ],
+      "description": "Megacomplex lines and smaller factories scale further.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_refinery_contracts_1",
+      "label": "Commodity Futures I",
+      "category": "economy",
+      "creditCost": 437,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "description": "Standard refineries ship more product.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_refinery_contracts_2",
+      "label": "Commodity Futures II",
+      "category": "economy",
+      "creditCost": 586,
+      "prereqIds": [
+        "hero_kingpin_refinery_contracts_1"
+      ],
+      "description": "Mega refineries catch up to premium contracts.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_venture_capital",
+      "label": "Venture Capital",
+      "category": "economy",
+      "creditCost": 549,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "description": "Command dividend ticks are stronger.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_energy_arbitrage",
+      "label": "Energy Arbitrage",
+      "category": "electrical",
+      "creditCost": 502,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "description": "Generators and pylon networks squeeze out a little more juice.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_data_array_mk2",
+      "label": "Data Array Level 2",
+      "category": "hero",
+      "creditCost": 577,
+      "prereqIds": [
+        "hero_kingpin_unlock_advanced_economic_solutions"
+      ],
+      "description": "Tougher arrays with faster cycles and sharper payouts.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_investment_complex_mk2",
+      "label": "Investment Complex Level 2",
+      "category": "hero",
+      "creditCost": 688,
+      "prereqIds": [
+        "hero_kingpin_unlock_advanced_economic_solutions"
+      ],
+      "description": "Larger footprint yields; modest efficiency gain.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_cryptographic_decoder_mk2",
+      "label": "Cryptographic Decoder Level 2",
+      "category": "hero",
+      "creditCost": 521,
+      "prereqIds": [
+        "hero_kingpin_unlock_production_enhancements"
+      ],
+      "description": "Wider decoding field with stronger refinery yield.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_indoctrinated_labor_mk2",
+      "label": "Indoctrinated Labor Level 2",
+      "category": "hero",
+      "creditCost": 539,
+      "prereqIds": [
+        "hero_kingpin_unlock_production_enhancements"
+      ],
+      "description": "Labor camps reach farther across the factory floor.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_mineral_processor_mk2",
+      "label": "Mineral Processor Level 2",
+      "category": "hero",
+      "creditCost": 763,
+      "prereqIds": [
+        "hero_kingpin_unlock_production_enhancements"
+      ],
+      "description": "Longer salvage reach for asteroid kills.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_slag_cannon_mk2",
+      "label": "Slag Cannon Level 2",
+      "category": "hero",
+      "creditCost": 800,
+      "prereqIds": [
+        "hero_kingpin_unlock_slag_cannon"
+      ],
+      "description": "Heavier slugs with a touch more cadence; marginally cheaper ammunition.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_hazard_pay",
+      "label": "Hazard Pay",
+      "category": "hero",
+      "creditCost": 670,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "description": "Clearing waves grants credits; bonus grows with waves completed.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_insider_discounts",
+      "label": "Insider Discounts",
+      "category": "hero",
+      "creditCost": 632,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "description": "All new construction invoices are slightly reduced.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_scavenging",
+      "label": "Scavenging",
+      "category": "hero",
+      "creditCost": 698,
+      "prereqIds": [
+        "hero_kingpin_core"
+      ],
+      "description": "Destroyed structures refund part of their build value (not manual sells).",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_compound_interest",
+      "label": "Compound Interest",
+      "category": "hero",
+      "creditCost": 725,
+      "prereqIds": [
+        "hero_kingpin_unlock_advanced_economic_solutions"
+      ],
+      "description": "Investment Complex scales harder with your credit balance.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_signal_amplification",
+      "label": "Signal Amplification",
+      "category": "hero",
+      "creditCost": 651,
+      "prereqIds": [
+        "hero_kingpin_unlock_production_enhancements"
+      ],
+      "description": "Cryptographic Decoders grant refineries a larger export multiplier.",
+      "heroId": "kingpin"
+    },
+    {
+      "id": "hero_kingpin_scrap_futures",
+      "label": "Scrap Futures",
+      "category": "hero",
+      "creditCost": 707,
+      "prereqIds": [
+        "hero_kingpin_unlock_production_enhancements"
+      ],
+      "description": "Mineral Processor bounty per asteroid kill is increased.",
+      "heroId": "kingpin"
+    }
+  ]
 }

@@ -131,6 +131,8 @@ func _ready() -> void:
 	_update_research_labels()
 	apply_phase(AppPhase.MENU)
 	_set_master_volume(master_volume)
+	if not WebParityDefs.ok:
+		push_warning("WebParityDefs: load failed or empty — run: node scripts/parity/extract_web_defs.mjs")
 	print("Godot migration Phase 5 prototype loaded.")
 
 

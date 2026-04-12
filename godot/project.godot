@@ -13,3 +13,7 @@ config_version=5
 config/name="Asteroid Defense (Godot Migration)"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.6")
+
+[autoload]
+
+WebParityDefs="*res://autoloads/WebParityDefs.gd"
