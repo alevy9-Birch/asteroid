@@ -18,7 +18,29 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0431373, 0.0745098, 0.14902, 1)
+color = Color(0.0431373, 0.0745098, 0.14902, 0)
+
+[node name="World3D" type="Node3D" parent="."]
+
+[node name="Sun" type="DirectionalLight3D" parent="World3D"]
+transform = Transform3D(0.623359, -0.743145, -0.24321, 0, 0.31038, -0.950613, 0.781937, 0.592751, 0.19355, 0, 16, 0)
+light_energy = 1.35
+shadow_enabled = true
+
+[node name="Fill" type="DirectionalLight3D" parent="World3D"]
+transform = Transform3D(0.573576, -0.819152, 0, 0, 0, -1, 0.819152, 0.573576, 0, 0, 10, 0)
+light_color = Color(0.58, 0.66, 0.9, 1)
+light_energy = 0.45
+shadow_enabled = false
+
+[node name="Camera3D" type="Camera3D" parent="World3D"]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0.866025, 0, -0.866025, 0.5, 0, 62, 72)
+current = true
+fov = 65.0
+near = 0.05
+far = 800.0
+
+[node name="Ground" type="MeshInstance3D" parent="World3D"]
 
 [node name="GameplayInfo" type="Label" parent="GameplayLayer"]
 layout_mode = 0
@@ -28,6 +50,15 @@ offset_right = 980.0
 offset_bottom = 90.0
 theme_override_font_sizes/font_size = 20
 text = "Gameplay placeholder (Phase 2): move mouse to update look values, press P to pause."
+
+[node name="CenterHpBar" type="ProgressBar" parent="GameplayLayer"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 62.0
+offset_right = 360.0
+offset_bottom = 84.0
+max_value = 1000.0
+value = 1000.0
 
 [node name="LookReadout" type="Label" parent="GameplayLayer"]
 layout_mode = 0
@@ -87,7 +118,7 @@ text = "I - Factory Expansion (140c): +4 credits/kill"
 
 [node name="ResearchLogistics" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
 layout_mode = 2
-text = "O - Logistics (160c): +35 range, -0.06s cooldown"
+text = "O - Logistics (160c): +3.5 range, -0.06s cooldown"
 
 [node name="MenuOverlay" type="PanelContainer" parent="."]
 visible = false

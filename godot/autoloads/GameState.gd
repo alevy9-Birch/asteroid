@@ -1,0 +1,65 @@
+extends Node
+class_name GameState
+
+enum AppPhase { MENU, PLAYING, PAUSED, GAMEOVER }
+
+signal phase_changed(next_phase: int)
+signal resources_changed(credits: int, center_hp: float)
+signal wave_changed(wave: int, wave_spawning: bool, spawn_remaining: int)
+
+const CENTER_MAX_HP := 1000.0
+
+var phase: AppPhase = AppPhase.MENU
+var wave := 0
+var credits := 350
+var command_center_hp := CENTER_MAX_HP
+var wave_spawning := false
+var spawn_remaining := 0
+var spawn_timer := 0.0
+var intermission_timer := 0.0
+
+var money_earned := 0
+var money_spent := 0
+var asteroids_killed := 0
+var run_score := 0
+var best_score := 0
+
+var upgrade_core := false
+var upgrade_factory := false
+var upgrade_logistics := false
+
+var turret_damage_mult := 1.0
+var kill_credit_bonus := 0
+var turret_range_bonus := 0.0
+var turret_cooldown_bonus := 0.0
+
+func reset_run() -> void:
+	wave = 0
+	credits = 350
+	command_center_hp = CENTER_MAX_HP
+	wave_spawning = false
+	spawn_remaining = 0
+	spawn_timer = 0.0
+	intermission_timer = 0.0
+	money_earned = 0
+	money_spent = 0
+	asteroids_killed = 0
+	run_score = 0
+	upgrade_core = false
+	upgrade_factory = false
+	upgrade_logistics = false
+	turret_damage_mult = 1.0
+	kill_credit_bonus = 0
+	turret_range_bonus = 0.0
+	turret_cooldown_bonus = 0.0
+	emit_state()
+
+func set_phase(next_phase: AppPhase) -> void:
+	if phase == next_phase:
+		return
+	phase = next_phase
+	phase_changed.emit(phase)
+
+func emit_state() -> void:
+	resources_changed.emit(credits, command_center_hp)
+	wave_changed.emit(wave, wave_spawning, spawn_remaining)

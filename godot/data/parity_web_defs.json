@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-04-08T19:50:32.030Z",
+  "source": "src/game/BaseDefenseGame.ts",
+  "buildings": [
+    {
+      "id": "command_center",
+      "label": "Command Center",
+      "category": "structural",
+      "creditCost": 160,
+      "supplyCost": 4,
+      "powerDrainPerSec": 0
+    },
+    {
+      "id": "factory_factory",
+      "label": "Factory",
+      "category": "economy",
+      "creditCost": 480,
+      "supplyCost": 10,
+      "powerDrainPerSec": 0
+    }
+  ],
+  "upgrades": []
+}
