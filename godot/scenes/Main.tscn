@@ -1,6 +1,19 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_b15l0"]
+[ext_resource type="Script" path="res://ui/WaveTimerRing.gd" id="2_wvtr"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wavehud"]
+bg_color = Color(0.00784314, 0.0235294, 0.0901961, 0.6)
+border_color = Color(0.2, 0.75, 0.85, 0.4)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -86,6 +99,48 @@ offset_top = 355.0
 offset_right = 645.0
 offset_bottom = 365.0
 color = Color(0.9, 0.95, 1, 0.9)
+
+[node name="WaveTimerHud" type="PanelContainer" parent="GameplayLayer"]
+visible = false
+z_index = 35
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+offset_left = -240.0
+offset_top = 14.0
+offset_right = 240.0
+offset_bottom = 58.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_wavehud")
+
+[node name="WaveTimerMargin" type="MarginContainer" parent="GameplayLayer/WaveTimerHud"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="WaveTimerRow" type="HBoxContainer" parent="GameplayLayer/WaveTimerHud/WaveTimerMargin"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="WaveTimerRing" type="Control" parent="GameplayLayer/WaveTimerHud/WaveTimerMargin/WaveTimerRow"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_vertical = 4
+script = ExtResource("2_wvtr")
+
+[node name="WaveTimerCaption" type="Label" parent="GameplayLayer/WaveTimerHud/WaveTimerMargin/WaveTimerRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 13
+text = "Press Space to start"
+horizontal_alignment = 1
 
 [node name="ResearchPanel" type="PanelContainer" parent="GameplayLayer"]
 layout_mode = 0

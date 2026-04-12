@@ -57,7 +57,7 @@ Status legend:
 
 - [-] Wave state machine (ready/in-progress/spawn progress/cleanup)  
   Web ref: `src/game/BaseDefenseGame.ts` (`waveReady`, `waveInProgress`, timers)  
-  Godot ref: **`wave_combat_active`** (spawn window + cleanup); **spawn window elapsed/duration/ended** + **`toSpawn`** from `WaveScaling.gd` (web formulas, default **hard**); first wave manual; 60s inactive; auto/Space rules; **`wave_ready`** / `_compute_wave_ready()` + HUD. **Circular** spawn/inactive UI still missing.
+  Godot ref: **`wave_combat_active`** (spawn window + cleanup); **spawn window elapsed/duration/ended** + **`toSpawn`** from `WaveScaling.gd` (web formulas, default **hard**); first wave manual; 60s inactive; auto/Space rules; **`wave_ready`**; **top-center wave timer** (`WaveTimerRing.gd`, web `waveSpawnProgress` / inactive ÷ 60 + captions).
 
 - [-] Asteroid variants and behavior parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`AsteroidVariant`, variant logic)  
@@ -101,7 +101,7 @@ Status legend:
 
 ## 10) UI / HUD
 
-- [ ] Full HUD parity (wave timer ring, discovery toast, wheel categories, stats cards)  
+- [-] Full HUD parity (**wave timer ring** done; discovery toast, wheel categories, stats cards pending)  
   Web ref: `src/App.tsx` JSX overlays  
   Godot ref: partial HUD only
 

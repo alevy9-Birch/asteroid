@@ -58,9 +58,9 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 
 - [x] **C.2.1** Extract `WaveSystem.gd` (spawn tick + intermission).
 - [x] **C.2.2** **First wave manual only** (web `firstWaveStarted`); no intermission auto-start until then. *(Implemented: `first_wave_started` + `WaveSystem` gate.)*
-- [-] **C.2.3** Spawn **window** duration (`spawnWindowDurationSec`, `spawnWindowElapsedSec`, `spawnWindowEnded`) — implemented in `WaveSystem.gd` + HUD window %; **UI ring** still missing.
+- [x] **C.2.3** Spawn **window** duration (`spawnWindowDurationSec`, `spawnWindowElapsedSec`, `spawnWindowEnded`) — `WaveSystem.gd` + bottom HUD % + **top-center ring** (`WaveTimerRing.gd` / `HudController.wave_timer_progress`, matches web `waveSpawnProgress`).
 - [-] **C.2.4** `toSpawn` count + spawn interval formulas — implemented in `WaveScaling.gd` (difficulty presets + `getEnemyScalingWave` / burst analogs); **hero / upgrade modifiers** to wave pool not yet mirrored.
-- [-] **C.2.5** Inactive phase timer (`inactiveDurationSec` = 60s, `inactiveTimeLeftSec` countdown in `WaveSystem` + HUD hint). **UI ring** still missing.
+- [x] **C.2.5** Inactive phase timer (`inactiveDurationSec` = 60s, `inactiveTimeLeftSec` in `WaveSystem` + HUD + **same ring** fills by `inactiveTimeLeftSec / inactiveDurationSec`; caption matches web `wave-timer-text`).
 - [x] **C.2.6** Early-start rules: **manual Space only while inactive timer > 0** (after wave 1+); **auto-start when timer hits 0**. **`waveReady`** mirrored in `main.gd` (`_compute_wave_ready`) + `GameState.wave_ready` + HUD `Space:ready|wait`.
 
 ### C.3 Asteroids

@@ -53,6 +53,9 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var gameover_hint: Label = $GameOverOverlay/GameOverVBox/GameOverHint
 @onready var gameover_score: Label = $GameOverOverlay/GameOverVBox/GameOverScore
 @onready var gameover_best: Label = $GameOverOverlay/GameOverVBox/GameOverBest
+@onready var wave_timer_hud: PanelContainer = $GameplayLayer/WaveTimerHud
+@onready var wave_timer_ring: WaveTimerRing = $GameplayLayer/WaveTimerHud/WaveTimerMargin/WaveTimerRow/WaveTimerRing
+@onready var wave_timer_caption: Label = $GameplayLayer/WaveTimerHud/WaveTimerMargin/WaveTimerRow/WaveTimerCaption
 
 var phase: AppPhase = AppPhase.MENU
 var game_state = GameState.new()
@@ -673,6 +676,26 @@ func _handle_play_right_click() -> void:
 
 
 func _update_hud() -> void:
+	if phase == AppPhase.PLAYING:
+		wave_timer_hud.visible = true
+		wave_timer_ring.set_progress(
+			hud_controller.wave_timer_progress(
+				wave_combat_active,
+				spawn_window_duration_sec,
+				spawn_window_elapsed_sec,
+				inactive_time_left_sec,
+				INACTIVE_DURATION_SEC,
+			)
+		)
+		wave_timer_caption.text = hud_controller.format_wave_timer_caption(
+			wave,
+			wave_combat_active,
+			spawn_window_ended,
+			asteroids.size(),
+			inactive_time_left_sec,
+		)
+	else:
+		wave_timer_hud.visible = false
 	var spawn_status := "Ready"
 	if wave_combat_active and not spawn_window_ended and to_spawn > 0:
 		var win_pct := 0.0
