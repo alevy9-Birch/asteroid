@@ -20,15 +20,16 @@ const HudControllerScript = preload("res://ui/HudController.gd")
 const MENU_HIGHLIGHT_COLOR := Color(0.20, 0.45, 0.85, 1.0)
 const MENU_DEFAULT_COLOR := Color(1, 1, 1, 1)
 const GRID_SIZE := 2.0
-const TURRET_COST := 100
 ## Web `resetRun()` starting credits.
 const STARTING_CREDITS := 1550
 ## Web `inactiveDurationSec`.
 const INACTIVE_DURATION_SEC := 60.0
-const TURRET_RANGE := 16.0
-const TURRET_DAMAGE := 28.0
-const TURRET_COOLDOWN := 0.42
-const CENTER_MAX_HP := 1000.0
+## Fallbacks if `WebParityDefs` fails; normally overridden from **`auto_turret`** / **`command_center`**.
+var turret_cost: int = 100
+var turret_range: float = 16.0
+var turret_damage: float = 28.0
+var turret_cooldown: float = 0.42
+var center_max_hp: float = 1000.0
 const PASSIVE_CREDITS_PER_SEC := 5.0
 const PROJECTILE_SPEED := 42.0
 const PROJECTILE_LIFETIME := 1.3
@@ -84,7 +85,7 @@ var asteroids: Array = []
 var projectiles: Array = []
 var wave := 0
 var credits := STARTING_CREDITS
-var command_center_hp := CENTER_MAX_HP
+var command_center_hp := 1000.0
 ## Web `waveInProgress` — true for spawn window + cleanup until asteroids clear.
 var wave_combat_active := false
 var to_spawn := 0
@@ -120,6 +121,7 @@ var asteroid_pool: Array[MeshInstance3D] = []
 var first_wave_started := false
 
 func _ready() -> void:
+	_parity_apply_building_baseline()
 	_setup_world_visuals()
 	_setup_inputs()
 	_collect_buttons()
@@ -134,6 +136,18 @@ func _ready() -> void:
 	if not WebParityDefs.ok:
 		push_warning("WebParityDefs: load failed or empty — run: node scripts/parity/extract_web_defs.mjs")
 	print("Godot migration Phase 5 prototype loaded.")
+
+
+func _parity_apply_building_baseline() -> void:
+	if not WebParityDefs.ok:
+		command_center_hp = center_max_hp
+		return
+	center_max_hp = WebParityDefs.prototype_command_center_max_hp(center_max_hp)
+	command_center_hp = center_max_hp
+	turret_cost = WebParityDefs.prototype_auto_turret_credit_cost(turret_cost)
+	turret_range = WebParityDefs.prototype_auto_turret_range(turret_range)
+	turret_damage = WebParityDefs.prototype_auto_turret_damage(turret_damage)
+	turret_cooldown = WebParityDefs.prototype_auto_turret_cooldown_sec(turret_cooldown)
 
 
 func _setup_world_visuals() -> void:
@@ -279,7 +293,7 @@ func _start_new_run() -> void:
 	_clear_entities()
 	wave = 0
 	credits = STARTING_CREDITS
-	command_center_hp = CENTER_MAX_HP
+	command_center_hp = center_max_hp
 	wave_combat_active = false
 	to_spawn = 0
 	spawn_window_elapsed_sec = 0.0
@@ -571,7 +585,7 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 func _update_turrets(delta: float) -> void:
 	if asteroids.is_empty():
 		return
-	var live_range := TURRET_RANGE + turret_range_bonus
+	var live_range := turret_range + turret_range_bonus
 	for i in range(turrets.size()):
 		var t = turrets[i]
 		var cooldown: float = t["cooldown"]
@@ -590,9 +604,9 @@ func _update_turrets(delta: float) -> void:
 		var best := combat_system.select_target_index(tpos, asteroids, live_range)
 		if best >= 0:
 			var apos: Vector3 = asteroids[best]["pos"]
-			_spawn_projectile(tpos + Vector3(0, 0.9, 0), apos, TURRET_DAMAGE * turret_damage_mult)
+			_spawn_projectile(tpos + Vector3(0, 0.9, 0), apos, turret_damage * turret_damage_mult)
 			_flash_turret(t["node"])
-			t["cooldown"] = max(0.12, TURRET_COOLDOWN - turret_cooldown_bonus)
+			t["cooldown"] = max(0.12, turret_cooldown - turret_cooldown_bonus)
 		turrets[i] = t
 
 
@@ -634,10 +648,10 @@ func _handle_play_left_click() -> void:
 	if _is_wave_combat_active():
 		return
 	var pos := _crosshair_world_on_ground()
-	if not build_system.can_place_turret(pos, command_center_pos, turrets, credits, TURRET_COST, 4.8, 1.6, GRID_SIZE, 100.0, 1):
+	if not build_system.can_place_turret(pos, command_center_pos, turrets, credits, turret_cost, 4.8, 1.6, GRID_SIZE, 100.0, 1):
 		return
-	credits -= TURRET_COST
-	money_spent += TURRET_COST
+	credits -= turret_cost
+	money_spent += turret_cost
 	audio_service.emit_event("build_place")
 	var node := MeshInstance3D.new()
 	var m := BoxMesh.new()
@@ -672,7 +686,7 @@ func _handle_play_right_click() -> void:
 	# Web `sellLookedAt`: 100% if same inactive phase and not in wave, else 50%.
 	var built_phase := int(t.get("built_in_inactive_phase", -999))
 	var full_refund := not _is_wave_combat_active() and built_phase == current_inactive_phase
-	var refund := TURRET_COST if full_refund else int(floor(TURRET_COST * 0.5))
+	var refund := turret_cost if full_refund else int(floor(turret_cost * 0.5))
 	credits += refund
 	audio_service.emit_event("build_sell")
 
@@ -713,13 +727,13 @@ func _update_hud() -> void:
 		wave,
 		credits,
 		int(command_center_hp),
-		int(CENTER_MAX_HP),
+		int(center_max_hp),
 		turrets.size(),
 		asteroids.size(),
 		wave_ready,
 		spawn_status,
 	)
-	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, CENTER_MAX_HP)
+	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	look_readout.text = hud_controller.format_look_info(camera_system.yaw, camera_system.pitch)
 
 
@@ -884,6 +898,7 @@ func _apply_wave_state(st: Dictionary) -> void:
 func _sync_game_state_runtime() -> void:
 	game_state.wave = wave
 	game_state.credits = credits
+	game_state.command_center_max_hp = center_max_hp
 	game_state.command_center_hp = command_center_hp
 	game_state.wave_combat_active = wave_combat_active
 	game_state.to_spawn = to_spawn

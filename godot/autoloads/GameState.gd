@@ -7,12 +7,12 @@ signal phase_changed(next_phase: int)
 signal resources_changed(credits: int, center_hp: float)
 signal wave_changed(wave: int, wave_combat_active: bool, to_spawn: int, wave_ready: bool)
 
-const CENTER_MAX_HP := 1000.0
-
 var phase: AppPhase = AppPhase.MENU
 var wave := 0
 var credits := 1550
-var command_center_hp := CENTER_MAX_HP
+## Max command center HP (mirrors web `command_center.maxHp` when synced from `WebParityDefs`).
+var command_center_max_hp := 1000.0
+var command_center_hp := 1000.0
 var wave_combat_active := false
 var to_spawn := 0
 var spawn_window_elapsed_sec := 0.0
@@ -44,7 +44,7 @@ var turret_cooldown_bonus := 0.0
 func reset_run() -> void:
 	wave = 0
 	credits = 1550
-	command_center_hp = CENTER_MAX_HP
+	command_center_hp = command_center_max_hp
 	wave_combat_active = false
 	to_spawn = 0
 	spawn_window_elapsed_sec = 0.0

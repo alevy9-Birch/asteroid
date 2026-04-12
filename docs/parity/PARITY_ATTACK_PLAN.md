@@ -38,7 +38,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 
 ### B.2 Godot data consumption
 
-- [x] **B.2.1** Import `parity_web_defs.json` at runtime — **`WebParityDefs` autoload** indexes buildings/upgrades by `id`; JSON includes **size, color, maxHp, costs, supply/power/economy/combat scalars, kind/weaponKind** per extractor (re-run `extract_web_defs.mjs` after TS changes). Gameplay still uses prototype constants until build/combat consume defs.
+- [x] **B.2.1** Import `parity_web_defs.json` at runtime — **`WebParityDefs` autoload** indexes buildings/upgrades by `id`; JSON includes **size, color, maxHp, costs, supply/power/economy/combat scalars, kind/weaponKind** per extractor (re-run `extract_web_defs.mjs` after TS changes). **Prototype sim** reads **`command_center.maxHp`** + **`auto_turret`** `creditCost`, `range`, `damage`, `fireRate`→cooldown (`1/max(0.04, fireRate)` per web).
 - [-] **B.2.2** **UPGRADES** in JSON: **id, label, category, creditCost** (×0.93 like web `UPGRADES` map), **prereqIds, unlockBuildingIds, description, heroId** — **modifiers / phase locks / refunds** not in JSON yet; Godot skill tree not driven by defs.
 - [ ] **B.2.3** Difficulty tables: mirror `getDifficultyScale` / wave scaling / `GameDifficulty` effects.
 - [ ] **B.2.4** Hero (`HeroId`) unlocks and per-hero building families.
@@ -49,7 +49,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 
 ### C.1 Session / run lifecycle
 
-- [-] **C.1.1** Initial credits / power / supply / upgrades on new run match `resetRun()` (**credits 1550** in Godot + `GameState`; power/supply/upgrades still web-only).
+- [-] **C.1.1** Initial credits / power / supply / upgrades on new run match `resetRun()` (**credits 1550** in Godot + `GameState`; **command center max HP** from `WebParityDefs` / `command_center`; power/supply/upgrades still web-only).
 - [ ] **C.1.2** Session reset parity: all runtime arrays, timers, discovery, shields, projectiles cleared like web `resetRun()`.
 - [ ] **C.1.3** Defeat condition: command center destroyed → same transitions/audio/state as web.
 - [ ] **C.1.4** Post-defeat and menu flow matches `App.tsx` phase machine.
@@ -77,7 +77,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 - [x] **C.4.2** **Block build/sell during active wave** (web: `waveInProgress`; Godot: while spawning or any asteroids remain after first wave start). *(Implemented: `_is_wave_combat_active()`.)*
 - [ ] **C.4.3** Multi-cell footprints for all `BuildingDef.size` `{w,h}`.
 - [ ] **C.4.4** Placement rules: unlocked IDs, credit + **supply** cost, power cap, grid bounds, overlap command center.
-- [-] **C.4.5** **Sell refund** for prototype turret: **100%** if `built_in_inactive_phase == current_inactive_phase` and not in combat, else **`floor(cost * 0.5)`** (web `sellLookedAt`). Per-building `creditCost` when multiple types exist — pending.
+- [-] **C.4.5** **Sell refund** for prototype turret: **100%** if `built_in_inactive_phase == current_inactive_phase` and not in combat, else **`floor(cost * 0.5)`** (web `sellLookedAt`). Build/sell **cost** uses **`auto_turret.creditCost`** from `WebParityDefs` when JSON loads; multiple building types still pending.
 - [ ] **C.4.6** Refund sprite / sell affordance visibility during inactive only.
 - [ ] **C.4.7** Drag-build and drag-sell timing parity (web pointer handlers).
 

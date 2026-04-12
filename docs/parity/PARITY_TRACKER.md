@@ -144,7 +144,7 @@ Status legend:
 
 - [x] Web ID inventory generated (`docs/parity/WEB_DATA_INVENTORY.md`)  
   Source: `src/game/BaseDefenseGame.ts`
-- [x] Godot **`WebParityDefs`** loads `godot/data/parity_web_defs.json` (72 buildings, 198 upgrades + `balanceVars`); extractor fixed so **BUILDINGS** slice ends at `UPGRADES_RAW` (no upgrade bleed). **Simulation** still uses prototype numbers until systems read defs.
+- [x] Godot **`WebParityDefs`** loads `godot/data/parity_web_defs.json` (72 buildings, 198 upgrades + `balanceVars`); extractor fixed so **BUILDINGS** slice ends at `UPGRADES_RAW` (no upgrade bleed). **Prototype** uses **`command_center.maxHp`** + **`auto_turret`** cost/range/damage/`fireRate`→cooldown from defs (`main.gd` + `WebParityDefs` helpers).
 - [-] Upgrade **modifiers / refund / phase** parity — JSON has graph edges (`prereqIds`, `unlockBuildingIds`); full **UPGRADES** object graph + hero trees pending in Godot.
 
 ## 15) Audio Service Progress

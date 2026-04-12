@@ -91,3 +91,39 @@ func balance_var_f(key: String, default := 1.0) -> float:
 	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
 		return float(v)
 	return default
+
+
+func read_building_float(building_id: String, key: String, fallback: float) -> float:
+	var b := get_building(building_id)
+	if b.is_empty():
+		return fallback
+	var v = b.get(key, fallback)
+	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
+		return float(v)
+	return fallback
+
+
+## Godot prototype maps to web **`command_center`**.
+func prototype_command_center_max_hp(fallback := 1000.0) -> float:
+	return read_building_float("command_center", "maxHp", fallback)
+
+
+## Godot prototype “turret” maps to web **`auto_turret`** (`BuildingDef`).
+func prototype_auto_turret_credit_cost(fallback := 100) -> int:
+	return int(round(read_building_float("auto_turret", "creditCost", float(fallback))))
+
+
+func prototype_auto_turret_range(fallback := 16.0) -> float:
+	return read_building_float("auto_turret", "range", fallback)
+
+
+func prototype_auto_turret_damage(fallback := 28.0) -> float:
+	return read_building_float("auto_turret", "damage", fallback)
+
+
+## Web `BaseDefenseGame`: shot interval `1 / max(0.04, fireRate)` with `fireRate` as shots/sec.
+func prototype_auto_turret_cooldown_sec(fallback := 0.42) -> float:
+	var fr := read_building_float("auto_turret", "fireRate", 0.0)
+	if fr <= 0.0:
+		return fallback
+	return 1.0 / maxf(0.04, fr)
