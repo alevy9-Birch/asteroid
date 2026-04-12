@@ -331,7 +331,10 @@ func apply_phase(next_phase: AppPhase) -> void:
 
 
 func _start_new_run() -> void:
+	# Web `resetRun`–style teardown: all per-run entity arrays + CC node (C.1.2).
 	_clear_entities()
+	# Refresh JSON-derived baselines each run (parity extract can change without editor restart).
+	_parity_apply_building_baseline()
 	wave = 0
 	credits = WebParityDefs.RESET_RUN_CREDITS
 	power_cap = WebParityDefs.RESET_RUN_POWER_CAP
@@ -366,6 +369,7 @@ func _start_new_run() -> void:
 	_reset_camera()
 	_create_gameplay_entities()
 	_update_research_labels()
+	_sync_game_state_runtime()
 	apply_phase(AppPhase.PLAYING)
 
 
@@ -440,6 +444,7 @@ func _create_gameplay_entities() -> void:
 
 
 func _clear_entities() -> void:
+	## Prototype run arrays (web: buildings, missiles, projectiles, …).
 	for t in turrets:
 		var n: Node = t["node"]
 		n.queue_free()
@@ -455,6 +460,7 @@ func _clear_entities() -> void:
 	asteroid_pool.clear()
 	if command_center_node != null:
 		command_center_node.queue_free()
+		command_center_node = null
 
 
 func _spawn_asteroid() -> void:

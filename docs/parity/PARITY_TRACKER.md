@@ -12,9 +12,9 @@ Status legend:
   Godot ref: `godot/scripts/main.gd` (`AppPhase`, `apply_phase`, `_check_command_center_defeat`)  
   Notes: CC death from **impact + AOE** ends run; `AudioService.emit_event("game_over")` stub; gameover UI still simpler than web.
 
-- [ ] Session reset parity (all runtime fields, unlocks, wave state, per-run stats)  
+- [-] Session reset parity (all runtime fields, unlocks, wave state, per-run stats)  
   Web ref: `src/App.tsx` (`startNewRun`, `goToMenu`, `INITIAL_STATE`)  
-  Godot target: `RunState` module (to be created)
+  Godot ref: `main.gd` **`_start_new_run`** — **`_clear_entities`** (turrets/asteroids/projectiles/pool/CC), **`_parity_apply_building_baseline`**, scalar wave/credits/upgrades reset, **`_sync_game_state_runtime`**; **`GameState.reset_run`** aligned for supply/CC max HP from defs. Full web surface (missiles, shields, discovery, unlocks graph) still future.
 
 ## 2) Input / Cursor / Fullscreen / Pointer Lock
 

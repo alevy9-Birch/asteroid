@@ -71,7 +71,7 @@
 ### C.1 Session / lifecycle
 
 - [-] C.1.1 **Starting credits** + **power/supply defaults** from `WebParityDefs` (`RESET_RUN_*` = web `resetRun()`); **CC max HP** from defs; **power** gen/drain only while **`wave_combat_active`** (web `waveInProgress`); inactive: clamp stored to cap; **supply** build gate; **no power-at-place** (web parity).
-- [ ] C.1.2 Clear **all** runtime arrays on new run (mirrors web `resetRun`: buildings, missiles, shields, timers, discovery, …).
+- [-] C.1.2 Clear **all** runtime arrays on new run (mirrors web `resetRun`: buildings, missiles, shields, timers, discovery, …). **Prototype:** `_clear_entities` wipes turrets/asteroids/projectiles/pool + CC; **`_parity_apply_building_baseline`** each **`_start_new_run`**; **`_sync_game_state_runtime`** before play; missiles/shields/discovery N/A until ported.
 - [-] C.1.3 **Defeat:** CC HP ≤ 0 → finalize score, **game over phase**; **all damage paths** (impact + AOE to CC) must trigger defeat.
 - [ ] C.1.4 **Audio** event on defeat (web `gameOver`); Godot `AudioService.emit_event("game_over")` **wired when buses exist**.
 - [ ] C.1.5 **Gameover UI**: waves survived, stats grid, commander, leaderboard hooks (mirror `App.tsx` snapshot).
