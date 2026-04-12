@@ -47,7 +47,7 @@ Status legend:
 
 - [-] Grid scale and footprint rules for all building sizes  
   Web ref: `src/game/BaseDefenseGame.ts` (cell placement logic)  
-  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from **`auto_turret`** + **`factory_business`** + depots + **`nuclear_plant`** (4×4); shared occupancy **`_placed_for_build()`**; **B** cycles unlocked modes; research **N** unlocks nuclear (web prereqs not enforced); more **`BuildingId`** types TBD
+  Godot ref: `godot/systems/BuildSystem.gd` — **w×h footprint** from **`auto_turret`** + **`factory_business`** + depots + **`nuclear_plant`** (4×4); shared occupancy **`_placed_for_build()`**; **B** cycles unlocked modes; research **N** gated by web **`prereqIds`** chain (via **`WebParityDefs`**); more **`BuildingId`** types TBD
 
 - [-] Placement legality parity (wave restrictions, occupancy, command center constraints)  
   Web ref: `src/game/BaseDefenseGame.ts` (`tryPlace`: credits, supply, bounds — **no power check**)  
@@ -91,7 +91,7 @@ Status legend:
 
 - [-] Full research graph parity + prerequisites + refundability  
   Web ref: `src/App.tsx`, `src/game/BaseDefenseGame.ts`, `UPGRADES`  
-  Godot ref: **U/I/O/N** — **HUD + purchase cost** from **`parity_web_defs.json`** (×0.93); ids `turret_targeting` / `unlock_factory` / `generator_efficiency` / **`unlock_nuclear_plant`**; **prereqs** not enforced; **effects** prototype; wave combat purchase guard preserved
+  Godot ref: **U/I/O/N** — **HUD + purchase cost** from **`parity_web_defs.json`** (×0.93); ids `turret_targeting` / `unlock_factory` / `generator_efficiency` / **`unlock_nuclear_plant`**; **`prereqIds`** enforced + **`[LOCKED: …]`** hint on research lines when defs load; **effects** prototype; refund/phase/full graph TBD; wave combat purchase guard preserved
 
 - [ ] Hero research split parity  
   Web ref: `src/App.tsx` (normal vs hero research)  
@@ -135,7 +135,7 @@ Status legend:
 - [-] `systems/AsteroidSystem.gd` (created; movement/impact detection + variant scaffold moved)
 - [-] `systems/BuildSystem.gd` (created; placement/sell target checks moved)
 - [-] `systems/CombatSystem.gd` (created; target select + projectile step/hit orchestration moved)
-- [-] `systems/UpgradeSystem.gd` (created; upgrade purchase + label generation moved)
+- [-] `systems/UpgradeSystem.gd` (purchase + labels + **`research_label_with_prereq_hint`**; full graph TBD)
 - [-] `systems/EconomySystem.gd` (created; passive income + spend/income helpers moved)
 - [-] `systems/CommanderSystem.gd` (created; commander ID validation/default hooks added)
 - [-] `systems/ScoreSystem.gd` (created; run score calc + best-score persistence moved)

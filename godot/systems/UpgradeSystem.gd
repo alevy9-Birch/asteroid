@@ -88,3 +88,25 @@ func label_logistics(owned: bool) -> String:
 
 func label_nuclear(owned: bool) -> String:
 	return WebParityDefs.research_display_line(_upgrade_id("nuclear"), "N", owned)
+
+
+func research_label_with_prereq_hint(which: String, owned: bool, state: Dictionary) -> String:
+	var line := ""
+	match which:
+		"core":
+			line = label_core(owned)
+		"factory":
+			line = label_factory(owned)
+		"logistics":
+			line = label_logistics(owned)
+		"nuclear":
+			line = label_nuclear(owned)
+		_:
+			return ""
+	if owned or not WebParityDefs.ok:
+		return line
+	var uid := _upgrade_id(which)
+	var hint := WebParityDefs.prototype_research_prereq_hint(uid, state)
+	if hint.is_empty():
+		return line
+	return "%s  %s" % [line, hint]

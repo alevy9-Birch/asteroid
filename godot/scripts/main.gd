@@ -1473,10 +1473,16 @@ func _try_buy_upgrade(which: String) -> void:
 
 
 func _update_research_labels() -> void:
-	research_core_label.text = upgrade_system.label_core(upgrade_core)
-	research_factory_label.text = upgrade_system.label_factory(upgrade_factory)
-	research_logistics_label.text = upgrade_system.label_logistics(upgrade_logistics)
-	research_nuclear_label.text = upgrade_system.label_nuclear(upgrade_nuclear)
+	var rs := {
+		"upgrade_core": upgrade_core,
+		"upgrade_factory": upgrade_factory,
+		"upgrade_logistics": upgrade_logistics,
+		"upgrade_nuclear": upgrade_nuclear,
+	}
+	research_core_label.text = upgrade_system.research_label_with_prereq_hint("core", upgrade_core, rs)
+	research_factory_label.text = upgrade_system.research_label_with_prereq_hint("factory", upgrade_factory, rs)
+	research_logistics_label.text = upgrade_system.research_label_with_prereq_hint("logistics", upgrade_logistics, rs)
+	research_nuclear_label.text = upgrade_system.research_label_with_prereq_hint("nuclear", upgrade_nuclear, rs)
 
 
 func _finalize_run_score() -> void:

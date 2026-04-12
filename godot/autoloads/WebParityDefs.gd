@@ -223,6 +223,51 @@ func _prototype_research_effective(upgrade_id: String, state: Dictionary, stack:
 	return result
 
 
+func _first_unsatisfied_prereq_id(upgrade_id: String, state: Dictionary) -> String:
+	var memo := {}
+	var stack := {}
+	if _prototype_research_effective(upgrade_id, state, stack, memo):
+		return ""
+	if PROTOTYPE_UPGRADE_STATE_KEYS.has(upgrade_id):
+		return upgrade_id
+	var u := get_upgrade(upgrade_id)
+	if u.is_empty():
+		return upgrade_id
+	var pr = u.get("prereqIds", [])
+	if typeof(pr) != TYPE_ARRAY:
+		return upgrade_id
+	for pid in pr:
+		if typeof(pid) != TYPE_STRING:
+			continue
+		var sub := _first_unsatisfied_prereq_id(String(pid), state)
+		if not sub.is_empty():
+			return sub
+	return upgrade_id
+
+
+## Short HUD suffix when **`prototype_upgrade_prereqs_satisfied`** is false (uses web **`label`** for the blocking upgrade).
+func prototype_research_prereq_hint(upgrade_web_id: String, state: Dictionary) -> String:
+	if not ok:
+		return ""
+	if prototype_upgrade_prereqs_satisfied(upgrade_web_id, state):
+		return ""
+	var u := get_upgrade(upgrade_web_id)
+	var pr = u.get("prereqIds", [])
+	if typeof(pr) != TYPE_ARRAY or pr.is_empty():
+		return "[LOCKED]"
+	for pid in pr:
+		if typeof(pid) != TYPE_STRING:
+			continue
+		var block := _first_unsatisfied_prereq_id(String(pid), state)
+		if not block.is_empty():
+			var bu := get_upgrade(block)
+			var lab := block
+			if not bu.is_empty():
+				lab = String(bu.get("label", block))
+			return "[LOCKED: %s]" % lab
+	return "[LOCKED]"
+
+
 ## Godot prototype maps to web **`command_center`**.
 func prototype_command_center_max_hp(fallback := 1000.0) -> float:
 	return read_building_float("command_center", "maxHp", fallback)

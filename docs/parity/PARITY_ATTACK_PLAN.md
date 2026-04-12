@@ -138,7 +138,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 
 - [-] J.1 Gameplay info: credits, CC HP, wave, spawn line, **P/S**, **`waveReady`**, **Diff** (from menu **`GameDifficulty`**).
 - [ ] J.2 Discovery / toast / wheel categories / stats cards.
-- [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for **four** lines U/I/O/N); full tree UI TBD.
+- [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for **four** lines U/I/O/N); **`prototype_research_prereq_hint`** suffix when locked; full tree UI TBD.
 
 ### K — Audio
 
