@@ -103,10 +103,15 @@ func research_label_with_prereq_hint(which: String, owned: bool, state: Dictiona
 			line = label_nuclear(owned)
 		_:
 			return ""
-	if owned or not WebParityDefs.ok:
+	if owned:
 		return line
 	var uid := _upgrade_id(which)
-	var hint := WebParityDefs.prototype_research_prereq_hint(uid, state)
-	if hint.is_empty():
-		return line
-	return "%s  %s" % [line, hint]
+	if WebParityDefs.ok:
+		var pre := WebParityDefs.prototype_research_prereq_hint(uid, state)
+		if not pre.is_empty():
+			return "%s  %s" % [line, pre]
+	var cost := _purchase_cost(which)
+	var creds := int(state.get("credits", 0))
+	if creds < cost:
+		return "%s  [+%dc]" % [line, cost - creds]
+	return line

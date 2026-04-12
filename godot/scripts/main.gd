@@ -1276,6 +1276,8 @@ func _update_hud() -> void:
 		gi += " | Nuc %d" % nuclear_plants.size()
 	gameplay_info.text = gi
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
+	if phase == AppPhase.PLAYING or phase == AppPhase.PAUSED:
+		_update_research_labels()
 	var bm := "turret"
 	if upgrade_factory or upgrade_logistics or upgrade_nuclear:
 		bm = build_mode
@@ -1474,6 +1476,7 @@ func _try_buy_upgrade(which: String) -> void:
 
 func _update_research_labels() -> void:
 	var rs := {
+		"credits": credits,
 		"upgrade_core": upgrade_core,
 		"upgrade_factory": upgrade_factory,
 		"upgrade_logistics": upgrade_logistics,

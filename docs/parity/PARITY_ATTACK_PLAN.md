@@ -91,7 +91,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [x] E.3 **Footprint from defs**: **`WebParityDefs.read_building_footprint`** + prototype building readers (**`auto_turret`** / factory / depots / nuclear); future **`BuildingId`** use same helper.
 - [-] E.4 **Supply** gate + sell returns **`build_supply_cost`**; **unlock** graph missing.
 - [-] E.5 Sell refund **100% / 50%** by inactive phase; **`build_credit_cost`** per placement.
-- [-] E.6 Refund affordance UI (inactive-only hints). **Partial:** gameplay bar shows **100% sell** hint during inactive between waves.
+- [-] E.6 Refund affordance UI (inactive-only hints). **Partial:** gameplay bar shows **100% sell** hint during inactive between waves; research lines show afford gap **`[+Nc]`** when prereqs met.
 - [ ] E.7 Drag build/sell timing vs web.
 
 ### F — Waves & asteroids
@@ -138,7 +138,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 
 - [-] J.1 Gameplay info: credits, CC HP, wave, spawn line, **P/S**, **`waveReady`**, **Diff** (from menu **`GameDifficulty`**).
 - [ ] J.2 Discovery / toast / wheel categories / stats cards.
-- [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for **four** lines U/I/O/N); **`prototype_research_prereq_hint`** suffix when locked; full tree UI TBD.
+- [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for **four** lines U/I/O/N); **`prototype_research_prereq_hint`** when locked; **`[+Nc]`** when credits short (live during **PLAYING** / **PAUSED** HUD tick); full tree UI TBD.
 
 ### K — Audio
 

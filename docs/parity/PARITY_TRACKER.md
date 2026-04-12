@@ -107,7 +107,7 @@ Status legend:
 
 - [-] Full HUD parity (**wave timer ring** done; discovery toast, wheel categories, stats cards pending)  
   Web ref: `src/App.tsx` JSX overlays  
-  Godot ref: partial HUD; **inactive sell 100%** hint; **sandbox** banner when applicable; **Diff:** in gameplay bar during run
+  Godot ref: partial HUD; **inactive sell 100%** hint; research **`[LOCKED: …]`** / **`[+Nc]`** afford gap; **sandbox** banner when applicable; **Diff:** in gameplay bar during run
 
 ## 11) Audio
 
