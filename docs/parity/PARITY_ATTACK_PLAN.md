@@ -23,7 +23,7 @@
 
 Single place to see what the port **actually runs** today (see **§3** for checkbox detail):
 
-- **Session:** menu → play → pause/gameover; **Sandbox**; **`_start_new_run`** clears turrets/factories/depots/**nuclei**/asteroids/projectiles/CC mesh; **`WebParityDefs`** baselines each run.
+- **Session:** menu → play → pause/gameover; **Sandbox**; **`start_run`** / **`end_run`** / **`go_to_menu`** on **`main.gd`**; teardown inside **`_start_new_run`**; **`WebParityDefs`** baselines each run.
 - **Build (B):** turret; **I** → factory; **O** → depot S/L; **N** → nuclear plant (4×4); **B** cycles unlocked modes; sell RMB (100%/50% by inactive phase).
 - **Combat:** projectile turret, per-shot power; kill credits **`balanceVars.asteroidKillCreditMul`** + wave scale + factory upgrade bonus; asteroid variants / AOE / EMP hooks (partial).
 - **Economy:** CC + factory payouts (wave only, factory starves at 0 power if draining); **nuclear** gen only if **`credits > 0`**; supply cap CC + depots; **`POWER_DRAIN_GLOBAL_MUL`** on economy passive + shots.
@@ -50,7 +50,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 
 - [x] A.1 Baseline prototype frozen; parity docs present (`PARITY_TRACKER.md`, `ARCHITECTURE_TARGET.md`, `VALIDATION_PROTOCOL.md`).
 - [-] A.2 **`GameState`** owns run scalars and mutators; **`main.gd`** delegates (thin controller). **Partial:** **`_sync_game_state_runtime`** mirrors wave/resources/upgrades (incl. **N**); **`main`** still owns sim loops and placement.
-- [ ] A.3 Single **`start_run` / `end_run` / `go_to_menu`** API mirroring web phase transitions.
+- [x] A.3 Single **`start_run` / `end_run` / `go_to_menu`** API on **`main.gd`** (menu/gameover/start + CC defeat/dev shortcut). Pause **PLAYING ↔ PAUSED** still **`apply_phase`**.
 - [x] A.4 Headless / editor smoke documented (**Appendix A**).
 - [x] A.5 **`dev/HeadlessSmoke.tscn`** — asserts **`WebParityDefs.ok`**, exits 0.
 - [ ] A.6 Optional: CI job runs extract + Godot smoke on PR.

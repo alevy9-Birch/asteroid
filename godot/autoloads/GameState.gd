@@ -50,7 +50,7 @@ var turret_range_bonus := 0.0
 var turret_cooldown_bonus := 0.0
 
 func reset_run() -> void:
-	## Mirrors web `resetRun` scalars; **`main.gd` `_start_new_run`** is authoritative (calls `_sync_game_state_runtime`).
+	## Mirrors web `resetRun` scalars; **`main.gd` `start_run` → `_start_new_run`** is authoritative (calls `_sync_game_state_runtime`).
 	wave = 0
 	credits = WebParityDefs.RESET_RUN_CREDITS
 	power_cap = WebParityDefs.RESET_RUN_POWER_CAP

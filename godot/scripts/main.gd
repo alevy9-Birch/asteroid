@@ -186,7 +186,7 @@ func _ready() -> void:
 	_create_gameplay_entities()
 	best_score = score_system.load_best_score()
 	_update_research_labels()
-	apply_phase(AppPhase.MENU)
+	go_to_menu()
 	_set_master_volume(master_volume)
 	if not WebParityDefs.ok:
 		push_warning("WebParityDefs: load failed or empty — run: node scripts/parity/extract_web_defs.mjs")
@@ -340,9 +340,7 @@ func _check_command_center_defeat() -> void:
 	if command_center_hp > 0.0:
 		return
 	command_center_hp = 0.0
-	_finalize_run_score()
-	audio_service.emit_event("game_over", {})
-	apply_phase(AppPhase.GAMEOVER)
+	end_run()
 
 
 func _setup_world_visuals() -> void:
@@ -399,9 +397,7 @@ func _input(event: InputEvent) -> void:
 		if next != int(phase):
 			apply_phase(AppPhase.values()[next])
 	if event.is_action_pressed("simulate_gameover"):
-		_finalize_run_score()
-		audio_service.emit_event("game_over", {})
-		apply_phase(AppPhase.GAMEOVER)
+		end_run()
 	if event.is_action_pressed("start_wave") and phase == AppPhase.PLAYING:
 		# Web `startNextWave(true)` only when `waveReady` (manual early-start uses inactive timer > 0 after wave 1+).
 		if _compute_wave_ready():
@@ -476,18 +472,18 @@ func _on_menu_difficulty_selected(index: int) -> void:
 
 
 func _connect_button_handlers() -> void:
-	($MenuOverlay/MenuVBox/StartButton as Button).pressed.connect(func() -> void: _start_new_run(false))
-	($MenuOverlay/MenuVBox/SandboxButton as Button).pressed.connect(func() -> void: _start_new_run(true))
+	($MenuOverlay/MenuVBox/StartButton as Button).pressed.connect(func() -> void: start_run(false))
+	($MenuOverlay/MenuVBox/SandboxButton as Button).pressed.connect(func() -> void: start_run(true))
 	($MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolMinus as Button).pressed.connect(func() -> void: _adjust_volume(-0.05))
 	($MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolPlus as Button).pressed.connect(func() -> void: _adjust_volume(0.05))
 	($PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolMinus as Button).pressed.connect(func() -> void: _adjust_volume(-0.05))
 	($PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolPlus as Button).pressed.connect(func() -> void: _adjust_volume(0.05))
 	($PauseOverlay/PauseVBox/ResumeButton as Button).pressed.connect(func() -> void: apply_phase(AppPhase.PLAYING))
-	($PauseOverlay/PauseVBox/PauseMenuButton as Button).pressed.connect(func() -> void: apply_phase(AppPhase.MENU))
+	($PauseOverlay/PauseVBox/PauseMenuButton as Button).pressed.connect(func() -> void: go_to_menu())
 	($GameOverOverlay/GameOverVBox/PlayAgainButton as Button).pressed.connect(
-		func() -> void: _start_new_run(sandbox_run)
+		func() -> void: start_run(sandbox_run)
 	)
-	($GameOverOverlay/GameOverVBox/GameOverMenuButton as Button).pressed.connect(func() -> void: apply_phase(AppPhase.MENU))
+	($GameOverOverlay/GameOverVBox/GameOverMenuButton as Button).pressed.connect(func() -> void: go_to_menu())
 
 
 func _adjust_volume(delta: float) -> void:
@@ -513,6 +509,23 @@ func apply_phase(next_phase: AppPhase) -> void:
 	_center_virtual_cursor()
 	_ensure_fullscreen_and_capture()
 	_update_hud()
+
+
+## Web-style run lifecycle (menu / gameover entry points). Pause still uses **`apply_phase`** (PLAYING ↔ PAUSED).
+func start_run(is_sandbox: bool = false) -> void:
+	_start_new_run(is_sandbox)
+
+
+## Finalize score, sync **`GameState`**, SFX, then **GAMEOVER** (CC defeat, dev shortcut, etc.).
+func end_run() -> void:
+	_finalize_run_score()
+	_sync_game_state_runtime()
+	audio_service.emit_event("game_over", {})
+	apply_phase(AppPhase.GAMEOVER)
+
+
+func go_to_menu() -> void:
+	apply_phase(AppPhase.MENU)
 
 
 func _start_new_run(is_sandbox: bool = false) -> void:
