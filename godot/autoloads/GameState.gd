@@ -9,10 +9,15 @@ signal wave_changed(wave: int, wave_combat_active: bool, to_spawn: int, wave_rea
 
 var phase: AppPhase = AppPhase.MENU
 var wave := 0
-var credits := 1550
+var credits := WebParityDefs.RESET_RUN_CREDITS
 ## Max command center HP (mirrors web `command_center.maxHp` when synced from `WebParityDefs`).
 var command_center_max_hp := 1000.0
 var command_center_hp := 1000.0
+## Web `resetRun()` power/supply fields — **display + state only** until C.6 sim consumes them.
+var power_cap := WebParityDefs.RESET_RUN_POWER_CAP
+var power_stored := WebParityDefs.RESET_RUN_POWER_STORED
+var supply_cap := WebParityDefs.RESET_RUN_SUPPLY_CAP
+var supply_used := WebParityDefs.RESET_RUN_SUPPLY_USED
 var wave_combat_active := false
 var to_spawn := 0
 var spawn_window_elapsed_sec := 0.0
@@ -43,7 +48,11 @@ var turret_cooldown_bonus := 0.0
 
 func reset_run() -> void:
 	wave = 0
-	credits = 1550
+	credits = WebParityDefs.RESET_RUN_CREDITS
+	power_cap = WebParityDefs.RESET_RUN_POWER_CAP
+	power_stored = WebParityDefs.RESET_RUN_POWER_STORED
+	supply_cap = WebParityDefs.RESET_RUN_SUPPLY_CAP
+	supply_used = WebParityDefs.RESET_RUN_SUPPLY_USED
 	command_center_hp = command_center_max_hp
 	wave_combat_active = false
 	to_spawn = 0

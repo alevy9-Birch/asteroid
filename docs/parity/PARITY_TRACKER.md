@@ -51,7 +51,7 @@ Status legend:
 
 - [-] Sell/refund parity by building type and state  
   Web ref: `src/game/BaseDefenseGame.ts`  
-  Godot ref: **100% vs 50%** for single turret type using `built_in_inactive_phase` vs `current_inactive_phase` (same as web inactive-phase rule); per-`creditCost` when multiple buildings exist — pending
+  Godot ref: **100% vs 50%** by inactive phase; refund uses **`build_credit_cost`** stored at placement (web cost-at-build pattern); multiple building IDs still pending
 
 ## 5) Waves / Asteroids
 
@@ -77,7 +77,7 @@ Status legend:
 
 - [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: **starting credits 1550** (web `resetRun`); supply/power still missing
+  Godot ref: **`WebParityDefs.RESET_RUN_*`** credits + power/supply **defaults** on `main`/`GameState`, F3 diagnostics; **no sim** (drain/build gates) yet
 
 - [ ] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  

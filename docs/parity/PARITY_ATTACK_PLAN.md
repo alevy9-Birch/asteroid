@@ -10,7 +10,7 @@
 
 | Area | Web (reference) | Godot (current) |
 |------|-----------------|-----------------|
-| **State** | `BaseDefenseGame` + `App` state: credits, power, supply, buildings[], occupied grid, shields, missiles, heroes | Credits, CC HP, wave timers, turret array, asteroids, projectiles; **no power/supply/building catalog sim** |
+| **State** | `BaseDefenseGame` + `App` state: credits, power, supply, buildings[], occupied grid, shields, missiles, heroes | Credits, CC HP, wave timers, turrets, asteroids, projectiles; **power/supply fields** = web `resetRun()` defaults (**no drain/sim**); **no full building catalog** |
 | **Build** | Full `BUILDINGS`, wheel, unlocks, multi-cell, supply/power gates | Single **auto_turret**-mapped prototype; placement via `BuildSystem`; **footprint w×h** from JSON (when loaded) |
 | **Combat** | Per-weapon `kind`, missiles, ballistics, railgun, shields, AOE layers | Hitscan-style projectile stub; **no weapon kinds** |
 | **Waves** | `updateWave`, `startNextWave`, variant pools, hero modifiers | `WaveSystem` + `WaveScaling` aligned on core formulas; **no hero wave modifiers** |
@@ -38,8 +38,8 @@
 - [x] A.0.4 Validation protocol (`VALIDATION_PROTOCOL.md`).
 - [ ] A.1.1 Move run orchestration from `main.gd` into **`GameState`** mutators (credits, wave, phase, HP).
 - [ ] A.1.2 Single entry to start/pause/end run (mirror web `startNewRun` / phase transitions).
-- [ ] A.2.1 Document Godot **`--headless`** smoke steps in repo (load main scene, exit 0).
-- [ ] A.2.2 Optional: scripted scene that asserts invariants (wave 0, defs loaded).
+- [x] A.2.1 Document Godot **smoke / headless** steps (see **Appendix A** below).
+- [ ] A.2.2 Optional: scripted scene that asserts invariants (wave 0, defs loaded) and calls `get_tree().quit(0)`.
 
 ---
 
@@ -70,7 +70,7 @@
 
 ### C.1 Session / lifecycle
 
-- [-] C.1.1 **Starting credits 1550**; **CC max HP** from defs; **power 45 / supply** from `resetRun()` still missing.
+- [-] C.1.1 **Starting credits** + **power/supply defaults** from `WebParityDefs` (`RESET_RUN_*` = web `resetRun()`); **CC max HP** from defs; **power/supply not simulated** (no drain/build gates) until C.6.
 - [ ] C.1.2 Clear **all** runtime arrays on new run (mirrors web `resetRun`: buildings, missiles, shields, timers, discovery, …).
 - [-] C.1.3 **Defeat:** CC HP ≤ 0 → finalize score, **game over phase**; **all damage paths** (impact + AOE to CC) must trigger defeat.
 - [ ] C.1.4 **Audio** event on defeat (web `gameOver`); Godot `AudioService.emit_event("game_over")` **wired when buses exist**.
@@ -100,7 +100,7 @@
 - [x] C.4.2 Block build/sell during active wave (`wave_combat_active` / cleanup).
 - [-] C.4.3 Multi-cell **footprint** for prototype turret from defs; **all** `BuildingId` sizes later.
 - [ ] C.4.4 Supply, power cap, unlock checks, grid bounds parity.
-- [-] C.4.5 Sell refund 100% / 50% by inactive phase; **per-building** `creditCost` when multiple types.
+- [-] C.4.5 Sell refund 100% / 50% by inactive phase; **per-placement** `build_credit_cost` on each turret (web `creditCost` at build time); **multiple building types** still future work.
 - [ ] C.4.6 Refund affordance UI (inactive-only hints).
 - [ ] C.4.7 Pointer drag build/sell timing vs web.
 
@@ -117,8 +117,8 @@
 
 - [x] C.6.1 `EconomySystem` passive helper.
 - [-] C.6.2 Kill credits (combat-only); **logistics bonus** still simplified.
-- [ ] C.6.3 Power cap, stored, generation, drain order, starvation.
-- [ ] C.6.4 Supply cap / `supplyUsed` / per-building costs.
+- [-] C.6.3 Power cap, stored, generation, drain order, starvation — **cap/stored fields** on `main` + `GameState` + diagnostics (web defaults); **no generation/drain sim**.
+- [-] C.6.4 Supply cap / `supplyUsed` / per-building costs — **cap/used fields** mirrored (defaults); **not enforced** on build.
 - [ ] C.6.5 Building `creditPayout` / intervals.
 - [ ] C.6.6 **`updateResources`** parity (modifiers, difficulty).
 
@@ -169,6 +169,18 @@
 - [ ] Note evidence (command log, scenario, screenshot).
 - [ ] Respect `ARCHITECTURE_TARGET.md` boundaries.
 - [ ] Git commit + push (`migration/godot`).
+
+---
+
+## Appendix A — Godot smoke / headless (A.2.1)
+
+From repo **`space-ship`** with **Godot 4.x** on `PATH`:
+
+1. **Editor load:** `godot --path godot` — project must open without script errors (check Output / stderr).
+2. **Headless run:** `godot --path godot --headless` — runs `run/main_scene` with no window; stop with Ctrl+C or wrap in a timeout (e.g. `timeout 8 godot ...` on Linux, or PowerShell `Wait-Process` with a limit). Scan stderr for `SCRIPT ERROR` / `Parse Error`.
+3. **Data:** After TS changes, run `node scripts/parity/extract_web_defs.mjs` so `godot/data/parity_web_defs.json` stays current.
+
+Future **A.2.2:** add a scene or `@tool` script that loads defs, asserts `WebParityDefs.ok`, and exits 0 for CI.
 
 ---
 

@@ -20,8 +20,6 @@ const HudControllerScript = preload("res://ui/HudController.gd")
 const MENU_HIGHLIGHT_COLOR := Color(0.20, 0.45, 0.85, 1.0)
 const MENU_DEFAULT_COLOR := Color(1, 1, 1, 1)
 const GRID_SIZE := 2.0
-## Web `resetRun()` starting credits.
-const STARTING_CREDITS := 1550
 ## Web `inactiveDurationSec`.
 const INACTIVE_DURATION_SEC := 60.0
 ## Fallbacks if `WebParityDefs` fails; normally overridden from **`auto_turret`** / **`command_center`**.
@@ -86,7 +84,7 @@ var turrets: Array = []
 var asteroids: Array = []
 var projectiles: Array = []
 var wave := 0
-var credits := STARTING_CREDITS
+var credits := WebParityDefs.RESET_RUN_CREDITS
 var command_center_hp := 1000.0
 ## Web `waveInProgress` — true for spawn window + cleanup until asteroids clear.
 var wave_combat_active := false
@@ -121,6 +119,11 @@ var passive_credit_accum := 0.0
 var asteroid_pool: Array[MeshInstance3D] = []
 ## Web parity (`BaseDefenseGame.ts`): first wave starts only on player action; later waves use intermission auto-start.
 var first_wave_started := false
+## Web `resetRun()` power/supply (state-only until economy sim — see `WebParityDefs` constants).
+var power_cap := WebParityDefs.RESET_RUN_POWER_CAP
+var power_stored := WebParityDefs.RESET_RUN_POWER_STORED
+var supply_cap := WebParityDefs.RESET_RUN_SUPPLY_CAP
+var supply_used := WebParityDefs.RESET_RUN_SUPPLY_USED
 
 func _ready() -> void:
 	_parity_apply_building_baseline()
@@ -309,7 +312,11 @@ func apply_phase(next_phase: AppPhase) -> void:
 func _start_new_run() -> void:
 	_clear_entities()
 	wave = 0
-	credits = STARTING_CREDITS
+	credits = WebParityDefs.RESET_RUN_CREDITS
+	power_cap = WebParityDefs.RESET_RUN_POWER_CAP
+	power_stored = WebParityDefs.RESET_RUN_POWER_STORED
+	supply_cap = WebParityDefs.RESET_RUN_SUPPLY_CAP
+	supply_used = WebParityDefs.RESET_RUN_SUPPLY_USED
 	command_center_hp = center_max_hp
 	wave_combat_active = false
 	to_spawn = 0
@@ -697,6 +704,8 @@ func _handle_play_left_click() -> void:
 		"pos": place_c,
 		"footprint_w": turret_footprint_w,
 		"footprint_h": turret_footprint_h,
+		## Web per-building `creditCost` at placement (sell/refund uses this, not live `turret_cost`).
+		"build_credit_cost": turret_cost,
 		"cooldown": 0.1,
 		"built_in_inactive_phase": current_inactive_phase,
 	})
@@ -718,7 +727,8 @@ func _handle_play_right_click() -> void:
 	# Web `sellLookedAt`: 100% if same inactive phase and not in wave, else 50%.
 	var built_phase := int(t.get("built_in_inactive_phase", -999))
 	var full_refund := not _is_wave_combat_active() and built_phase == current_inactive_phase
-	var refund := turret_cost if full_refund else int(floor(turret_cost * 0.5))
+	var paid := int(t.get("build_credit_cost", turret_cost))
+	var refund := paid if full_refund else int(floor(paid * 0.5))
 	credits += refund
 	audio_service.emit_event("build_sell")
 
@@ -784,8 +794,18 @@ func _update_diagnostics() -> void:
 		return
 	var fps := int(round(Engine.get_frames_per_second()))
 	var mem_mb := Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
-	diagnostics_label.text = "FPS %d | Turrets %d | Asteroids %d | Pool %d | WaveCombat %s toSpawn %d | Mem %.1f MB" % [
-		fps, turrets.size(), asteroids.size(), asteroid_pool.size(), str(wave_combat_active), to_spawn, mem_mb
+	diagnostics_label.text = "FPS %d | Turrets %d | Asteroids %d | Pool %d | WaveCombat %s toSpawn %d | P %d/%d S %d/%d | Mem %.1f MB" % [
+		fps,
+		turrets.size(),
+		asteroids.size(),
+		asteroid_pool.size(),
+		str(wave_combat_active),
+		to_spawn,
+		int(power_stored),
+		int(power_cap),
+		int(supply_used),
+		int(supply_cap),
+		mem_mb,
 	]
 
 
@@ -934,6 +954,10 @@ func _sync_game_state_runtime() -> void:
 	game_state.credits = credits
 	game_state.command_center_max_hp = center_max_hp
 	game_state.command_center_hp = command_center_hp
+	game_state.power_cap = power_cap
+	game_state.power_stored = power_stored
+	game_state.supply_cap = supply_cap
+	game_state.supply_used = supply_used
 	game_state.wave_combat_active = wave_combat_active
 	game_state.to_spawn = to_spawn
 	game_state.spawn_window_elapsed_sec = spawn_window_elapsed_sec

@@ -5,6 +5,13 @@ extends Node
 
 const DEFS_PATH := "res://data/parity_web_defs.json"
 
+## Web `BaseDefenseGame.resetRun()` resource baselines (Godot does not simulate power/supply flow yet).
+const RESET_RUN_CREDITS := 1550
+const RESET_RUN_POWER_CAP := 45
+const RESET_RUN_POWER_STORED := 45
+const RESET_RUN_SUPPLY_CAP := 0
+const RESET_RUN_SUPPLY_USED := 0
+
 var ok: bool = false
 var balance_vars: Dictionary = {}
 var buildings_by_id: Dictionary = {}
