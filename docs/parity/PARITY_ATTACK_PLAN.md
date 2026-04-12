@@ -11,7 +11,7 @@
 | Area | Web (reference) | Godot (current) |
 |------|-----------------|-----------------|
 | **Runtime core** | `BaseDefenseGame`: `buildings[]`, `occupied` grid, per-building HP/mesh, shields, missiles, volleys, heroes, discovery, commander hooks | **CC mesh** + **`turrets[]`** + **`economy_buildings[]`**, **`asteroids[]`**, **`projectiles[]`**; no full catalog |
-| **Build** | Full `BUILDINGS`, wheel, unlocks, `tryPlace` (credits, supply, bounds, padding) | **`auto_turret`** + **`factory_business`** + **`supply_depot_s`** (after research **O**); **B** cycles unlocked modes; supply gate; **no full unlock graph** |
+| **Build** | Full `BUILDINGS`, wheel, unlocks, `tryPlace` (credits, supply, bounds, padding) | **`auto_turret`** + **`factory_business`** + **`supply_depot_s`** / **`supply_depot_l`** (after **O**); **B** cycles unlocked modes; supply gate; **no full unlock graph** |
 | **Economy** | `updateResources`: power cap from batteries, CC + factory drains, payouts gated by wave + power | **CC** + prototype **`factory_business`** (`creditPayout`/`interval`, passive drain × **`POWER_DRAIN_GLOBAL_MUL`**, payout freeze at 0 power); **kill mul** from **`balanceVars`**; nuclear / pylons / full loop TBD |
 | **Combat** | `updateDefenses`: `kind` hitscan/missiles/ballistic/railgun/shield, `tryConsumeShotPower`, EMP | **Projectile stub** + per-shot power for prototype turret |
 | **Waves** | `updateWave`, pools, hero/upgrade modifiers | **`WaveSystem`** + **`WaveScaling`** core math; **no hero modifiers** |
@@ -111,7 +111,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [-] H.2 **CC credits**: **`creditPayout` / `creditIntervalSec`** from defs, **only during wave combat** (replaces generic passive tick).
 - [-] H.3 **Factory / refinery** payouts + **`powerDrainPerSec`** starvation (web **`updateResources`** loop). **Partial:** **`factory_business`** place/sell, wave-only **`creditPayout`/`creditIntervalSec`**, timer freeze + no payout at 0 power; **B** build mode after research **I**; refineries / nuclear TBD.
 - [-] H.4 **Power cap** recomputed: **`RESET_RUN_POWER_CAP` + CC `powerCapAdd` + per-turret `auto_turret.powerCapAdd`** (usually 0 until batteries); clamp **`power_stored`** on place/sell/new run.
-- [-] H.5 **Supply**: cap from CC **`supplyCapAdd`**; **`supply_depot_s`** adds **`supplyCapAdd`** via **`_recompute_supply_cap()`**; place/sell + occupancy + **B** depot mode after research **O**; **`supply_depot_l`** / mk2 TBD.
+- [-] H.5 **Supply**: cap from CC **`supplyCapAdd`**; **`supply_depot_s`** / **`supply_depot_l`** add **`supplyCapAdd`** via **`_recompute_supply_cap()`**; place/sell + occupancy + **B** cycles **`depot_s` → `depot_l`** after **O**; **mk2** depots TBD.
 - [-] H.6 **`POWER_DRAIN_GLOBAL_MUL`** on **economy passive drain** + **shot costs**; verify future building types.
 - [ ] H.7 Nuclear plant “no credits → no gen” rule; Kingpin/Jupiter economy hooks.
 

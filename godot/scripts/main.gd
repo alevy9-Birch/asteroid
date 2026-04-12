@@ -31,7 +31,7 @@ var turret_footprint_w: int = 1
 var turret_footprint_h: int = 1
 ## Web **`auto_turret.supplyCost`** — blocks build when `supply_used + this > supply_cap`.
 var turret_supply_cost: int = 2
-## Web **`command_center.supplyCapAdd`** at run start (prototype: no depot sim yet).
+## Web **`command_center.supplyCapAdd`** at run start; depots add more via **`_recompute_supply_cap()`**.
 var _run_supply_cap_start: int = 20
 ## Web **`command_center.powerGenPerSec`**; turret draw is per-shot (`tryConsumeShotPower` analog).
 var command_center_power_gen_per_sec: float = 1.6
@@ -95,7 +95,7 @@ var all_menu_buttons: Array[Button] = []
 var turrets: Array = []
 ## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
 var economy_buildings: Array = []
-## **`turret`** | **`factory`** (research **I**) | **`depot`** (research **O**). **B** cycles unlocked modes.
+## **`turret`** | **`factory`** (I) | **`depot_s`** / **`depot_l`** (O). **B** cycles unlocked modes.
 var build_mode := "turret"
 var factory_cost: int = 160
 var factory_supply_cost: int = 4
@@ -104,13 +104,18 @@ var factory_credit_interval_sec: float = 1.0
 var factory_passive_power_drain: float = 0.6
 var factory_footprint_w: int = 2
 var factory_footprint_h: int = 2
-## Web **`supply_depot_s`**: adds **`supplyCapAdd`** to run cap (sold / cleared removes it).
+## Web **`supply_depot_s`** / **`supply_depot_l`**: each adds its **`supplyCapAdd`** to run cap.
 var supply_depots: Array = []
 var depot_cost: int = 200
 var depot_supply_cap_add: int = 18
 var depot_supply_cost: int = 0
 var depot_footprint_w: int = 2
 var depot_footprint_h: int = 2
+var depot_l_cost: int = 300
+var depot_l_supply_cap_add: int = 30
+var depot_l_supply_cost: int = 0
+var depot_l_footprint_w: int = 3
+var depot_l_footprint_h: int = 3
 var asteroids: Array = []
 var projectiles: Array = []
 var wave := 0
@@ -195,6 +200,11 @@ func _parity_apply_building_baseline() -> void:
 		depot_supply_cost = 0
 		depot_footprint_w = 2
 		depot_footprint_h = 2
+		depot_l_cost = 300
+		depot_l_supply_cap_add = 30
+		depot_l_supply_cost = 0
+		depot_l_footprint_w = 3
+		depot_l_footprint_h = 3
 		_recompute_power_cap()
 		_recompute_supply_cap()
 		return
@@ -239,6 +249,12 @@ func _parity_apply_building_baseline() -> void:
 	var dfp := WebParityDefs.prototype_supply_depot_s_footprint()
 	depot_footprint_w = dfp.x
 	depot_footprint_h = dfp.y
+	depot_l_cost = WebParityDefs.prototype_supply_depot_l_credit_cost(depot_l_cost)
+	depot_l_supply_cap_add = WebParityDefs.prototype_supply_depot_l_supply_cap_add(depot_l_supply_cap_add)
+	depot_l_supply_cost = WebParityDefs.prototype_supply_depot_l_supply_cost(depot_l_supply_cost)
+	var dlfp := WebParityDefs.prototype_supply_depot_l_footprint()
+	depot_l_footprint_w = dlfp.x
+	depot_l_footprint_h = dlfp.y
 	_recompute_power_cap()
 	_recompute_supply_cap()
 
@@ -274,7 +290,8 @@ func _toggle_build_mode() -> void:
 	if upgrade_factory:
 		modes.append("factory")
 	if upgrade_logistics:
-		modes.append("depot")
+		modes.append("depot_s")
+		modes.append("depot_l")
 	if modes.size() <= 1:
 		build_mode = "turret"
 		return
@@ -881,48 +898,61 @@ func _handle_play_left_click() -> void:
 		})
 		_recompute_power_cap()
 		return
-	if build_mode == "depot":
+	if build_mode == "depot_s" or build_mode == "depot_l":
 		if not upgrade_logistics:
 			return
-		if depot_supply_cost > 0 and supply_used + depot_supply_cost > supply_cap:
+		var d_cred := depot_cost
+		var d_sup_c := depot_supply_cost
+		var d_cap_add := depot_supply_cap_add
+		var dfw := depot_footprint_w
+		var dfh := depot_footprint_h
+		var dcol := Color(0.82, 0.62, 0.35, 0.95)
+		if build_mode == "depot_l":
+			d_cred = depot_l_cost
+			d_sup_c = depot_l_supply_cost
+			d_cap_add = depot_l_supply_cap_add
+			dfw = depot_l_footprint_w
+			dfh = depot_l_footprint_h
+			dcol = Color(0.68, 0.48, 0.28, 0.95)
+		if d_sup_c > 0 and supply_used + d_sup_c > supply_cap:
 			return
 		if not build_system.can_place_turret(
 			place_c,
 			command_center_pos,
 			_placed_for_build(),
 			credits,
-			depot_cost,
+			d_cred,
 			4.8,
 			1.6,
 			GRID_SIZE,
 			100.0,
-			depot_footprint_w,
-			depot_footprint_h,
+			dfw,
+			dfh,
 		):
 			return
-		credits -= depot_cost
-		money_spent += depot_cost
-		supply_used += depot_supply_cost
+		credits -= d_cred
+		money_spent += d_cred
+		supply_used += d_sup_c
 		audio_service.emit_event("build_place")
 		var dnode := MeshInstance3D.new()
 		var dm := BoxMesh.new()
-		var dsx := 0.88 * GRID_SIZE * float(depot_footprint_w)
-		var dsz := 0.88 * GRID_SIZE * float(depot_footprint_h)
+		var dsx := 0.88 * GRID_SIZE * float(dfw)
+		var dsz := 0.88 * GRID_SIZE * float(dfh)
 		dm.size = Vector3(dsx, minf(2.2, 0.92 * GRID_SIZE * 1.1), dsz)
 		dnode.mesh = dm
 		var dmat := StandardMaterial3D.new()
-		dmat.albedo_color = Color(0.82, 0.62, 0.35, 0.95)
+		dmat.albedo_color = dcol
 		dnode.material_override = dmat
 		dnode.position = Vector3(place_c.x, 0.85, place_c.z)
 		world_3d.add_child(dnode)
 		supply_depots.append({
 			"node": dnode,
 			"pos": place_c,
-			"footprint_w": depot_footprint_w,
-			"footprint_h": depot_footprint_h,
-			"build_credit_cost": depot_cost,
-			"build_supply_cost": depot_supply_cost,
-			"supply_cap_add": depot_supply_cap_add,
+			"footprint_w": dfw,
+			"footprint_h": dfh,
+			"build_credit_cost": d_cred,
+			"build_supply_cost": d_sup_c,
+			"supply_cap_add": d_cap_add,
 			"built_in_inactive_phase": current_inactive_phase,
 		})
 		_recompute_supply_cap()
@@ -1107,6 +1137,10 @@ func _update_hud() -> void:
 	var bm := "turret"
 	if upgrade_factory or upgrade_logistics:
 		bm = build_mode
+		if bm == "depot_s":
+			bm = "depot S"
+		elif bm == "depot_l":
+			bm = "depot L"
 	look_readout.text = "%s | Build: %s | B toggle" % [
 		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),
 		bm,

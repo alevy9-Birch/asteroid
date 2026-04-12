@@ -153,7 +153,7 @@ func prototype_command_center_max_hp(fallback := 1000.0) -> float:
 	return read_building_float("command_center", "maxHp", fallback)
 
 
-## Web: command center adds **`supplyCapAdd`** to the run supply ceiling (prototype: start cap = this; depots not modeled yet).
+## Web: command center adds **`supplyCapAdd`** to the run supply **base**; depots add more in **`main._recompute_supply_cap()`**.
 func prototype_command_center_supply_cap_add(fallback := 20) -> int:
 	return maxi(0, read_building_int("command_center", "supplyCapAdd", fallback))
 
@@ -279,4 +279,29 @@ func prototype_supply_depot_s_footprint() -> Vector2i:
 		return Vector2i(2, 2)
 	var ww := int(sz.get("w", 2))
 	var hh := int(sz.get("h", 2))
+	return Vector2i(maxi(1, ww), maxi(1, hh))
+
+
+## Web **`supply_depot_l`** — larger depot, higher **`supplyCapAdd`** / cost.
+func prototype_supply_depot_l_credit_cost(fallback := 300) -> int:
+	return int(round(read_building_float("supply_depot_l", "creditCost", float(fallback))))
+
+
+func prototype_supply_depot_l_supply_cap_add(fallback := 30) -> int:
+	return maxi(0, read_building_int("supply_depot_l", "supplyCapAdd", fallback))
+
+
+func prototype_supply_depot_l_supply_cost(fallback := 0) -> int:
+	return maxi(0, read_building_int("supply_depot_l", "supplyCost", fallback))
+
+
+func prototype_supply_depot_l_footprint() -> Vector2i:
+	var b := get_building("supply_depot_l")
+	if b.is_empty():
+		return Vector2i(3, 3)
+	var sz = b.get("size", {})
+	if typeof(sz) != TYPE_DICTIONARY:
+		return Vector2i(3, 3)
+	var ww := int(sz.get("w", 3))
+	var hh := int(sz.get("h", 3))
 	return Vector2i(maxi(1, ww), maxi(1, hh))
