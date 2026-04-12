@@ -5,7 +5,7 @@ enum AppPhase { MENU, PLAYING, PAUSED, GAMEOVER }
 
 signal phase_changed(next_phase: int)
 signal resources_changed(credits: int, center_hp: float)
-signal wave_changed(wave: int, wave_spawning: bool, spawn_remaining: int)
+signal wave_changed(wave: int, wave_combat_active: bool, to_spawn: int)
 
 const CENTER_MAX_HP := 1000.0
 
@@ -13,12 +13,16 @@ var phase: AppPhase = AppPhase.MENU
 var wave := 0
 var credits := 1550
 var command_center_hp := CENTER_MAX_HP
-var wave_spawning := false
-var spawn_remaining := 0
+var wave_combat_active := false
+var to_spawn := 0
+var spawn_window_elapsed_sec := 0.0
+var spawn_window_duration_sec := 0.0
+var spawn_window_ended := false
 var spawn_timer := 0.0
 var intermission_timer := 0.0
 var inactive_time_left_sec := 0.0
 var current_inactive_phase := 0
+var game_difficulty := "hard"
 
 var money_earned := 0
 var money_spent := 0
@@ -39,12 +43,16 @@ func reset_run() -> void:
 	wave = 0
 	credits = 1550
 	command_center_hp = CENTER_MAX_HP
-	wave_spawning = false
-	spawn_remaining = 0
+	wave_combat_active = false
+	to_spawn = 0
+	spawn_window_elapsed_sec = 0.0
+	spawn_window_duration_sec = 0.0
+	spawn_window_ended = false
 	spawn_timer = 0.0
 	intermission_timer = 0.0
 	inactive_time_left_sec = 0.0
 	current_inactive_phase = 0
+	game_difficulty = "hard"
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0
@@ -66,4 +74,4 @@ func set_phase(next_phase: AppPhase) -> void:
 
 func emit_state() -> void:
 	resources_changed.emit(credits, command_center_hp)
-	wave_changed.emit(wave, wave_spawning, spawn_remaining)
+	wave_changed.emit(wave, wave_combat_active, to_spawn)

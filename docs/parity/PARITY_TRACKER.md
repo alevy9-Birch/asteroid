@@ -57,7 +57,7 @@ Status legend:
 
 - [-] Wave state machine (ready/in-progress/spawn progress/cleanup)  
   Web ref: `src/game/BaseDefenseGame.ts` (`waveReady`, `waveInProgress`, timers)  
-  Godot ref: simplified spawn + cleanup; **first wave manual** (`first_wave_started`); **60s inactive** between waves (`inactive_time_left_sec`); **auto next wave at 0**; **Space early-start only while timer > 0** (wave 2+). Spawn window / `toSpawn` formula still simplified.
+  Godot ref: **`wave_combat_active`** (spawn window + cleanup); **spawn window elapsed/duration/ended** + **`toSpawn`** from `WaveScaling.gd` (web formulas, default **hard**); first wave manual; 60s inactive; auto/Space rules as before. **`waveReady`** + circular UI still missing.
 
 - [-] Asteroid variants and behavior parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`AsteroidVariant`, variant logic)  
@@ -126,7 +126,8 @@ Status legend:
 - [-] `autoloads/GameState.gd` (created, phase + runtime sync wiring added; full state ownership pending)
 - [-] `systems/InputSystem.gd` (created, action-map wiring moved)
 - [-] `systems/CameraSystem.gd` (created, camera/look/world-targeting moved)
-- [-] `systems/WaveSystem.gd` (created; spawn state machine moved, more wave behavior pending)
+- [-] `systems/WaveSystem.gd` (spawn window + inactive + `startNextWave` parity core)
+- [-] `systems/WaveScaling.gd` (difficulty + `toSpawn` + spawn interval + window duration helpers)
 - [-] `systems/AsteroidSystem.gd` (created; movement/impact detection + variant scaffold moved)
 - [-] `systems/BuildSystem.gd` (created; placement/sell target checks moved)
 - [-] `systems/CombatSystem.gd` (created; target select + projectile step/hit orchestration moved)

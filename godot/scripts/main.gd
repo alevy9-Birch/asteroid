@@ -84,10 +84,16 @@ var projectiles: Array = []
 var wave := 0
 var credits := STARTING_CREDITS
 var command_center_hp := CENTER_MAX_HP
-var wave_spawning := false
-var spawn_remaining := 0
+## Web `waveInProgress` — true for spawn window + cleanup until asteroids clear.
+var wave_combat_active := false
+var to_spawn := 0
+var spawn_window_elapsed_sec := 0.0
+var spawn_window_duration_sec := 0.0
+var spawn_window_ended := false
 var spawn_timer := 0.0
 var intermission_timer := 0.0
+## Web default difficulty in `BaseDefenseGame` constructor.
+var game_difficulty := "hard"
 ## Web `inactiveTimeLeftSec` / `currentInactivePhase` (sell refund + upgrade phase).
 var inactive_time_left_sec := 0.0
 var current_inactive_phase := 0
@@ -189,7 +195,7 @@ func _input(event: InputEvent) -> void:
 		if not block_manual:
 			var st = wave_system.start_next_wave(_wave_state_dict(), asteroids.size())
 			_apply_wave_state(st)
-			if wave > 0 or wave_spawning or spawn_remaining > 0:
+			if wave > 0 or wave_combat_active:
 				first_wave_started = true
 	if event.is_action_pressed("buy_upgrade_core") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("core")
@@ -272,8 +278,11 @@ func _start_new_run() -> void:
 	wave = 0
 	credits = STARTING_CREDITS
 	command_center_hp = CENTER_MAX_HP
-	wave_spawning = false
-	spawn_remaining = 0
+	wave_combat_active = false
+	to_spawn = 0
+	spawn_window_elapsed_sec = 0.0
+	spawn_window_duration_sec = 0.0
+	spawn_window_ended = false
 	spawn_timer = 0.0
 	intermission_timer = 0.0
 	inactive_time_left_sec = 0.0
@@ -346,10 +355,6 @@ func _process(delta: float) -> void:
 	_update_passive_income(delta)
 	var combat_before := _is_wave_combat_active()
 	_update_asteroids(delta)
-	# Web: when wave combat ends, begin inactive countdown (`inactiveTimeLeftSec = inactiveDurationSec`).
-	if combat_before and not _is_wave_combat_active():
-		if first_wave_started and wave > 0:
-			inactive_time_left_sec = INACTIVE_DURATION_SEC
 	var st = wave_system.tick(delta, _wave_state_dict(), asteroids.size(), Callable(self, "_spawn_asteroid"))
 	_apply_wave_state(st)
 	_update_turrets(delta)
@@ -578,10 +583,10 @@ func _crosshair_world_on_ground() -> Vector3:
 
 
 func _is_wave_combat_active() -> bool:
-	# Web: `waveInProgress` — no build/sell while spawning or any asteroids remain (after first wave has begun).
+	# Web: `waveInProgress` (spawn window + cleanup).
 	if not first_wave_started:
 		return false
-	return wave_spawning or not asteroids.is_empty()
+	return wave_combat_active
 
 
 func _handle_play_left_click() -> void:
@@ -633,9 +638,12 @@ func _handle_play_right_click() -> void:
 
 func _update_hud() -> void:
 	var spawn_status := "Ready"
-	if wave_spawning:
-		spawn_status = "Spawning (%d left)" % spawn_remaining
-	elif not asteroids.is_empty():
+	if wave_combat_active and not spawn_window_ended and to_spawn > 0:
+		var win_pct := 0.0
+		if spawn_window_duration_sec > 0.0:
+			win_pct = clampf(100.0 * spawn_window_elapsed_sec / spawn_window_duration_sec, 0.0, 100.0)
+		spawn_status = "Spawn %d left | window %.0f%%" % [to_spawn, win_pct]
+	elif wave_combat_active:
 		spawn_status = "Cleanup (%d asteroids)" % asteroids.size()
 	elif first_wave_started and wave > 0 and inactive_time_left_sec > 0.0:
 		spawn_status = "Inactive %.0fs (Space early / wait auto)" % inactive_time_left_sec
@@ -661,8 +669,8 @@ func _update_diagnostics() -> void:
 		return
 	var fps := int(round(Engine.get_frames_per_second()))
 	var mem_mb := Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
-	diagnostics_label.text = "FPS %d | Turrets %d | Asteroids %d | Pool %d | Spawning %s | Mem %.1f MB" % [
-		fps, turrets.size(), asteroids.size(), asteroid_pool.size(), str(wave_spawning), mem_mb
+	diagnostics_label.text = "FPS %d | Turrets %d | Asteroids %d | Pool %d | WaveCombat %s toSpawn %d | Mem %.1f MB" % [
+		fps, turrets.size(), asteroids.size(), asteroid_pool.size(), str(wave_combat_active), to_spawn, mem_mb
 	]
 
 
@@ -775,24 +783,32 @@ func _ensure_capture_mode() -> void:
 func _wave_state_dict() -> Dictionary:
 	return {
 		"wave": wave,
-		"wave_spawning": wave_spawning,
-		"spawn_remaining": spawn_remaining,
+		"wave_combat_active": wave_combat_active,
+		"to_spawn": to_spawn,
+		"spawn_window_elapsed_sec": spawn_window_elapsed_sec,
+		"spawn_window_duration_sec": spawn_window_duration_sec,
+		"spawn_window_ended": spawn_window_ended,
 		"spawn_timer": spawn_timer,
 		"intermission_timer": intermission_timer,
 		"first_wave_started": first_wave_started,
 		"inactive_time_left_sec": inactive_time_left_sec,
 		"current_inactive_phase": current_inactive_phase,
+		"difficulty": game_difficulty,
 	}
 
 
 func _apply_wave_state(st: Dictionary) -> void:
 	wave = int(st.get("wave", wave))
-	wave_spawning = bool(st.get("wave_spawning", wave_spawning))
-	spawn_remaining = int(st.get("spawn_remaining", spawn_remaining))
+	wave_combat_active = bool(st.get("wave_combat_active", wave_combat_active))
+	to_spawn = int(st.get("to_spawn", to_spawn))
+	spawn_window_elapsed_sec = float(st.get("spawn_window_elapsed_sec", spawn_window_elapsed_sec))
+	spawn_window_duration_sec = float(st.get("spawn_window_duration_sec", spawn_window_duration_sec))
+	spawn_window_ended = bool(st.get("spawn_window_ended", spawn_window_ended))
 	spawn_timer = float(st.get("spawn_timer", spawn_timer))
 	intermission_timer = float(st.get("intermission_timer", intermission_timer))
 	inactive_time_left_sec = float(st.get("inactive_time_left_sec", inactive_time_left_sec))
 	current_inactive_phase = int(st.get("current_inactive_phase", current_inactive_phase))
+	game_difficulty = str(st.get("difficulty", game_difficulty))
 	_sync_game_state_runtime()
 
 
@@ -800,12 +816,16 @@ func _sync_game_state_runtime() -> void:
 	game_state.wave = wave
 	game_state.credits = credits
 	game_state.command_center_hp = command_center_hp
-	game_state.wave_spawning = wave_spawning
-	game_state.spawn_remaining = spawn_remaining
+	game_state.wave_combat_active = wave_combat_active
+	game_state.to_spawn = to_spawn
+	game_state.spawn_window_elapsed_sec = spawn_window_elapsed_sec
+	game_state.spawn_window_duration_sec = spawn_window_duration_sec
+	game_state.spawn_window_ended = spawn_window_ended
 	game_state.spawn_timer = spawn_timer
 	game_state.intermission_timer = intermission_timer
 	game_state.inactive_time_left_sec = inactive_time_left_sec
 	game_state.current_inactive_phase = current_inactive_phase
+	game_state.game_difficulty = game_difficulty
 	game_state.money_earned = money_earned
 	game_state.money_spent = money_spent
 	game_state.asteroids_killed = asteroids_killed
