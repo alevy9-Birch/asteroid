@@ -5,7 +5,7 @@ enum AppPhase { MENU, PLAYING, PAUSED, GAMEOVER }
 
 signal phase_changed(next_phase: int)
 signal resources_changed(credits: int, center_hp: float)
-signal wave_changed(wave: int, wave_combat_active: bool, to_spawn: int)
+signal wave_changed(wave: int, wave_combat_active: bool, to_spawn: int, wave_ready: bool)
 
 const CENTER_MAX_HP := 1000.0
 
@@ -23,6 +23,8 @@ var intermission_timer := 0.0
 var inactive_time_left_sec := 0.0
 var current_inactive_phase := 0
 var game_difficulty := "hard"
+## Web `waveReady`: manual next wave allowed (Space) — false during `waveInProgress`; when inactive, true iff `inactiveTimeLeftSec > 0`.
+var wave_ready := true
 
 var money_earned := 0
 var money_spent := 0
@@ -53,6 +55,7 @@ func reset_run() -> void:
 	inactive_time_left_sec = 0.0
 	current_inactive_phase = 0
 	game_difficulty = "hard"
+	wave_ready = true
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0
@@ -74,4 +77,4 @@ func set_phase(next_phase: AppPhase) -> void:
 
 func emit_state() -> void:
 	resources_changed.emit(credits, command_center_hp)
-	wave_changed.emit(wave, wave_combat_active, to_spawn)
+	wave_changed.emit(wave, wave_combat_active, to_spawn, wave_ready)

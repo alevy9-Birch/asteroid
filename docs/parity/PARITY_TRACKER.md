@@ -57,7 +57,7 @@ Status legend:
 
 - [-] Wave state machine (ready/in-progress/spawn progress/cleanup)  
   Web ref: `src/game/BaseDefenseGame.ts` (`waveReady`, `waveInProgress`, timers)  
-  Godot ref: **`wave_combat_active`** (spawn window + cleanup); **spawn window elapsed/duration/ended** + **`toSpawn`** from `WaveScaling.gd` (web formulas, default **hard**); first wave manual; 60s inactive; auto/Space rules as before. **`waveReady`** + circular UI still missing.
+  Godot ref: **`wave_combat_active`** (spawn window + cleanup); **spawn window elapsed/duration/ended** + **`toSpawn`** from `WaveScaling.gd` (web formulas, default **hard**); first wave manual; 60s inactive; auto/Space rules; **`wave_ready`** / `_compute_wave_ready()` + HUD. **Circular** spawn/inactive UI still missing.
 
 - [-] Asteroid variants and behavior parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`AsteroidVariant`, variant logic)  

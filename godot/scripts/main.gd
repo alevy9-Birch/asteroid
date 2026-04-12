@@ -188,9 +188,8 @@ func _input(event: InputEvent) -> void:
 		_finalize_run_score()
 		apply_phase(AppPhase.GAMEOVER)
 	if event.is_action_pressed("start_wave") and phase == AppPhase.PLAYING:
-		# Web `startNextWave(true)`: manual early-start only while inactive timer > 0 (after wave 1+).
-		var block_manual := first_wave_started and wave > 0 and inactive_time_left_sec <= 0.0
-		if not block_manual:
+		# Web `startNextWave(true)` only when `waveReady` (manual early-start uses inactive timer > 0 after wave 1+).
+		if _compute_wave_ready():
 			var st = wave_system.start_next_wave(_wave_state_dict(), asteroids.size())
 			_apply_wave_state(st)
 			if wave > 0 or wave_combat_active:
@@ -617,6 +616,15 @@ func _is_wave_combat_active() -> bool:
 	return wave_combat_active
 
 
+func _compute_wave_ready() -> bool:
+	# Web `BaseDefenseGame.updateWave` + `startNextWave`: false while `waveInProgress`; true before `firstWaveStarted`; else `inactiveTimeLeftSec > 0` (inactive branch, asteroids cleared).
+	if wave_combat_active:
+		return false
+	if not first_wave_started:
+		return true
+	return inactive_time_left_sec > 0.0
+
+
 func _handle_play_left_click() -> void:
 	if _is_wave_combat_active():
 		return
@@ -675,8 +683,16 @@ func _update_hud() -> void:
 		spawn_status = "Cleanup (%d asteroids)" % asteroids.size()
 	elif first_wave_started and wave > 0 and inactive_time_left_sec > 0.0:
 		spawn_status = "Inactive %.0fs (Space early / wait auto)" % inactive_time_left_sec
+	var wave_ready := _compute_wave_ready()
 	gameplay_info.text = hud_controller.format_gameplay_info(
-		wave, credits, int(command_center_hp), int(CENTER_MAX_HP), turrets.size(), asteroids.size(), spawn_status
+		wave,
+		credits,
+		int(command_center_hp),
+		int(CENTER_MAX_HP),
+		turrets.size(),
+		asteroids.size(),
+		wave_ready,
+		spawn_status,
 	)
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, CENTER_MAX_HP)
 	look_readout.text = hud_controller.format_look_info(camera_system.yaw, camera_system.pitch)
@@ -859,3 +875,4 @@ func _sync_game_state_runtime() -> void:
 	game_state.asteroids_killed = asteroids_killed
 	game_state.run_score = run_score
 	game_state.best_score = best_score
+	game_state.wave_ready = _compute_wave_ready()

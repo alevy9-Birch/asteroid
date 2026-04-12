@@ -61,7 +61,7 @@ Execution contract: **the web game is the source of truth** (`src/game/BaseDefen
 - [-] **C.2.3** Spawn **window** duration (`spawnWindowDurationSec`, `spawnWindowElapsedSec`, `spawnWindowEnded`) — implemented in `WaveSystem.gd` + HUD window %; **UI ring** still missing.
 - [-] **C.2.4** `toSpawn` count + spawn interval formulas — implemented in `WaveScaling.gd` (difficulty presets + `getEnemyScalingWave` / burst analogs); **hero / upgrade modifiers** to wave pool not yet mirrored.
 - [-] **C.2.5** Inactive phase timer (`inactiveDurationSec` = 60s, `inactiveTimeLeftSec` countdown in `WaveSystem` + HUD hint). **UI ring** still missing.
-- [-] **C.2.6** Early-start rules: **manual Space only while inactive timer > 0** (after wave 1+); **auto-start when timer hits 0**. **`waveReady` flag** not yet mirrored.
+- [x] **C.2.6** Early-start rules: **manual Space only while inactive timer > 0** (after wave 1+); **auto-start when timer hits 0**. **`waveReady`** mirrored in `main.gd` (`_compute_wave_ready`) + `GameState.wave_ready` + HUD `Space:ready|wait`.
 
 ### C.3 Asteroids
 
