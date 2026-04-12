@@ -77,7 +77,7 @@ Status legend:
 
 - [-] Credits/supply/power full parity  
   Web ref: `src/App.tsx` state + `src/game/BaseDefenseGame.ts` resource update loops  
-  Godot ref: **`WebParityDefs.RESET_RUN_*`** credits + power/supply **defaults** on `main`/`GameState`, F3 diagnostics; **no sim** (drain/build gates) yet
+  Godot ref: **`WebParityDefs.RESET_RUN_*`** + **power tick** (CC `powerGenPerSec` − per-turret `powerDrainPerSec` from defs, clamped); **supply** gate + cap from CC; **power build gate / starvation** still missing; F3 diagnostics
 
 - [ ] Building economy production parity  
   Web ref: `src/game/BaseDefenseGame.ts` (`creditPayout`, intervals, drains)  

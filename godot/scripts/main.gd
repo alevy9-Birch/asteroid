@@ -33,6 +33,9 @@ var turret_footprint_h: int = 1
 var turret_supply_cost: int = 2
 ## Web **`command_center.supplyCapAdd`** at run start (prototype: no depot sim yet).
 var _run_supply_cap_start: int = 20
+## Web **`command_center.powerGenPerSec`** vs sum of placed turrets’ **`powerDrainPerSec`**.
+var command_center_power_gen_per_sec: float = 1.6
+var turret_power_drain_per_sec: float = 1.6
 var center_max_hp: float = 1000.0
 const PASSIVE_CREDITS_PER_SEC := 5.0
 const PROJECTILE_SPEED := 42.0
@@ -123,7 +126,7 @@ var passive_credit_accum := 0.0
 var asteroid_pool: Array[MeshInstance3D] = []
 ## Web parity (`BaseDefenseGame.ts`): first wave starts only on player action; later waves use intermission auto-start.
 var first_wave_started := false
-## Web `resetRun()` power/supply (state-only until economy sim — see `WebParityDefs` constants).
+## Web `resetRun()` power/supply; **`power_stored`** ticks while playing (CC gen − turret drains, clamped to cap).
 var power_cap := WebParityDefs.RESET_RUN_POWER_CAP
 var power_stored := WebParityDefs.RESET_RUN_POWER_STORED
 var supply_cap := WebParityDefs.RESET_RUN_SUPPLY_CAP
@@ -153,6 +156,8 @@ func _parity_apply_building_baseline() -> void:
 		_run_supply_cap_start = 20
 		supply_cap = 20
 		turret_supply_cost = 2
+		command_center_power_gen_per_sec = 1.6
+		turret_power_drain_per_sec = 1.6
 		return
 	center_max_hp = WebParityDefs.prototype_command_center_max_hp(center_max_hp)
 	command_center_hp = center_max_hp
@@ -166,6 +171,12 @@ func _parity_apply_building_baseline() -> void:
 	turret_supply_cost = WebParityDefs.prototype_auto_turret_supply_cost(turret_supply_cost)
 	_run_supply_cap_start = WebParityDefs.prototype_command_center_supply_cap_add(_run_supply_cap_start)
 	supply_cap = _run_supply_cap_start
+	command_center_power_gen_per_sec = WebParityDefs.prototype_command_center_power_gen_per_sec(
+		command_center_power_gen_per_sec
+	)
+	turret_power_drain_per_sec = WebParityDefs.prototype_auto_turret_power_drain_per_sec(
+		turret_power_drain_per_sec
+	)
 
 
 func _check_command_center_defeat() -> void:
@@ -403,6 +414,7 @@ func _process(delta: float) -> void:
 		return
 	_update_camera_motion(delta)
 	_update_passive_income(delta)
+	_update_power_economy(delta)
 	var combat_before := _is_wave_combat_active()
 	_update_asteroids(delta)
 	var st = wave_system.tick(delta, _wave_state_dict(), asteroids.size(), Callable(self, "_spawn_asteroid"))
@@ -720,6 +732,7 @@ func _handle_play_left_click() -> void:
 		## Web per-building `creditCost` at placement (sell/refund uses this, not live `turret_cost`).
 		"build_credit_cost": turret_cost,
 		"build_supply_cost": turret_supply_cost,
+		"build_power_drain_per_sec": turret_power_drain_per_sec,
 		"cooldown": 0.1,
 		"built_in_inactive_phase": current_inactive_phase,
 	})
@@ -797,6 +810,15 @@ func _update_hud() -> void:
 	)
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	look_readout.text = hud_controller.format_look_info(camera_system.yaw, camera_system.pitch)
+
+
+func _update_power_economy(delta: float) -> void:
+	# Web analog: CC adds `powerGenPerSec` to stored; each combat building drains `powerDrainPerSec` (battery capped at `power_cap`).
+	var drain := 0.0
+	for t in turrets:
+		drain += maxf(0.0, float(t.get("build_power_drain_per_sec", 0.0)))
+	var net := (command_center_power_gen_per_sec - drain) * delta
+	power_stored = int(round(clampf(float(power_stored) + net, 0.0, float(power_cap))))
 
 
 func _update_passive_income(delta: float) -> void:

@@ -5,7 +5,7 @@ extends Node
 
 const DEFS_PATH := "res://data/parity_web_defs.json"
 
-## Web `BaseDefenseGame.resetRun()` resource baselines (Godot does not simulate power/supply flow yet).
+## Web `BaseDefenseGame.resetRun()` resource baselines. **Supply** is gated on build; **power** ticks (CC gen − turret drains) while playing.
 const RESET_RUN_CREDITS := 1550
 const RESET_RUN_POWER_CAP := 45
 const RESET_RUN_POWER_STORED := 45
@@ -124,6 +124,10 @@ func prototype_command_center_supply_cap_add(fallback := 20) -> int:
 	return maxi(0, read_building_int("command_center", "supplyCapAdd", fallback))
 
 
+func prototype_command_center_power_gen_per_sec(fallback := 1.6) -> float:
+	return maxf(0.0, read_building_float("command_center", "powerGenPerSec", fallback))
+
+
 ## Godot prototype “turret” maps to web **`auto_turret`** (`BuildingDef`).
 func prototype_auto_turret_credit_cost(fallback := 100) -> int:
 	return int(round(read_building_float("auto_turret", "creditCost", float(fallback))))
@@ -131,6 +135,10 @@ func prototype_auto_turret_credit_cost(fallback := 100) -> int:
 
 func prototype_auto_turret_supply_cost(fallback := 2) -> int:
 	return maxi(0, read_building_int("auto_turret", "supplyCost", fallback))
+
+
+func prototype_auto_turret_power_drain_per_sec(fallback := 1.6) -> float:
+	return maxf(0.0, read_building_float("auto_turret", "powerDrainPerSec", fallback))
 
 
 func prototype_auto_turret_range(fallback := 16.0) -> float:
