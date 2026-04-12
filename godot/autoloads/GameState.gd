@@ -42,6 +42,7 @@ var best_score := 0
 var upgrade_core := false
 var upgrade_factory := false
 var upgrade_logistics := false
+var upgrade_nuclear := false
 
 var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
@@ -77,6 +78,7 @@ func reset_run() -> void:
 	upgrade_core = false
 	upgrade_factory = false
 	upgrade_logistics = false
+	upgrade_nuclear = false
 	turret_damage_mult = 1.0
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0

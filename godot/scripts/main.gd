@@ -1568,3 +1568,11 @@ func _sync_game_state_runtime() -> void:
 	game_state.run_score = run_score
 	game_state.best_score = best_score
 	game_state.wave_ready = _compute_wave_ready()
+	game_state.upgrade_core = upgrade_core
+	game_state.upgrade_factory = upgrade_factory
+	game_state.upgrade_logistics = upgrade_logistics
+	game_state.upgrade_nuclear = upgrade_nuclear
+	game_state.turret_damage_mult = turret_damage_mult
+	game_state.kill_credit_bonus = kill_credit_bonus
+	game_state.turret_range_bonus = turret_range_bonus
+	game_state.turret_cooldown_bonus = turret_cooldown_bonus

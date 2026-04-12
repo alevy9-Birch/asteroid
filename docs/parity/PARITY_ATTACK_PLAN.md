@@ -10,14 +10,26 @@
 
 | Area | Web (reference) | Godot (current) |
 |------|-----------------|-----------------|
-| **Runtime core** | `BaseDefenseGame`: `buildings[]`, `occupied` grid, per-building HP/mesh, shields, missiles, volleys, heroes, discovery, commander hooks | **CC mesh** + **`turrets[]`** + **`economy_buildings[]`**, **`asteroids[]`**, **`projectiles[]`**; no full catalog |
+| **Runtime core** | `BaseDefenseGame`: `buildings[]`, `occupied` grid, per-building HP/mesh, shields, missiles, volleys, heroes, discovery, commander hooks | **CC mesh** + **`turrets[]`** + **`economy_buildings[]`** + **`supply_depots[]`** + **`nuclear_plants[]`**, **`asteroids[]`**, **`projectiles[]`**; no full catalog |
 | **Build** | Full `BUILDINGS`, wheel, unlocks, `tryPlace` (credits, supply, bounds, padding) | **`auto_turret`** + **`factory_business`** + depots + **`nuclear_plant`** (research **N** → **`unlock_nuclear_plant`**); **B** cycles; supply gate; **no full unlock graph** |
 | **Economy** | `updateResources`: power cap from batteries, CC + factory drains, payouts gated by wave + power | **CC** + **`factory_business`** + **`nuclear_plant`** gen ( **`credits > 0`** only ); passive drain × **`POWER_DRAIN_GLOBAL_MUL`**; **kill mul**; pylons / full loop TBD |
 | **Combat** | `updateDefenses`: `kind` hitscan/missiles/ballistic/railgun/shield, `tryConsumeShotPower`, EMP | **Projectile stub** + per-shot power for prototype turret |
 | **Waves** | `updateWave`, pools, hero/upgrade modifiers | **`WaveSystem`** + **`WaveScaling`** core math; **no hero modifiers** |
-| **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **3 prototype research slots**: labels + **×0.93 costs** from JSON; effects still placeholder; **`computeRunScore`** formula + difficulty mul + **`powerProduced`** in **`ScoreSystem`**; sandbox score **0** (web parity) |
-| **UI** | Rich HUD, wheel, research, gameover stats | Menu / pause / gameover + wave ring + **sandbox** banner + **sell refund** hint + commander on gameover |
-| **Audio** | `useGameAudio` / bus mix | **`AudioService`**: optional **`res://audio/game_over.wav`** + **`res://audio/sfx/*.ogg`** (web filenames); **asteroid_impact** / **asteroid_destroyed** wired; music buses TBD |
+| **Meta** | Full `UPGRADES`, phase, refunds, `computeRunScore` | **U / I / O / N** research: labels + **×0.93** from **`parity_web_defs.json`**; prototype gameplay effects; menu **`GameDifficulty`**; **`computeRunScore`** + **`powerProduced`**; sandbox score **0** |
+| **UI** | Rich HUD, wheel, research, gameover stats | Menu (**difficulty** dropdown) / pause / gameover + wave ring + **Fac / Dep / Nuc** counts + **Diff** + **sandbox** + **sell refund** hint + commander on gameover |
+| **Audio** | `useGameAudio` / bus mix | **`AudioService`**: optional **`res://audio/game_over.wav`** + **`res://audio/sfx/*.ogg`**; **wave_start** / **wave_cleared** edges; combat/build/upgrade SFX hooks; music buses TBD |
+
+### 1.1) Godot prototype snapshot (rolling)
+
+Single place to see what the port **actually runs** today (see **§3** for checkbox detail):
+
+- **Session:** menu → play → pause/gameover; **Sandbox**; **`_start_new_run`** clears turrets/factories/depots/**nuclei**/asteroids/projectiles/CC mesh; **`WebParityDefs`** baselines each run.
+- **Build (B):** turret; **I** → factory; **O** → depot S/L; **N** → nuclear plant (4×4); **B** cycles unlocked modes; sell RMB (100%/50% by inactive phase).
+- **Combat:** projectile turret, per-shot power; kill credits **`balanceVars.asteroidKillCreditMul`** + wave scale + factory upgrade bonus; asteroid variants / AOE / EMP hooks (partial).
+- **Economy:** CC + factory payouts (wave only, factory starves at 0 power if draining); **nuclear** gen only if **`credits > 0`**; supply cap CC + depots; **`POWER_DRAIN_GLOBAL_MUL`** on economy passive + shots.
+- **Waves:** **`WaveSystem`** + **`WaveScaling`** (difficulty from menu); timer ring; F3 diagnostics.
+- **Score:** web **`computeRunScore`** coefficients + difficulty mul; **`power_produced`** tracks gross gen.
+- **Data:** **`parity_web_defs.json`** + **`WebParityDefs`** readers; **`balanceVars`** keys present (often **1** — extractor bakes **`VARS.C/P/S/E`** into building numbers).
 
 ---
 
@@ -37,7 +49,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### A — Architecture & orchestration
 
 - [x] A.1 Baseline prototype frozen; parity docs present (`PARITY_TRACKER.md`, `ARCHITECTURE_TARGET.md`, `VALIDATION_PROTOCOL.md`).
-- [ ] A.2 **`GameState`** owns run scalars and mutators; **`main.gd`** delegates (thin controller).
+- [-] A.2 **`GameState`** owns run scalars and mutators; **`main.gd`** delegates (thin controller). **Partial:** **`_sync_game_state_runtime`** mirrors wave/resources/upgrades (incl. **N**); **`main`** still owns sim loops and placement.
 - [ ] A.3 Single **`start_run` / `end_run` / `go_to_menu`** API mirroring web phase transitions.
 - [x] A.4 Headless / editor smoke documented (**Appendix A**).
 - [x] A.5 **`dev/HeadlessSmoke.tscn`** — asserts **`WebParityDefs.ok`**, exits 0.
@@ -50,14 +62,14 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [ ] B.3 **`npm run`** / CI check: regenerate defs + diff gate.
 - [ ] B.4 Extract full **upgrade `modifiers`**, phase, refund rules, hero gates.
 - [x] B.5 **`WebParityDefs`**: `buildings_by_id`, `upgrades_by_id`, **`balanceVars`**.
-- [x] B.6 Prototype readers: **`command_center`** + **`auto_turret`** (HP, costs, range, damage, fireRate→cooldown, footprint, supply, power gen/drain, **CC creditPayout/interval**).
-- [ ] B.7 Mirror **`getDifficultyScale` / `GameDifficulty`** tables beyond current presets.
+- [x] B.6 Prototype readers: **`command_center`** + **`auto_turret`** + **`factory_business`** + depots + **`nuclear_plant`** (+ **CC creditPayout/interval**, costs, footprints, power fields).
+- [x] B.7 Mirror **`getDifficultyScale` / `GameDifficulty`** tables beyond current presets. **`WaveScaling.difficulty_scale`** + related helpers cover **easy → deadly**; **`balanceVars`** in JSON are typically **1** (building stats pre-baked from **`VARS`** in extract).
 - [ ] B.8 **`HeroId`**: building allowlists + unlock rules in data + loader.
 
 ### C — Session, lifecycle, defeat
 
 - [-] C.1 **`resetRun` scalars**: credits, power cap/stored, supply; **CC maxHp** from defs; power/econ only during **`wave_combat_active`** (web **`waveInProgress`**); inactive power clamp.
-- [-] C.2 **Teardown on new run**: clear turrets/asteroids/projectiles/pool/CC; **`_parity_apply_building_baseline`** each start; **`_sync_game_state_runtime`**; extend when missiles/shields exist.
+- [-] C.2 **Teardown on new run**: clear turrets/**economy/factory**/depots/**nuclear**/asteroids/projectiles/pool/CC; **`_parity_apply_building_baseline`** each start; **`_sync_game_state_runtime`**; extend when missiles/shields exist.
 - [-] C.3 **Defeat**: CC HP ≤ 0 → game over; verify **impact + AOE** paths.
 - [-] C.4 **`game_over`** optional **`AudioStreamPlayer`** clip at **`res://audio/game_over.wav`**; full bus mix / catalog TBD.
 - [-] C.5 **Gameover UI**: waves survived, stats grid, commander, leaderboard hooks. **Partial:** hint line includes **commander** id; full stats grid / leaderboard TBD.
@@ -70,7 +82,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [ ] D.3 Virtual cursor menu hit testing parity (`pickMenuHitTarget` analog).
 - [ ] D.4 **Build wheel**, research overlay, shortcuts.
 - [ ] D.5 Camera clamps & sensitivity vs web **`updateCamera`**.
-- [x] D.6 Menu / pause / gameover controllers (polish ongoing).
+- [x] D.6 Menu / pause / gameover controllers (polish ongoing). Includes **Difficulty** **`OptionButton`** (**`GameDifficulty`**).
 
 ### E — Build, grid, sell
 
@@ -97,7 +109,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 ### G — Combat & weapons
 
 - [x] G.1 **CombatSystem** + projectile step + kill payout hook.
-- [-] G.2 Kill reward uses **`balanceVars.asteroidKillCreditMul`** (+ wave scale + upgrade flat bonus).
+- [x] G.2 Kill reward uses **`balanceVars.asteroidKillCreditMul`** (+ wave scale + **`kill_credit_bonus`** from factory research).
 - [ ] G.3 Weapon **`kind`**: hitscan (instant), missiles, ballistic, railgun, shield.
 - [ ] G.4 Missiles: lock, modes, volleys, splash.
 - [ ] G.5 Ballistics/railgun charge; AOE hits; **`auraDamagePerSec`**; **`shotCreditCost`**.
@@ -112,12 +124,12 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 - [-] H.3 **Factory / refinery** payouts + **`powerDrainPerSec`** starvation (web **`updateResources`** loop). **Partial:** **`factory_business`** place/sell, wave-only **`creditPayout`/`creditIntervalSec`**, timer freeze + no payout at 0 power; **B** after **I**; refineries TBD.
 - [-] H.4 **Power cap** recomputed: **`RESET_RUN_POWER_CAP`** + CC + turret + factory + **`nuclear_plant`** **`powerCapAdd`** counts; clamp **`power_stored`** on place/sell/new run.
 - [-] H.5 **Supply**: cap from CC **`supplyCapAdd`**; **`supply_depot_s`** / **`supply_depot_l`** add **`supplyCapAdd`** via **`_recompute_supply_cap()`**; place/sell + occupancy + **B** cycles **`depot_s` → `depot_l`** after **O**; **mk2** depots TBD.
-- [-] H.6 **`POWER_DRAIN_GLOBAL_MUL`** on **economy passive drain** + **shot costs**; verify future building types.
+- [x] H.6 **`POWER_DRAIN_GLOBAL_MUL`** on **economy passive drain** + **shot costs**; nuclear has **no** passive drain in prototype.
 - [-] H.7 Nuclear plant “no credits → no gen” rule; Kingpin/Jupiter economy hooks. **Partial:** **`nuclear_plant`** place/sell, **`powerGenPerSec`** in power tick only when **`credits > 0`**; research **N** (`unlock_nuclear_plant`, ×0.93); no credit upkeep / mk2 / silo TBD.
 
 ### I — Upgrades, research, commanders
 
-- [x] I.1 **UpgradeSystem** placeholder + 3 keys.
+- [x] I.1 **UpgradeSystem** placeholder + **U / I / O / N** keys (**`buy_upgrade_*`** + **`InputSystem`**).
 - [-] I.2 Full graph: costs, prereqs, phase, refund, **`getEffectiveDef`** modifiers. **Partial:** purchase costs + HUD lines from **`parity_web_defs.json`** (web ×0.93); slots U/I/O/N → ids in **`UpgradeSystem`**; prereqs not enforced; gameplay effects not web-identical.
 - [x] I.3 **CommanderSystem** scaffold + menu selection string.
 - [ ] I.4 Commander-specific sim + UI (each **`HeroId`**).
@@ -126,7 +138,7 @@ Checkboxes track **Godot** work unless marked *(web only)*.
 
 - [-] J.1 Gameplay info: credits, CC HP, wave, spawn line, **P/S**, **`waveReady`**, **Diff** (from menu **`GameDifficulty`**).
 - [ ] J.2 Discovery / toast / wheel categories / stats cards.
-- [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for 3 slots); full tree UI TBD.
+- [-] J.3 Research panel driven by **`upgrades`** JSON (labels/descriptions + discounted costs for **four** lines U/I/O/N); full tree UI TBD.
 
 ### K — Audio
 
@@ -168,7 +180,7 @@ From repo **`space-ship`** with **Godot 4.x** on `PATH`:
 
 | Area | Web | Godot |
 |------|-----|--------|
-| Core sim | `src/game/BaseDefenseGame.ts` | `godot/scripts/main.gd`, `godot/systems/*.gd` |
+| Core sim | `src/game/BaseDefenseGame.ts` | `godot/scripts/main.gd`, `godot/systems/*.gd`, `godot/autoloads/GameState.gd` (synced mirror) |
 | UI / phases | `src/App.tsx` | `godot/scripts/main.gd`, `godot/ui/*.gd` |
 | Score | `src/highScores.ts` | `godot/systems/ScoreSystem.gd` |
 | Audio | `src/audio/*` | `godot/autoloads/AudioService.gd` |

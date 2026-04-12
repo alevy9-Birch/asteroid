@@ -127,7 +127,7 @@ Status legend:
 
 ## 13) Module Refactor Tracker
 
-- [-] `autoloads/GameState.gd` (created, phase + runtime sync wiring added; full state ownership pending)
+- [-] `autoloads/GameState.gd` (phase + `_sync_game_state_runtime`: wave/resources/upgrades incl. nuclear + turret/kill modifiers; full ownership / thin `main` pending)
 - [-] `systems/InputSystem.gd` (created, action-map wiring moved)
 - [-] `systems/CameraSystem.gd` (created, camera/look/world-targeting moved)
 - [-] `systems/WaveSystem.gd` (spawn window + inactive + `startNextWave` parity core)
