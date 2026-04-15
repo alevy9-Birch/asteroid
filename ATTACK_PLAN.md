@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Menu hint copy parity (`D.4`): mirror web main-menu control guidance text.
+Gameplay HUD shortcut copy parity (`J.1/J.3`): expose build/research shortcut affordances in the gameplay info line.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -86,6 +86,7 @@ Menu hint copy parity (`D.4`): mirror web main-menu control guidance text.
 - `godot/scripts/main.gd` + `godot/autoloads/AudioService.gd`: master volume slider now updates actual SFX playback gain through `AudioService.set_master_volume()` for web-style global audio-volume behavior.
 - `godot/autoloads/AudioService.gd`: `asteroid_destroyed` now mirrors web fallback behavior by playing small destroy SFX for non-combat reasons and reserving large clip for combat colossus/planet kills.
 - `godot/scenes/Main.tscn`: main-menu hint copy now mirrors web control guidance text and shortcut wording.
+- `godot/ui/HudController.gd`: gameplay info tail now explicitly advertises `C` build wheel and `U`/`R` research shortcuts for closer web shortcut discoverability.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
