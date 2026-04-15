@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Menu controls copy parity (`J.1/J.3`): keep web-style static shortcut line with commander qualifier.
+Commander display-name parity (`I.3/J.2/J.3`): normalize commander labels in menu and game-over UI.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -106,6 +106,7 @@ Menu controls copy parity (`J.1/J.3`): keep web-style static shortcut line with 
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: menu now includes a dedicated commander-status hint line with web-style neutral-tech copy and commander-present variant text.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: main menu now includes a commander `OptionButton` (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) wired to `selected_commander` for run-start commander defaults.
 - `godot/scripts/main.gd`: main-menu shortcut line now matches web static copy (`R hero research (with commander)` always shown), while commander availability is conveyed by the dedicated commander-status hint.
+- `godot/systems/CommanderSystem.gd` + `godot/scripts/main.gd` + `godot/ui/GameOverController.gd`: commander ids now map through a shared display-name helper so menu/game-over text uses player-facing labels instead of raw ids.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

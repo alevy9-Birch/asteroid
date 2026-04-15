@@ -516,10 +516,7 @@ func _collect_buttons() -> void:
 func _setup_menu_commander_option() -> void:
 	menu_commander_option.clear()
 	for commander_id in MENU_COMMANDER_IDS:
-		if commander_id == "none":
-			menu_commander_option.add_item("None")
-		else:
-			menu_commander_option.add_item(commander_id.capitalize())
+		menu_commander_option.add_item(commander_system.display_name(commander_id))
 	var sel := MENU_COMMANDER_IDS.find(selected_commander)
 	if sel < 0:
 		sel = 0
@@ -1569,7 +1566,7 @@ func _update_hud() -> void:
 	_update_research_panel_visibility()
 	menu_hint_label.text = "Move the mouse to steer the virtual cursor; click selects. WASD move · Q/E height · mouse look · C build wheel · U skills · R hero research (with commander) · RMB sell · Space wave · P pause"
 	if _has_commander_selected():
-		menu_commander_hint_label.text = "Commander selected: %s — hero buildings and hero research available." % selected_commander.capitalize()
+		menu_commander_hint_label.text = "Commander selected: %s — hero buildings and hero research available." % commander_system.display_name(selected_commander)
 	else:
 		menu_commander_hint_label.text = "Neutral tech only — no hero buildings or hero research."
 	var bm := "turret"
