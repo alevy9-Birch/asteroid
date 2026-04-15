@@ -2,6 +2,7 @@ extends RefCounted
 class_name InputSystem
 
 func ensure_default_actions() -> void:
+	_remove_action_if_exists("toggle_build_mode")
 	_add_action_if_missing("ui_pause", KEY_P)
 	_add_action_if_missing("simulate_gameover", KEY_G)
 	_add_action_if_missing("start_wave", KEY_SPACE)
@@ -26,3 +27,8 @@ func _add_action_if_missing(action_name: StringName, keycode: Key) -> void:
 	var ev := InputEventKey.new()
 	ev.keycode = keycode
 	InputMap.action_add_event(action_name, ev)
+
+
+func _remove_action_if_exists(action_name: StringName) -> void:
+	if InputMap.has_action(action_name):
+		InputMap.erase_action(action_name)

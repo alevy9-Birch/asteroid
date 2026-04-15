@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Input map build-key parity (`D.4`): stop adding legacy `B` build action and keep `C` as the single build-toggle action.
+Legacy build-action cleanup parity (`D.4`): remove pre-existing `toggle_build_mode` action from InputMap at startup.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -118,6 +118,7 @@ Input map build-key parity (`D.4`): stop adding legacy `B` build action and keep
 - `godot/scripts/main.gd`: build-mode cycling input now responds to `C` action path only, removing `B` trigger behavior for closer web control parity.
 - `godot/scripts/main.gd`: held-key echo on `C` build input is now ignored, preventing rapid multi-cycle jumps from a single key hold.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `toggle_build_mode_alt` (`C`) as the active build-toggle action.
+- `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
