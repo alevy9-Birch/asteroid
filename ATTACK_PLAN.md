@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over stats block parity (`J.2`): add a dedicated stats label mirroring core web post-run metrics.
+Game-over stats readability parity (`J.2`): format stats block as grouped multiline rows.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -77,6 +77,7 @@ Game-over stats block parity (`J.2`): add a dedicated stats label mirroring core
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: discovery toast now uses a dedicated variant color swatch node while keeping panel/text colors neutral for web-like icon emphasis and readability.
 - `godot/scripts/main.gd`: discovery toast rendering/reset is now centralized in `_update_discovery_toast()` and called from HUD + phase transitions to avoid stale hidden-state text.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: game-over UI now includes a dedicated `GameOverStats` line with earned/spent/power/kills metrics populated at run finalization.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: game-over stats now render as two grouped lines (money row + power/kills row) for web-like post-run readability.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
