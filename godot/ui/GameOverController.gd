@@ -8,4 +8,4 @@ func format_hint(wave: int, commander: String = "none") -> String:
 	var cmd := ""
 	if commander != "none" and not commander.is_empty():
 		cmd = " | Commander: %s" % commander
-	return "Wave %d survived%s" % [wave, cmd]
+	return "Waves survived: %d%s" % [wave, cmd]

@@ -1836,7 +1836,7 @@ func _finalize_run_score() -> void:
 			game_difficulty,
 		)
 	gameover_hint.text = gameover_controller.format_hint(wave, selected_commander)
-	gameover_stats.text = "Earned %dc | Spent %dc\nPower %d P·s | Kills %d" % [
+	gameover_stats.text = "Money earned: %dc | Money spent: %dc\nPower produced: %d P·s | Asteroids killed: %d" % [
 		money_earned,
 		money_spent,
 		int(round(power_produced)),

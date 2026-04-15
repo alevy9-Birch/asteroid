@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over stats parity (`J.2`): add web-style “Most common building” metric to post-run summary.
+Game-over label copy parity (`J.2`): align post-run wording with web (`Waves survived`, explicit stat labels).
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -80,6 +80,7 @@ Game-over stats parity (`J.2`): add web-style “Most common building” metric 
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: game-over stats now render as two grouped lines (money row + power/kills row) for web-like post-run readability.
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over hint text now carries run context (`Wave survived`, commander, sandbox note) while numeric metrics are shown only in `GameOverStats` to remove duplication.
 - `godot/scripts/main.gd`: run now tracks per-building placement counts and appends web-style `Most common building` to `GameOverStats`.
+- `godot/ui/GameOverController.gd` + `godot/scripts/main.gd` + `godot/scenes/Main.tscn`: game-over copy now uses web-style wording (`Waves survived`, `Money earned/spent`, `Power produced`, `Asteroids killed`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
