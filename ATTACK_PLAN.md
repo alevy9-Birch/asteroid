@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Camera movement parity (`D.5`): match web `updateCamera` speed and world clamps in Godot.
+Camera look-input parity (`D.5`): clamp single-frame mouse deltas like web to prevent snap jumps.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -10,6 +10,7 @@ Camera movement parity (`D.5`): match web `updateCamera` speed and world clamps 
   - `godot/systems/AsteroidSystem.gd`: missing `variant` local fixed.
 - Camera parity slice completed this session:
   - `godot/systems/CameraSystem.gd`: speed and bounds now match web `updateCamera`.
+  - `godot/systems/CameraSystem.gd`: look delta clamp added (`±220`) before sensitivity apply.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

@@ -2,6 +2,7 @@ extends RefCounted
 class_name CameraSystem
 
 const LOOK_SENSITIVITY := 0.0022
+const LOOK_DELTA_CLAMP := 220.0
 ## Web `BaseDefenseGame.updateCamera`: `speed = 38`, clamp y `[6, 140]`, x/z `[-170, 170]`.
 const CAMERA_MOVE_SPEED := 38.0
 const CAMERA_MIN_Y := 6.0
@@ -19,8 +20,11 @@ func reset(camera: Camera3D) -> void:
 	apply(camera)
 
 func apply_mouse_look(relative: Vector2) -> void:
-	yaw -= relative.x * LOOK_SENSITIVITY
-	pitch = clampf(pitch - relative.y * LOOK_SENSITIVITY, -1.35, 1.35)
+	## Web mouse handling clamps single-frame look spikes to avoid pointer-lock/focus snap jumps.
+	var dx := clampf(relative.x, -LOOK_DELTA_CLAMP, LOOK_DELTA_CLAMP)
+	var dy := clampf(relative.y, -LOOK_DELTA_CLAMP, LOOK_DELTA_CLAMP)
+	yaw -= dx * LOOK_SENSITIVITY
+	pitch = clampf(pitch - dy * LOOK_SENSITIVITY, -1.35, 1.35)
 
 func update_movement(delta: float, camera: Camera3D) -> void:
 	var forward := Vector3(sin(yaw), 0, cos(yaw)).normalized()
