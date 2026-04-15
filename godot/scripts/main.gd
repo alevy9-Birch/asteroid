@@ -1477,16 +1477,13 @@ func _update_hud() -> void:
 		)
 	else:
 		wave_timer_hud.visible = false
-	var spawn_status := "Ready"
-	if wave_combat_active and not spawn_window_ended and to_spawn > 0:
-		var win_pct := 0.0
-		if spawn_window_duration_sec > 0.0:
-			win_pct = clampf(100.0 * spawn_window_elapsed_sec / spawn_window_duration_sec, 0.0, 100.0)
-		spawn_status = "Spawn %d left | window %.0f%%" % [to_spawn, win_pct]
+	var spawn_status := "Press Space to start"
+	if wave_combat_active and not spawn_window_ended:
+		spawn_status = "Spawning asteroids..."
 	elif wave_combat_active:
-		spawn_status = "Cleanup (%d asteroids)" % asteroids.size()
+		spawn_status = "Asteroids remaining: %d" % asteroids.size()
 	elif first_wave_started and wave > 0 and inactive_time_left_sec > 0.0:
-		spawn_status = "Inactive %.0fs (Space early / wait auto)" % inactive_time_left_sec
+		spawn_status = "Next wave in %ds (Space)" % int(ceil(inactive_time_left_sec))
 	var refund_hint := ""
 	if not _is_wave_combat_active() and first_wave_started and inactive_time_left_sec > 0.0:
 		refund_hint = "Sell (RMB): 100% if built this break"

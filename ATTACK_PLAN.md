@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Look-readout shortcut copy parity (`D.4/J.1`): align in-play control string with web shortcut language.
+Gameplay status copy parity (`J.1`): align spawn/cleanup/inactive wording with web wave-status text.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -88,6 +88,7 @@ Look-readout shortcut copy parity (`D.4/J.1`): align in-play control string with
 - `godot/scenes/Main.tscn`: main-menu hint copy now mirrors web control guidance text and shortcut wording.
 - `godot/ui/HudController.gd`: gameplay info tail now explicitly advertises `C` build wheel and `U`/`R` research shortcuts for closer web shortcut discoverability.
 - `godot/scripts/main.gd`: look-readout shortcut segment now uses web-aligned control wording (`C wheel`, `U skills`, `R research`, `RMB sell`).
+- `godot/scripts/main.gd`: gameplay `spawn_status` copy now uses web-style wave text (`Press Space to start`, `Spawning asteroids...`, `Asteroids remaining`, `Next wave in ... (Space)`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
