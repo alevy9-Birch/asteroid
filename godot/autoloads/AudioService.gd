@@ -24,6 +24,8 @@ const OPTIONAL_SFX := {
 }
 
 var _sfx: AudioStreamPlayer
+var _last_shield_hit_ms := 0
+const SHIELD_HIT_MIN_INTERVAL_MS := 72
 
 
 func _ready() -> void:
@@ -41,6 +43,9 @@ func emit_event(event_name: String, payload: Dictionary = {}) -> void:
 	if event_name == "asteroid_destroyed":
 		_play_asteroid_destroyed(payload)
 		return
+	if event_name == "shield_hit":
+		_play_shield_hit_throttled()
+		return
 	var fname: String = OPTIONAL_SFX.get(event_name, "")
 	if fname.is_empty():
 		return
@@ -51,11 +56,18 @@ func _play_asteroid_destroyed(payload: Dictionary) -> void:
 	var reason := String(payload.get("reason", "combat"))
 	var v := String(payload.get("variant", ""))
 	if reason != "combat":
-		_play_stream_if_exists(SFX_DIR + OPTIONAL_SFX["asteroid_destroyed_small"])
 		return
 	var large := v == "colossus" or v == "planet"
 	var key := "asteroid_destroyed_large" if large else "asteroid_destroyed_small"
 	_play_stream_if_exists(SFX_DIR + OPTIONAL_SFX[key])
+
+
+func _play_shield_hit_throttled() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _last_shield_hit_ms < SHIELD_HIT_MIN_INTERVAL_MS:
+		return
+	_last_shield_hit_ms = now
+	_play_stream_if_exists(SFX_DIR + OPTIONAL_SFX["shield_hit"])
 
 
 func _play_game_over_if_available() -> void:
