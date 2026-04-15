@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Commander button-grid menu parity (`I.4/J.3`): replace commander dropdown with explicit None+hero buttons.
+Commander button active-state parity (`I.4/J.3`): selected commander uses pressed-state styling instead of text markers.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -112,7 +112,7 @@ Commander button-grid menu parity (`I.4/J.3`): replace commander dropdown with e
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over header now shows only `Waves survived: <n>` (no commander suffix), matching web header behavior.
 - `godot/scripts/main.gd`: game-over score/best/stats numeric values now use grouped formatting (e.g. `12,345`) for closer web `toLocaleString()` parity.
 - `godot/scripts/main.gd`: sandbox game-over note now appends with web-style spacing (`Waves survived: N Sandbox — score not saved`) instead of a pipe separator.
-- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander picker now uses explicit menu buttons (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) instead of an `OptionButton`, with selected commander highlighted via `[x]`.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander picker now uses explicit menu buttons (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) instead of an `OptionButton`, with selected commander shown by pressed/toggle button state.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

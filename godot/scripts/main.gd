@@ -535,6 +535,7 @@ func _setup_menu_commander_option() -> void:
 		var b: Button = menu_commander_buttons.get(commander_id)
 		if b == null:
 			continue
+		b.toggle_mode = true
 		b.text = commander_system.display_name(commander_id)
 		var cb := Callable(self, "_on_menu_commander_button_pressed").bind(commander_id)
 		if not b.pressed.is_connected(cb):
@@ -554,11 +555,7 @@ func _refresh_menu_commander_buttons() -> void:
 		var b: Button = menu_commander_buttons.get(commander_id)
 		if b == null:
 			continue
-		var base_label := commander_system.display_name(commander_id)
-		if selected_commander == commander_id:
-			b.text = "[x] " + base_label
-		else:
-			b.text = base_label
+		b.set_pressed_no_signal(selected_commander == commander_id)
 
 
 func _setup_menu_difficulty_option() -> void:
