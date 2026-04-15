@@ -365,7 +365,7 @@ horizontal_alignment = 1
 
 [node name="GameOverStats" type="Label" parent="GameOverOverlay/GameOverVBox"]
 layout_mode = 2
-text = "Earned 0c | Spent 0c\nPower 0 P·s | Kills 0"
+text = "Earned 0c | Spent 0c\nPower 0 P·s | Kills 0\nMost common building: —"
 horizontal_alignment = 1
 
 [node name="GameOverScore" type="Label" parent="GameOverOverlay/GameOverVBox"]

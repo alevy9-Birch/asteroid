@@ -110,6 +110,7 @@ var capture_recover_pending := false
 var turrets: Array = []
 ## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
 var economy_buildings: Array = []
+var building_placement_counts: Dictionary = {}
 ## **`turret`** | **`factory`** (I) | **`depot_s`** / **`depot_l`** (O) | **`nuclear`** (N research). **B** cycles unlocked modes.
 var build_mode := "turret"
 var factory_cost: int = 160
@@ -602,6 +603,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0
+	building_placement_counts.clear()
 	discovered_asteroid_variants.clear()
 	active_asteroid_discovery_variant = ""
 	active_asteroid_discovery = ""
@@ -1179,6 +1181,7 @@ func _handle_play_left_click() -> void:
 			return
 		credits -= factory_cost
 		money_spent += factory_cost
+		_register_building_placement("factory_business")
 		supply_used += factory_supply_cost
 		audio_service.emit_event("build_place")
 		var fnode := MeshInstance3D.new()
@@ -1241,6 +1244,7 @@ func _handle_play_left_click() -> void:
 			return
 		credits -= d_cred
 		money_spent += d_cred
+		_register_building_placement(depot_id)
 		supply_used += d_sup_c
 		audio_service.emit_event("build_place")
 		var dnode := MeshInstance3D.new()
@@ -1287,6 +1291,7 @@ func _handle_play_left_click() -> void:
 			return
 		credits -= nuclear_cost
 		money_spent += nuclear_cost
+		_register_building_placement("nuclear_plant")
 		supply_used += nuclear_supply_cost
 		audio_service.emit_event("build_place")
 		var nnode := MeshInstance3D.new()
@@ -1330,6 +1335,7 @@ func _handle_play_left_click() -> void:
 		return
 	credits -= turret_cost
 	money_spent += turret_cost
+	_register_building_placement("auto_turret")
 	supply_used += turret_supply_cost
 	audio_service.emit_event("build_place")
 	var node := MeshInstance3D.new()
@@ -1768,6 +1774,42 @@ func _update_research_panel_visibility() -> void:
 	research_panel.visible = research_panel_open and phase == AppPhase.PLAYING
 
 
+func _register_building_placement(building_id: String) -> void:
+	if building_id.is_empty():
+		return
+	building_placement_counts[building_id] = int(building_placement_counts.get(building_id, 0)) + 1
+
+
+func _building_label_for_stats(building_id: String) -> String:
+	match building_id:
+		"auto_turret":
+			return "Auto Turret"
+		"factory_business":
+			return "Factory Business"
+		"supply_depot_s":
+			return "Supply Depot S"
+		"supply_depot_l":
+			return "Supply Depot L"
+		"nuclear_plant":
+			return "Nuclear Plant"
+		_:
+			return building_id
+
+
+func _most_common_building_label() -> String:
+	var best_id := ""
+	var best_count := 0
+	for k in building_placement_counts.keys():
+		var id := String(k)
+		var c := int(building_placement_counts.get(id, 0))
+		if c > best_count:
+			best_count = c
+			best_id = id
+	if best_count <= 0:
+		return "—"
+	return _building_label_for_stats(best_id)
+
+
 func _update_discovery_toast() -> void:
 	if phase == AppPhase.PLAYING and not active_asteroid_discovery.is_empty():
 		discovery_toast.visible = true
@@ -1800,6 +1842,7 @@ func _finalize_run_score() -> void:
 		int(round(power_produced)),
 		asteroids_killed,
 	]
+	gameover_stats.text += "\nMost common building: %s" % _most_common_building_label()
 	if sandbox_run:
 		gameover_hint.text += " | Sandbox (score not saved)"
 	gameover_score.text = "Score: %d" % run_score
