@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Build shortcut binding parity (`D.4`): use `C` as the active build-cycle shortcut and drop `B` trigger behavior.
+Build key repeat parity (`D.4`): ignore held-key echo so `C` does not multi-cycle build mode.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -116,6 +116,7 @@ Build shortcut binding parity (`D.4`): use `C` as the active build-cycle shortcu
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander menu layout now separates `None` from hero choices and presents heroes in a 2x3 grid, matching web commander block structure more closely.
 - `godot/scripts/main.gd`: `C` build-key input now treats open research as higher-priority context and closes research without also cycling build mode on that same key press.
 - `godot/scripts/main.gd`: build-mode cycling input now responds to `C` action path only, removing `B` trigger behavior for closer web control parity.
+- `godot/scripts/main.gd`: held-key echo on `C` build input is now ignored, preventing rapid multi-cycle jumps from a single key hold.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
