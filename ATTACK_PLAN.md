@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Commander hint copy parity (`J.3`): keep menu commander note static to match web wording behavior.
+Game-over header commander parity (`J.2`): remove commander suffix from `Waves survived` line.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -109,6 +109,7 @@ Commander hint copy parity (`J.3`): keep menu commander note static to match web
 - `godot/systems/CommanderSystem.gd` + `godot/scripts/main.gd` + `godot/ui/GameOverController.gd`: commander ids now map through a shared display-name helper so menu/game-over text uses player-facing labels instead of raw ids.
 - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: selected commander now mirrors into `GameState.selected_commander` during runtime sync/reset for centralized run-context state parity.
 - `godot/scripts/main.gd`: menu commander note is now static web wording (`Neutral tech only — no hero buildings or hero research.`), avoiding non-web dynamic copy changes.
+- `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over header now shows only `Waves survived: <n>` (no commander suffix), matching web header behavior.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
