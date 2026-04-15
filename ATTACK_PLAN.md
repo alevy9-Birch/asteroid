@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over numeric formatting parity (`J.2`): add grouped number formatting to score/stats values.
+Game-over sandbox hint punctuation parity (`J.2`): match web spacing/punctuation for sandbox note.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -111,6 +111,7 @@ Game-over numeric formatting parity (`J.2`): add grouped number formatting to sc
 - `godot/scripts/main.gd`: menu commander note is now static web wording (`Neutral tech only — no hero buildings or hero research.`), avoiding non-web dynamic copy changes.
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over header now shows only `Waves survived: <n>` (no commander suffix), matching web header behavior.
 - `godot/scripts/main.gd`: game-over score/best/stats numeric values now use grouped formatting (e.g. `12,345`) for closer web `toLocaleString()` parity.
+- `godot/scripts/main.gd`: sandbox game-over note now appends with web-style spacing (`Waves survived: N Sandbox — score not saved`) instead of a pipe separator.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
