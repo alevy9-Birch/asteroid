@@ -39,7 +39,7 @@ func format_gameplay_info(
 	]
 
 func format_look_info(yaw: float, pitch: float) -> String:
-	return "Yaw %.2f | Pitch %.2f | WASD move | Q/E up-down | center reticle build/sell" % [yaw, pitch]
+	return "Yaw %.2f | Pitch %.2f | WASD move | Q/E height | center reticle build/sell" % [yaw, pitch]
 
 func apply_center_hp(center_hp_bar: ProgressBar, center_hp: float, center_max_hp: float) -> void:
 	center_hp_bar.max_value = center_max_hp
