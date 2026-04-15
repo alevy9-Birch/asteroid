@@ -74,6 +74,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var menu_difficulty_option: OptionButton = $MenuOverlay/MenuVBox/MenuDifficultyRow/MenuDifficultyOption
 @onready var menu_volume_value: Label = $MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolumeValue
 @onready var pause_volume_value: Label = $PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolumeValue
+@onready var menu_hint_label: Label = $MenuOverlay/MenuVBox/MenuHint
 @onready var gameover_hint: Label = $GameOverOverlay/GameOverVBox/GameOverHint
 @onready var gameover_stats: Label = $GameOverOverlay/GameOverVBox/GameOverStats
 @onready var gameover_score: Label = $GameOverOverlay/GameOverVBox/GameOverScore
@@ -1529,6 +1530,10 @@ func _update_hud() -> void:
 	if phase == AppPhase.PLAYING or phase == AppPhase.PAUSED:
 		_update_research_labels()
 	_update_research_panel_visibility()
+	menu_hint_label.text = "Move the mouse to steer the virtual cursor; click selects. WASD move · Q/E height · mouse look · C build wheel · U skills"
+	if _has_commander_selected():
+		menu_hint_label.text += " · R hero research (with commander)"
+	menu_hint_label.text += " · RMB sell · Space wave · P pause"
 	var bm := "turret"
 	if upgrade_factory or upgrade_logistics or upgrade_nuclear:
 		bm = build_mode

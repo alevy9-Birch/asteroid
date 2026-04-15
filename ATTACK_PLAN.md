@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research panel commander-state hint parity (`J.3`): dynamic in-run hint text for commander/no-commander states.
+Menu shortcut hint commander-awareness parity (`J.1/J.3`): only show `R` hero research in menu guidance when commander is selected.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -102,6 +102,7 @@ Research panel commander-state hint parity (`J.3`): dynamic in-run hint text for
 - `godot/ui/HudController.gd` + `godot/scripts/main.gd`: gameplay shortcut hints now show `R hero research (with commander)` only when commander research is actually available.
 - `godot/scripts/main.gd`: `C`/`B` build-cycle input now closes an open research overlay before cycling build mode, matching web-style panel precedence.
 - `godot/scripts/main.gd`: research panel hint copy now updates dynamically to show commander-dependent hero research availability vs unavailability.
+- `godot/scripts/main.gd`: main-menu control hint line now dynamically includes `R hero research (with commander)` only when commander research is available.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
