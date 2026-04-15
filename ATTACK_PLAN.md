@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Build key repeat parity (`D.4`): ignore held-key echo so `C` does not multi-cycle build mode.
+Input map build-key parity (`D.4`): stop adding legacy `B` build action and keep `C` as the single build-toggle action.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -117,6 +117,7 @@ Build key repeat parity (`D.4`): ignore held-key echo so `C` does not multi-cycl
 - `godot/scripts/main.gd`: `C` build-key input now treats open research as higher-priority context and closes research without also cycling build mode on that same key press.
 - `godot/scripts/main.gd`: build-mode cycling input now responds to `C` action path only, removing `B` trigger behavior for closer web control parity.
 - `godot/scripts/main.gd`: held-key echo on `C` build input is now ignored, preventing rapid multi-cycle jumps from a single key hold.
+- `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `toggle_build_mode_alt` (`C`) as the active build-toggle action.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
