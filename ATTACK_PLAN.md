@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 decision-log consistency: rewrite superseded `C/B` and `toggle_build_mode_alt` entries in `DECISIONS.md` to current `C` + `cycle_build_mode` behavior.
+D.4/J.3 tracking consistency: correct stale ATTACK_PLAN wording about research-panel lifecycle (`PLAYING/PAUSED` -> `PLAYING` only).
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -65,7 +65,7 @@ D.4 decision-log consistency: rewrite superseded `C/B` and `toggle_build_mode_al
 - `godot/scripts/main.gd`: gameplay HUD now shows an explicit same-key upgrade refund hint during inactive phase whenever any prototype slot is refundable.
 - `godot/systems/UpgradeSystem.gd`: refundable owned research labels now use a dollar marker (`[$]`) to better match web refund affordance styling.
 - `godot/scenes/Main.tscn`: research panel hint copy now explains same-key refunds and the `[$]` refundable marker.
-- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `R`-driven research panel toggle state (`research_panel_open`) and centralized research-panel visibility updates for PLAYING/PAUSED flow.
+- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `R`-driven research panel toggle state (`research_panel_open`) and centralized research-panel visibility updates for gameplay-only (`PLAYING`) flow.
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: build-cycle input now standardized to `C` action flow, with runtime hints updated accordingly.
 - `godot/scenes/Main.tscn` + `godot/ui/HudController.gd`: gameplay shortcut copy updates include `R` research-panel toggle and `C` build-cycle parity hints.
 - `godot/scripts/main.gd`: research overlay now initializes closed and resets closed at each run start; opening is now explicit via `R` toggle path.
@@ -121,6 +121,7 @@ D.4 decision-log consistency: rewrite superseded `C/B` and `toggle_build_mode_al
 - `godot/scripts/main.gd`: held-key echo on `U/I/O/N` upgrade hotkeys is now ignored so each press triggers at most one buy/refund attempt.
 - `godot/scripts/main.gd`: held-key echo on `P` pause toggle is now ignored so pause state changes once per press (web parity for pause key repeat guard).
 - `DECISIONS.md`: superseded `C/B` and legacy `toggle_build_mode_alt` references were rewritten/annotated to match current `C` + `cycle_build_mode` behavior.
+- Tracking cleanup: corrected stale research-panel lifecycle note to gameplay-only (`PLAYING`) wording.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
