@@ -118,6 +118,12 @@ var highlighted_button: Button
 var all_menu_buttons: Array[Button] = []
 ## Web pointer-lock parity: after focus/pointer-lock loss, first click re-captures only.
 var capture_recover_pending := false
+var dragging_build := false
+var drag_build_timer_sec := 0.0
+const DRAG_BUILD_INTERVAL_SEC := 0.055
+var dragging_sell := false
+var drag_sell_timer_sec := 0.0
+const DRAG_SELL_INTERVAL_SEC := 0.07
 var turrets: Array = []
 ## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
 var economy_buildings: Array = []
@@ -441,6 +447,10 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+			dragging_build = false
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and not mb.pressed:
+			dragging_sell = false
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			_ensure_fullscreen_and_capture()
 			if phase == AppPhase.PLAYING:
@@ -449,6 +459,8 @@ func _input(event: InputEvent) -> void:
 					return
 				if research_panel_open:
 					return
+				dragging_build = true
+				drag_build_timer_sec = 0.0
 				_handle_play_left_click()
 			else:
 				_activate_menu_target()
@@ -458,6 +470,8 @@ func _input(event: InputEvent) -> void:
 				return
 			if research_panel_open:
 				return
+			dragging_sell = true
+			drag_sell_timer_sec = 0.0
 			_handle_play_right_click()
 	if event.is_action_pressed("ui_pause"):
 		if not _is_key_echo_event(event):
@@ -629,6 +643,8 @@ func apply_phase(next_phase: AppPhase) -> void:
 	phase = next_phase
 	if phase != AppPhase.PLAYING:
 		research_panel_open = false
+		dragging_build = false
+		dragging_sell = false
 	game_state.set_phase(GameState.AppPhase.values()[int(phase)])
 	main_menu_controller.set_visible(menu_overlay, phase == AppPhase.MENU)
 	pause_controller.set_visible(pause_overlay, phase == AppPhase.PAUSED)
@@ -778,6 +794,7 @@ func _process(delta: float) -> void:
 			active_asteroid_discovery = ""
 			active_asteroid_discovery_desc = ""
 	_update_camera_motion(delta)
+	_update_drag_play_actions(delta)
 	_update_passive_income(delta)
 	_update_power_economy(delta)
 	_update_economy_buildings(delta)
@@ -790,6 +807,21 @@ func _process(delta: float) -> void:
 	_update_hud()
 	_update_diagnostics()
 	_sync_game_state_runtime()
+
+
+func _update_drag_play_actions(delta: float) -> void:
+	if not _is_capture_active() or capture_recover_pending or research_panel_open or _is_wave_combat_active():
+		return
+	if dragging_build:
+		drag_build_timer_sec -= delta
+		if drag_build_timer_sec <= 0.0:
+			drag_build_timer_sec = DRAG_BUILD_INTERVAL_SEC
+			_handle_play_left_click()
+	if dragging_sell:
+		drag_sell_timer_sec -= delta
+		if drag_sell_timer_sec <= 0.0:
+			drag_sell_timer_sec = DRAG_SELL_INTERVAL_SEC
+			_handle_play_right_click()
 
 
 func _create_gameplay_entities() -> void:

@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 input/overlay parity: block placement/sell clicks while research overlay is open.
+D.4 input parity: add web-style hold-drag build/sell cadence during gameplay.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -133,6 +133,8 @@ D.4 input/overlay parity: block placement/sell clicks while research overlay is 
 - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: added/synced `nuclear_power_gen_mult` runtime state so upgrade effects are mirrored consistently.
 - `godot/scripts/main.gd`: mouse-look is now suppressed while `research_panel_open` in `PLAYING`, matching web behavior that pauses gameplay camera look during overlay interaction.
 - `godot/scripts/main.gd`: LMB/RMB gameplay actions now no-op while `research_panel_open`, matching web overlay behavior that blocks build/sell input while UI overlays are active.
+- `godot/scripts/main.gd`: added hold-drag build/sell loops (`0.055s` / `0.07s`) so sustained LMB/RMB repeats placement/sell actions during gameplay like web drag handling.
+- `godot/scripts/main.gd`: drag-build/drag-sell state now clears on button release and any non-PLAYING phase transition to avoid stale input carryover.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
