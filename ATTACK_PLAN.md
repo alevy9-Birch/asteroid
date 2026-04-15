@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 input parity hardening: centralize key-repeat detection in one helper so hotkey repeat guards stay consistent.
+D.4 input parity hardening: apply shared repeat helper to `U/I/O/N` upgrade hotkeys for one-source repeat semantics.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -123,6 +123,7 @@ D.4 input parity hardening: centralize key-repeat detection in one helper so hot
 - `DECISIONS.md`: superseded `C/B` and legacy `toggle_build_mode_alt` references were rewritten/annotated to match current `C` + `cycle_build_mode` behavior.
 - Tracking cleanup: corrected stale research-panel lifecycle note to gameplay-only (`PLAYING`) wording.
 - `godot/scripts/main.gd`: repeat-guard checks now route through shared `_is_key_echo_event(event)` helper for consistent hotkey parity handling.
+- `godot/scripts/main.gd`: `U/I/O/N` upgrade hotkeys now also use `_is_key_echo_event(event)` so all repeat guards share one path.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.

@@ -470,19 +470,19 @@ func _input(event: InputEvent) -> void:
 			if wave > 0 or wave_combat_active:
 				first_wave_started = true
 	if event.is_action_pressed("buy_upgrade_core") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
-		if event is InputEventKey and (event as InputEventKey).echo:
+		if _is_key_echo_event(event):
 			return
 		_try_buy_upgrade("core")
 	if event.is_action_pressed("buy_upgrade_factory") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
-		if event is InputEventKey and (event as InputEventKey).echo:
+		if _is_key_echo_event(event):
 			return
 		_try_buy_upgrade("factory")
 	if event.is_action_pressed("buy_upgrade_logistics") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
-		if event is InputEventKey and (event as InputEventKey).echo:
+		if _is_key_echo_event(event):
 			return
 		_try_buy_upgrade("logistics")
 	if event.is_action_pressed("buy_upgrade_nuclear") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
-		if event is InputEventKey and (event as InputEventKey).echo:
+		if _is_key_echo_event(event):
 			return
 		_try_buy_upgrade("nuclear")
 	if event.is_action_pressed("cycle_build_mode") and phase == AppPhase.PLAYING:
