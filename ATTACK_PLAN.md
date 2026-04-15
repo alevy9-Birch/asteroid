@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Asteroid destroy SFX parity (`K.2`): play small destroy clip for non-combat death reasons like web.
+Menu hint copy parity (`D.4`): mirror web main-menu control guidance text.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -85,6 +85,7 @@ Asteroid destroy SFX parity (`K.2`): play small destroy clip for non-combat deat
 - `godot/scripts/main.gd`: `_process()` now keeps HUD/research labels updating during `PAUSED` so affordability/prereq suffixes stay live in both PLAYING and PAUSED parity contexts.
 - `godot/scripts/main.gd` + `godot/autoloads/AudioService.gd`: master volume slider now updates actual SFX playback gain through `AudioService.set_master_volume()` for web-style global audio-volume behavior.
 - `godot/autoloads/AudioService.gd`: `asteroid_destroyed` now mirrors web fallback behavior by playing small destroy SFX for non-combat reasons and reserving large clip for combat colossus/planet kills.
+- `godot/scenes/Main.tscn`: main-menu hint copy now mirrors web control guidance text and shortcut wording.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

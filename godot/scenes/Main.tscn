@@ -245,7 +245,7 @@ horizontal_alignment = 1
 
 [node name="MenuHint" type="Label" parent="MenuOverlay/MenuVBox"]
 layout_mode = 2
-text = "Move mouse to steer virtual cursor. Left click activates highlighted controls."
+text = "Move the mouse to steer the virtual cursor; click selects. WASD move · Q/E height · mouse look · C build wheel · U skills · R hero research (with commander) · RMB sell · Space wave · P pause"
 horizontal_alignment = 1
 autowrap_mode = 3
 
