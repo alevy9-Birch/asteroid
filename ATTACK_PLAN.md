@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Upgrade refund UI parity (`I.2`/`J.3`): show refundable state on owned research labels during current inactive phase.
+Upgrade phase guard parity (`I.2`): enforce buy/refund rejection in `UpgradeSystem` when wave combat is active.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -59,6 +59,7 @@ Upgrade refund UI parity (`I.2`/`J.3`): show refundable state on owned research 
   - `godot/systems/AsteroidSystem.gd` + `godot/scripts/main.gd`: EMP death now drains stored power by nearby structure count (`r=18`, per-building drain) instead of disabling turrets.
   - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: prototype upgrades now support same-phase refund on key re-press, with current-phase prereq-dependent auto-refund and `upgrade_refund` audio parity hook.
   - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: owned research labels now show `[R]` when refundable in the current inactive phase.
+  - `godot/systems/UpgradeSystem.gd`: buy/refund paths now enforce wave-combat phase guards at system level (not just input caller).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

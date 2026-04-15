@@ -28,6 +28,9 @@ func _purchase_cost(which: String) -> int:
 
 func try_buy_upgrade(which: String, state: Dictionary) -> Dictionary:
 	var out := state.duplicate(true)
+	if bool(out.get("wave_combat_active", false)):
+		out.ok = false
+		return out
 	var uid := _upgrade_id(which)
 	if uid.is_empty():
 		out.ok = false
@@ -81,6 +84,9 @@ func try_buy_upgrade(which: String, state: Dictionary) -> Dictionary:
 
 func try_refund_upgrade(which: String, state: Dictionary) -> Dictionary:
 	var out := state.duplicate(true)
+	if bool(out.get("wave_combat_active", false)):
+		out.ok = false
+		return out
 	if not _slot_owned(out, which):
 		out.ok = false
 		return out

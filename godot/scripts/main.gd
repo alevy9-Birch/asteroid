@@ -1658,6 +1658,7 @@ func _try_buy_upgrade(which: String) -> void:
 		"upgrade_logistics_phase": upgrade_logistics_phase,
 		"upgrade_nuclear_phase": upgrade_nuclear_phase,
 		"current_inactive_phase": current_inactive_phase,
+		"wave_combat_active": wave_combat_active,
 		"turret_damage_mult": turret_damage_mult,
 		"kill_credit_bonus": kill_credit_bonus,
 		"turret_range_bonus": turret_range_bonus,
