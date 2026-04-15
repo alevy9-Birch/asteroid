@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Radar mark timer parity (`F.7`): decrement `radarMarkTimer` on asteroids each frame in movement update.
+Asteroid grid-distance parity (`F.7`/`F.8`): use web-style XZ distance checks for seeker targeting and asteroid impact/AOE/EMP proximity logic.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -39,6 +39,8 @@ Radar mark timer parity (`F.7`): decrement `radarMarkTimer` on asteroids each fr
   - `godot/systems/AsteroidSystem.gd`: discovery notices now include variant descriptions in HUD text.
   - `godot/systems/AsteroidSystem.gd`: movement now honors `stasisTimer` freeze and `pulsarSlowTimer` slow (`0.52`) like web.
   - `godot/systems/AsteroidSystem.gd`: `radarMarkTimer` now decays each update for parity with web asteroid timer updates.
+  - `godot/systems/AsteroidSystem.gd`: seeker closest-target and impact-trigger checks now use web-style planar XZ distance instead of full 3D distance.
+  - `godot/scripts/main.gd`: seeker spawn target and asteroid death AOE/EMP range checks now use planar XZ distance to match web `Math.hypot` behavior.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

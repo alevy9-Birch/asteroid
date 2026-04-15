@@ -172,7 +172,7 @@ func _closest_target_point(from_pos: Vector3, targets: Array, fallback: Vector3)
 		if typeof(t) != TYPE_VECTOR3:
 			continue
 		var tp: Vector3 = t
-		var d := from_pos.distance_squared_to(tp)
+		var d := _dist2_xz(from_pos, tp)
 		if d < best_d:
 			best_d = d
 			best = tp
@@ -190,7 +190,7 @@ func find_impacts(asteroids: Array, command_center_pos: Vector3) -> Array:
 	for i in range(asteroids.size()):
 		var pos: Vector3 = asteroids[i]["pos"]
 		# Web parity: impact trigger is near-target distance (2.2) or very low altitude, not AOE radius.
-		if pos.distance_to(command_center_pos) < IMPACT_TRIGGER_DISTANCE or pos.y <= IMPACT_TRIGGER_MIN_Y:
+		if _dist_xz(pos, command_center_pos) < IMPACT_TRIGGER_DISTANCE or pos.y <= IMPACT_TRIGGER_MIN_Y:
 			var variant := String(asteroids[i].get("variant", "normal"))
 			var dmg := float(asteroids[i].get("impact_damage", 70.0))
 			hits.append({
@@ -199,6 +199,18 @@ func find_impacts(asteroids: Array, command_center_pos: Vector3) -> Array:
 				"variant": variant,
 			})
 	return hits
+
+
+func _dist_xz(a: Vector3, b: Vector3) -> float:
+	var dx := a.x - b.x
+	var dz := a.z - b.z
+	return sqrt(dx * dx + dz * dz)
+
+
+func _dist2_xz(a: Vector3, b: Vector3) -> float:
+	var dx := a.x - b.x
+	var dz := a.z - b.z
+	return dx * dx + dz * dz
 
 func variant_speed_mul(variant: String) -> float:
 	match variant:

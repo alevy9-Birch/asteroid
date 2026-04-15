@@ -878,11 +878,23 @@ func _asteroid_target_for_variant(variant: String, from_pos: Vector3) -> Vector3
 		if typeof(p) != TYPE_VECTOR3:
 			continue
 		var tp: Vector3 = p
-		var d := from_pos.distance_squared_to(tp)
+		var d := _dist2_xz(from_pos, tp)
 		if d < best_d:
 			best_d = d
 			best = tp
 	return best
+
+
+func _dist_xz(a: Vector3, b: Vector3) -> float:
+	var dx := a.x - b.x
+	var dz := a.z - b.z
+	return sqrt(dx * dx + dz * dz)
+
+
+func _dist2_xz(a: Vector3, b: Vector3) -> float:
+	var dx := a.x - b.x
+	var dz := a.z - b.z
+	return dx * dx + dz * dz
 
 
 func _register_asteroid_discovery(variant: String) -> void:
@@ -920,14 +932,14 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 	asteroids.remove_at(index)
 	if float(eff.get("aoe_radius", 0.0)) > 0.0:
 		audio_service.emit_event("aoe_pop")
-		if apos.distance_to(command_center_pos) <= float(eff["aoe_radius"]):
+		if _dist_xz(apos, command_center_pos) <= float(eff["aoe_radius"]):
 			command_center_hp = max(0.0, command_center_hp - float(eff["aoe_damage"]))
 	if float(eff.get("emp_radius", 0.0)) > 0.0:
 		audio_service.emit_event("emp_pulse")
 		for ti in range(turrets.size()):
 			var t = turrets[ti]
 			var tp: Vector3 = t["pos"]
-			if tp.distance_to(apos) <= float(eff["emp_radius"]):
+			if _dist_xz(tp, apos) <= float(eff["emp_radius"]):
 				t["empDisable"] = max(float(t.get("empDisable", 0.0)), float(eff["emp_disable_sec"]))
 				turrets[ti] = t
 	if int(eff.get("spawn_children", 0)) > 0:
