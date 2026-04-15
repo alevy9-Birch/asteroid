@@ -680,6 +680,11 @@ func _activate_menu_target() -> void:
 
 
 func _process(delta: float) -> void:
+	if phase == AppPhase.PAUSED:
+		_update_hud()
+		_update_diagnostics()
+		_sync_game_state_runtime()
+		return
 	if phase != AppPhase.PLAYING:
 		return
 	if asteroid_discovery_timer_sec > 0.0:

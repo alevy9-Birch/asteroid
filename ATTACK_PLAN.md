@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over sandbox hint parity (`J.2`): align sandbox note punctuation/copy with web end-screen.
+Research HUD tick parity (`J.3`): refresh research/affordability labels continuously while paused.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -82,6 +82,7 @@ Game-over sandbox hint parity (`J.2`): align sandbox note punctuation/copy with 
 - `godot/scripts/main.gd`: run now tracks per-building placement counts and appends web-style `Most common building` to `GameOverStats`.
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd` + `godot/scenes/Main.tscn`: game-over copy now uses web-style wording (`Waves survived`, `Money earned/spent`, `Power produced`, `Asteroids killed`).
 - `godot/scripts/main.gd`: sandbox game-over hint now uses web-style note copy (`Sandbox — score not saved`).
+- `godot/scripts/main.gd`: `_process()` now keeps HUD/research labels updating during `PAUSED` so affordability/prereq suffixes stay live in both PLAYING and PAUSED parity contexts.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
