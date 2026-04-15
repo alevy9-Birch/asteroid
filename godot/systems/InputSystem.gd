@@ -3,6 +3,7 @@ class_name InputSystem
 
 func ensure_default_actions() -> void:
 	_remove_action_if_exists("toggle_build_mode")
+	_remove_action_if_exists("toggle_build_mode_alt")
 	_add_action_if_missing("ui_pause", KEY_P)
 	_add_action_if_missing("simulate_gameover", KEY_G)
 	_add_action_if_missing("start_wave", KEY_SPACE)
@@ -11,7 +12,7 @@ func ensure_default_actions() -> void:
 	_add_action_if_missing("buy_upgrade_logistics", KEY_O)
 	_add_action_if_missing("buy_upgrade_nuclear", KEY_N)
 	_add_action_if_missing("toggle_diagnostics", KEY_F3)
-	_add_action_if_missing("toggle_build_mode_alt", KEY_C)
+	_add_action_if_missing("cycle_build_mode", KEY_C)
 	_add_action_if_missing("toggle_research_panel", KEY_R)
 	_add_action_if_missing("move_forward", KEY_W)
 	_add_action_if_missing("move_left", KEY_A)
