@@ -449,7 +449,7 @@ func _input(event: InputEvent) -> void:
 		_try_buy_upgrade("nuclear")
 	if (event.is_action_pressed("toggle_build_mode") or event.is_action_pressed("toggle_build_mode_alt")) and phase == AppPhase.PLAYING:
 		_toggle_build_mode()
-	if event.is_action_pressed("toggle_research_panel") and (phase == AppPhase.PLAYING or phase == AppPhase.PAUSED):
+	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING:
 		research_panel_open = not research_panel_open
 		_update_research_panel_visibility()
 	if event.is_action_pressed("toggle_diagnostics"):
@@ -539,6 +539,8 @@ func _set_master_volume(v: float) -> void:
 
 func apply_phase(next_phase: AppPhase) -> void:
 	phase = next_phase
+	if phase != AppPhase.PLAYING:
+		research_panel_open = false
 	game_state.set_phase(GameState.AppPhase.values()[int(phase)])
 	main_menu_controller.set_visible(menu_overlay, phase == AppPhase.MENU)
 	pause_controller.set_visible(pause_overlay, phase == AppPhase.PAUSED)
@@ -1754,7 +1756,7 @@ func _update_research_labels() -> void:
 
 
 func _update_research_panel_visibility() -> void:
-	research_panel.visible = research_panel_open and (phase == AppPhase.PLAYING or phase == AppPhase.PAUSED)
+	research_panel.visible = research_panel_open and phase == AppPhase.PLAYING
 
 
 func _finalize_run_score() -> void:
