@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Asteroid spawn-geometry parity (`F.6`/`F.7`): align spawn radius and altitude generation with web `spawnAsteroid` (`r=160..220`, `y=90..120`).
+Spawner meteor child parity (`F.6`/`F.7`): align spawned meteor offset and derived stats (`speed/hp/impact`) with web `spawnMeteorFromSpawner`.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -46,6 +46,7 @@ Asteroid spawn-geometry parity (`F.6`/`F.7`): align spawn radius and altitude ge
   - `godot/scripts/main.gd`: non-seeker spawn targets now use randomized web-style grid points (`[-40, 40]` on X/Z) instead of fixed command-center target.
   - `godot/scripts/main.gd`: spawned meteors/splitter children now inherit parent target so split/spawn trajectories remain consistent with parent impact lane.
   - `godot/scripts/main.gd`: base asteroid entry now matches web radial/high-altitude spawn geometry (`r=160..220`, `y=90..120`) instead of low side-edge spawn.
+  - `godot/scripts/main.gd`: spawner-created meteors now use web-like parent-derived stats and close local spawn offset (`speed/hp/impact` parity).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

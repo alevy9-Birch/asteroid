@@ -756,6 +756,7 @@ func _spawn_asteroid() -> void:
 		"node": node,
 		"pos": p,
 		"hp": hp,
+		"max_hp": hp,
 		"variant": variant,
 		"target": target,
 		"splitLevel": 0,
@@ -821,6 +822,7 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0, tar
 		"node": node,
 		"pos": pos,
 		"hp": hp2,
+		"max_hp": hp2,
 		"variant": variant,
 		"target": target2,
 		"splitLevel": split_level,
@@ -839,12 +841,7 @@ func _update_asteroids(delta: float) -> void:
 		if bool(a.get("spawnReady", false)):
 			a["spawnReady"] = false
 			asteroids[i] = a
-			_spawn_asteroid_at(
-				Vector3(a["pos"]) + Vector3(rand.randf_range(-3.0, 3.0), 0, rand.randf_range(-3.0, 3.0)),
-				"meteor",
-				0,
-				a.get("target", command_center_pos)
-			)
+			_spawn_spawner_meteor(a)
 	var impacts = asteroid_system.find_impacts(asteroids, command_center_pos)
 	for k in range(impacts.size() - 1, -1, -1):
 		var hit = impacts[k]
@@ -875,6 +872,26 @@ func _seeker_target_points() -> Array:
 			continue
 		points.append(Vector3(n["pos"]))
 	return points
+
+
+func _spawn_spawner_meteor(parent: Dictionary) -> void:
+	var parent_pos := Vector3(parent.get("pos", Vector3.ZERO))
+	var parent_target := Vector3(parent.get("target", command_center_pos))
+	var spawn_pos := parent_pos + Vector3(rand.randf_range(-0.6, 0.6), 0.4, rand.randf_range(-0.6, 0.6))
+	_spawn_asteroid_at(spawn_pos, "meteor", 0, parent_target)
+	if asteroids.is_empty():
+		return
+	var child_i := asteroids.size() - 1
+	var child = asteroids[child_i]
+	var parent_speed := float(parent.get("move_speed", 5.2))
+	var parent_max_hp := float(parent.get("max_hp", parent.get("hp", 40.0)))
+	var parent_impact_damage := float(parent.get("impact_damage", 70.0))
+	child["move_speed"] = maxf(26.0, parent_speed * 1.45)
+	child["max_hp"] = maxf(45.0, round(parent_max_hp * 0.42))
+	child["hp"] = float(child["max_hp"])
+	child["impact_radius"] = 0.95
+	child["impact_damage"] = round(parent_impact_damage * 0.8)
+	asteroids[child_i] = child
 
 
 func _asteroid_target_for_variant(variant: String, from_pos: Vector3) -> Vector3:
