@@ -526,6 +526,8 @@ func _notification(what: int) -> void:
 		capture_recover_pending = false
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		capture_recover_pending = true
+		dragging_build = false
+		dragging_sell = false
 
 
 func _setup_inputs() -> void:
@@ -811,7 +813,11 @@ func _process(delta: float) -> void:
 
 
 func _update_drag_play_actions(delta: float) -> void:
-	if not _is_capture_active() or capture_recover_pending or research_panel_open or _is_wave_combat_active():
+	if not _is_capture_active():
+		dragging_build = false
+		dragging_sell = false
+		return
+	if capture_recover_pending or research_panel_open or _is_wave_combat_active():
 		return
 	if dragging_build:
 		drag_build_timer_sec -= delta
