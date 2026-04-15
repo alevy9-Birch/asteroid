@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Splitter child spawn-offset parity (`F.6`/`F.7`): use web side-based splitter child offsets instead of broad random offset placement.
+Splitter child lane-divergence parity (`F.6`/`F.7`): steer splitter children into side-diverged lanes from parent heading (web yaw-offset behavior).
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -48,6 +48,7 @@ Splitter child spawn-offset parity (`F.6`/`F.7`): use web side-based splitter ch
   - `godot/scripts/main.gd`: base asteroid entry now matches web radial/high-altitude spawn geometry (`r=160..220`, `y=90..120`) instead of low side-edge spawn.
   - `godot/scripts/main.gd`: spawner-created meteors now use web-like parent-derived stats and close local spawn offset (`speed/hp/impact` parity).
   - `godot/scripts/main.gd`: splitter children now spawn with web-style side offsets (left/right split pattern) instead of random spread.
+  - `godot/scripts/main.gd`: splitter children now also diverge into side lanes via web-style yaw offsets from the parent lane (instead of sharing identical target).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

@@ -931,6 +931,20 @@ func _dist2_xz(a: Vector3, b: Vector3) -> float:
 	return dx * dx + dz * dz
 
 
+func _splitter_child_target(parent_pos: Vector3, parent_target: Vector3, side: float, split_level: int) -> Vector3:
+	var to_target := Vector3(parent_target.x - parent_pos.x, 0.0, parent_target.z - parent_pos.z)
+	if to_target.length_squared() <= 0.0001:
+		to_target = Vector3(0.0, 0.0, 1.0)
+	var dir := to_target.normalized()
+	var ang := 0.35 * (1.0 if split_level == 1 else 1.2) * side
+	var c := cos(ang)
+	var s := sin(ang)
+	var rx := dir.x * c - dir.z * s
+	var rz := dir.x * s + dir.z * c
+	var d := maxf(8.0, _dist_xz(parent_pos, parent_target))
+	return Vector3(parent_pos.x + rx * d, 0.0, parent_pos.z + rz * d)
+
+
 func _register_asteroid_discovery(variant: String) -> void:
 	if variant.is_empty():
 		return
@@ -982,10 +996,12 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 	if int(eff.get("spawn_children", 0)) > 0:
 		var child_variant := String(eff.get("spawn_variant", "splitter"))
 		var child_level := int(a.get("splitLevel", 0)) + 1
+		var parent_target := Vector3(a.get("target", impact_origin))
 		for n in range(int(eff["spawn_children"])):
 			var side := -1.0 if n % 2 == 0 else 1.0
 			var off := Vector3(side * 0.55, 0.2, side * 0.25)
-			_spawn_asteroid_at(apos + off, child_variant, child_level, a.get("target", impact_origin))
+			var child_target := _splitter_child_target(apos, parent_target, side, child_level)
+			_spawn_asteroid_at(apos + off, child_variant, child_level, child_target)
 	if int(eff.get("spawn_meteors", 0)) > 0:
 		for _n in range(int(eff["spawn_meteors"])):
 			var moff = Vector3(rand.randf_range(-2.5, 2.5), 0, rand.randf_range(-2.5, 2.5))
