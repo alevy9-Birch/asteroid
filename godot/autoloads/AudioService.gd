@@ -23,6 +23,7 @@ const OPTIONAL_SFX := {
 var _sfx: AudioStreamPlayer
 var _build_sell_sfx: AudioStreamPlayer
 var _last_shield_hit_ms := 0
+var _master_volume := 0.85
 const SHIELD_HIT_MIN_INTERVAL_MS := 72
 const BUILD_SELL_STOP_SEC := 0.072
 
@@ -34,6 +35,16 @@ func _ready() -> void:
 	_build_sell_sfx = AudioStreamPlayer.new()
 	_build_sell_sfx.name = "BuildSellSfxPlayer"
 	add_child(_build_sell_sfx)
+	set_master_volume(_master_volume)
+
+
+func set_master_volume(level: float) -> void:
+	_master_volume = clampf(level, 0.0, 1.0)
+	var db := linear_to_db(_master_volume) if _master_volume > 0.0001 else -80.0
+	if _sfx != null:
+		_sfx.volume_db = db
+	if _build_sell_sfx != null:
+		_build_sell_sfx.volume_db = db
 
 
 func emit_event(event_name: String, payload: Dictionary = {}) -> void:

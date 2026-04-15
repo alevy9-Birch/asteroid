@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research HUD tick parity (`J.3`): refresh research/affordability labels continuously while paused.
+Audio master-volume parity (`K.2`): propagate menu/pause volume slider into AudioService playback gain.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -83,6 +83,7 @@ Research HUD tick parity (`J.3`): refresh research/affordability labels continuo
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd` + `godot/scenes/Main.tscn`: game-over copy now uses web-style wording (`Waves survived`, `Money earned/spent`, `Power produced`, `Asteroids killed`).
 - `godot/scripts/main.gd`: sandbox game-over hint now uses web-style note copy (`Sandbox — score not saved`).
 - `godot/scripts/main.gd`: `_process()` now keeps HUD/research labels updating during `PAUSED` so affordability/prereq suffixes stay live in both PLAYING and PAUSED parity contexts.
+- `godot/scripts/main.gd` + `godot/autoloads/AudioService.gd`: master volume slider now updates actual SFX playback gain through `AudioService.set_master_volume()` for web-style global audio-volume behavior.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

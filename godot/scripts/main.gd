@@ -539,6 +539,7 @@ func _adjust_volume(delta: float) -> void:
 
 func _set_master_volume(v: float) -> void:
 	master_volume = v
+	audio_service.set_master_volume(master_volume)
 	var txt := "Volume: %d%%" % int(round(master_volume * 100.0))
 	menu_volume_value.text = txt
 	pause_volume_value.text = txt
