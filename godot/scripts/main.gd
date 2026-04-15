@@ -160,6 +160,7 @@ var money_earned := 0
 var money_spent := 0
 var asteroids_killed := 0
 var discovered_asteroid_variants: Dictionary = {}
+var active_asteroid_discovery_variant := ""
 var active_asteroid_discovery := ""
 var active_asteroid_discovery_desc := ""
 var asteroid_discovery_timer_sec := 0.0
@@ -597,6 +598,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	money_spent = 0
 	asteroids_killed = 0
 	discovered_asteroid_variants.clear()
+	active_asteroid_discovery_variant = ""
 	active_asteroid_discovery = ""
 	active_asteroid_discovery_desc = ""
 	asteroid_discovery_timer_sec = 0.0
@@ -676,6 +678,7 @@ func _process(delta: float) -> void:
 	if asteroid_discovery_timer_sec > 0.0:
 		asteroid_discovery_timer_sec = maxf(0.0, asteroid_discovery_timer_sec - delta)
 		if asteroid_discovery_timer_sec <= 0.0:
+			active_asteroid_discovery_variant = ""
 			active_asteroid_discovery = ""
 			active_asteroid_discovery_desc = ""
 	_update_camera_motion(delta)
@@ -979,6 +982,7 @@ func _register_asteroid_discovery(variant: String) -> void:
 	if discovered_asteroid_variants.has(variant):
 		return
 	discovered_asteroid_variants[variant] = true
+	active_asteroid_discovery_variant = variant
 	active_asteroid_discovery = asteroid_system.variant_display_name(variant)
 	active_asteroid_discovery_desc = asteroid_system.variant_discovery_description(variant)
 	asteroid_discovery_timer_sec = 5.0
@@ -1503,6 +1507,7 @@ func _update_hud() -> void:
 	gameplay_info.text = gi
 	if phase == AppPhase.PLAYING and not active_asteroid_discovery.is_empty():
 		discovery_toast.visible = true
+		discovery_toast.modulate = asteroid_system.variant_color(active_asteroid_discovery_variant)
 		discovery_toast.text = "New Asteroid: %s\n%s" % [active_asteroid_discovery, active_asteroid_discovery_desc]
 	else:
 		discovery_toast.visible = false

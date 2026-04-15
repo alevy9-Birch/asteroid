@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Discovery HUD de-dup parity (`J.2`): move discovery messaging out of `GameplayInfo` into dedicated toast only.
+Discovery toast color parity (`J.2`): tint discovery toast by asteroid variant color.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -72,6 +72,7 @@ Discovery HUD de-dup parity (`J.2`): move discovery messaging out of `GameplayIn
 - `godot/scripts/main.gd`: research overlay is now gameplay-only (PLAYING), closes on any phase exit, and no longer toggles while paused.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: added a dedicated `DiscoveryToast` HUD label for new asteroid discovery notices, matching web-style separate toast presentation.
 - `godot/scripts/main.gd`: removed duplicated inline discovery suffix from `GameplayInfo`; discovery messaging now routes through `DiscoveryToast` only.
+- `godot/scripts/main.gd`: discovery toast now tracks discovered variant id and tints toast color from `AsteroidSystem.variant_color` for stronger web-style visual parity.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
