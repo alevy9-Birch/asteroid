@@ -728,6 +728,7 @@ func _spawn_asteroid() -> void:
 		float(ab.get("base_speed", 15.0)),
 	)
 	var hp := float(kin.get("max_hp", 40.0))
+	var target := _asteroid_target_for_variant(variant, p)
 	var base_scale := asteroid_system.variant_size_mul(variant)
 	node.scale = Vector3(base_scale, base_scale, base_scale)
 	var mat_node := node.material_override as StandardMaterial3D
@@ -738,6 +739,7 @@ func _spawn_asteroid() -> void:
 		"pos": p,
 		"hp": hp,
 		"variant": variant,
+		"target": target,
 		"splitLevel": 0,
 		"spawnCooldown": (6.0 if variant == "spawner" else 999.0),
 		"spawnReady": false,
@@ -775,6 +777,7 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> 
 	var ms2 := float(kin2.get("move_speed", 5.2))
 	var idmg := float(kin2.get("impact_damage", 70.0))
 	var irad := float(kin2.get("impact_radius", 2.6))
+	var target2 := _asteroid_target_for_variant(variant, pos)
 	if split_level > 0:
 		var hmul := 0.32
 		var smul := 1.12
@@ -796,6 +799,7 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> 
 		"pos": pos,
 		"hp": hp2,
 		"variant": variant,
+		"target": target2,
 		"splitLevel": split_level,
 		"spawnCooldown": (6.0 if variant == "spawner" else 999.0),
 		"spawnReady": false,
@@ -843,6 +847,23 @@ func _seeker_target_points() -> Array:
 			continue
 		points.append(Vector3(n["pos"]))
 	return points
+
+
+func _asteroid_target_for_variant(variant: String, from_pos: Vector3) -> Vector3:
+	if variant != "seeker":
+		return command_center_pos
+	var points := _seeker_target_points()
+	var best := command_center_pos
+	var best_d := INF
+	for p in points:
+		if typeof(p) != TYPE_VECTOR3:
+			continue
+		var tp: Vector3 = p
+		var d := from_pos.distance_squared_to(tp)
+		if d < best_d:
+			best_d = d
+			best = tp
+	return best
 
 
 func _remove_asteroid(index: int, reason: String = "combat") -> void:

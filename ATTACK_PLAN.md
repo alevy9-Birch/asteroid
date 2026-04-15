@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Colossus visual scale parity (`F.6`): align colossus asteroid size multiplier with web values.
+Seeker spawn-target parity (`F.7`): initialize seeker target to closest live structure at spawn.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -27,6 +27,7 @@ Colossus visual scale parity (`F.6`): align colossus asteroid size multiplier wi
   - `godot/systems/AsteroidSystem.gd`: impact trigger now uses web-style near-target distance (`2.2`) / low-altitude check, with impact radius reserved for damage AOE.
   - `godot/systems/AsteroidSystem.gd`: variant picking now uses web-style wave-ramped weights plus capped active type pool (`2 + floor(wave/3)`).
   - `godot/systems/AsteroidSystem.gd`: `colossus` size multiplier aligned to web (`10.0`).
+  - `godot/scripts/main.gd`: seeker asteroids now get closest-structure target at spawn time (not delayed until first update tick).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
