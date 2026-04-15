@@ -264,9 +264,39 @@ theme_override_constants/separation = 12
 layout_mode = 2
 text = "Commander"
 
-[node name="MenuCommanderOption" type="OptionButton" parent="MenuOverlay/MenuVBox/MenuCommanderRow"]
+[node name="MenuCommanderButtons" type="GridContainer" parent="MenuOverlay/MenuVBox/MenuCommanderRow"]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
+columns = 4
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+
+[node name="CommanderNoneButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+layout_mode = 2
+text = "None"
+
+[node name="CommanderArchangelButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+layout_mode = 2
+text = "Archangel"
+
+[node name="CommanderDominionButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+layout_mode = 2
+text = "Dominion"
+
+[node name="CommanderNovaButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+layout_mode = 2
+text = "Nova"
+
+[node name="CommanderCitadelButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+layout_mode = 2
+text = "Citadel"
+
+[node name="CommanderJupiterButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+layout_mode = 2
+text = "Jupiter"
+
+[node name="CommanderKingpinButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+layout_mode = 2
+text = "Kingpin"
 
 [node name="MenuDifficultyRow" type="HBoxContainer" parent="MenuOverlay/MenuVBox"]
 layout_mode = 2

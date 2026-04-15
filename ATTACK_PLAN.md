@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over sandbox hint punctuation parity (`J.2`): match web spacing/punctuation for sandbox note.
+Commander button-grid menu parity (`I.4/J.3`): replace commander dropdown with explicit None+hero buttons.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -112,6 +112,7 @@ Game-over sandbox hint punctuation parity (`J.2`): match web spacing/punctuation
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over header now shows only `Waves survived: <n>` (no commander suffix), matching web header behavior.
 - `godot/scripts/main.gd`: game-over score/best/stats numeric values now use grouped formatting (e.g. `12,345`) for closer web `toLocaleString()` parity.
 - `godot/scripts/main.gd`: sandbox game-over note now appends with web-style spacing (`Waves survived: N Sandbox — score not saved`) instead of a pipe separator.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander picker now uses explicit menu buttons (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) instead of an `OptionButton`, with selected commander highlighted via `[x]`.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

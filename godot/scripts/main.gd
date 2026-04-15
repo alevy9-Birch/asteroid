@@ -72,7 +72,13 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var gameover_overlay: PanelContainer = $GameOverOverlay
 @onready var virtual_cursor: ColorRect = $VirtualCursor
 @onready var menu_difficulty_option: OptionButton = $MenuOverlay/MenuVBox/MenuDifficultyRow/MenuDifficultyOption
-@onready var menu_commander_option: OptionButton = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderOption
+@onready var commander_none_button: Button = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons/CommanderNoneButton
+@onready var commander_archangel_button: Button = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons/CommanderArchangelButton
+@onready var commander_dominion_button: Button = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons/CommanderDominionButton
+@onready var commander_nova_button: Button = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons/CommanderNovaButton
+@onready var commander_citadel_button: Button = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons/CommanderCitadelButton
+@onready var commander_jupiter_button: Button = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons/CommanderJupiterButton
+@onready var commander_kingpin_button: Button = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons/CommanderKingpinButton
 @onready var menu_volume_value: Label = $MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolumeValue
 @onready var pause_volume_value: Label = $PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolumeValue
 @onready var menu_hint_label: Label = $MenuOverlay/MenuVBox/MenuHint
@@ -103,6 +109,7 @@ var pause_controller = PauseControllerScript.new()
 var gameover_controller = GameOverControllerScript.new()
 var hud_controller = HudControllerScript.new()
 var selected_commander := "none"
+var menu_commander_buttons: Dictionary = {}
 ## Web sandbox-style run: **no** high-score write on game over; **Play Again** keeps the same mode.
 var sandbox_run := false
 var master_volume := 0.85
@@ -216,8 +223,8 @@ func _ready() -> void:
 	_parity_apply_building_baseline()
 	_setup_world_visuals()
 	_setup_inputs()
-	_collect_buttons()
 	_setup_menu_commander_option()
+	_collect_buttons()
 	_setup_menu_difficulty_option()
 	_connect_button_handlers()
 	rand.randomize()
@@ -510,28 +517,48 @@ func _collect_buttons() -> void:
 	for n in nodes:
 		all_menu_buttons.append(n as Button)
 	all_menu_buttons.append(menu_difficulty_option as Button)
-	all_menu_buttons.append(menu_commander_option as Button)
+	for b in menu_commander_buttons.values():
+		all_menu_buttons.append(b as Button)
 
 
 func _setup_menu_commander_option() -> void:
-	menu_commander_option.clear()
+	menu_commander_buttons = {
+		"none": commander_none_button,
+		"archangel": commander_archangel_button,
+		"dominion": commander_dominion_button,
+		"nova": commander_nova_button,
+		"citadel": commander_citadel_button,
+		"jupiter": commander_jupiter_button,
+		"kingpin": commander_kingpin_button,
+	}
 	for commander_id in MENU_COMMANDER_IDS:
-		menu_commander_option.add_item(commander_system.display_name(commander_id))
-	var sel := MENU_COMMANDER_IDS.find(selected_commander)
-	if sel < 0:
-		sel = 0
-	menu_commander_option.select(sel)
-	selected_commander = MENU_COMMANDER_IDS[sel]
-	var cmd_cb := Callable(self, "_on_menu_commander_selected")
-	if not menu_commander_option.item_selected.is_connected(cmd_cb):
-		menu_commander_option.item_selected.connect(cmd_cb)
+		var b: Button = menu_commander_buttons.get(commander_id)
+		if b == null:
+			continue
+		b.text = commander_system.display_name(commander_id)
+		var cb := Callable(self, "_on_menu_commander_button_pressed").bind(commander_id)
+		if not b.pressed.is_connected(cb):
+			b.pressed.connect(cb)
+	selected_commander = commander_system.normalize_commander(selected_commander)
+	_refresh_menu_commander_buttons()
 
 
-func _on_menu_commander_selected(index: int) -> void:
-	if index < 0 or index >= MENU_COMMANDER_IDS.size():
-		return
-	selected_commander = MENU_COMMANDER_IDS[index]
+func _on_menu_commander_button_pressed(commander_id: String) -> void:
+	selected_commander = commander_system.normalize_commander(commander_id)
+	_refresh_menu_commander_buttons()
 	_update_hud()
+
+
+func _refresh_menu_commander_buttons() -> void:
+	for commander_id in MENU_COMMANDER_IDS:
+		var b: Button = menu_commander_buttons.get(commander_id)
+		if b == null:
+			continue
+		var base_label := commander_system.display_name(commander_id)
+		if selected_commander == commander_id:
+			b.text = "[x] " + base_label
+		else:
+			b.text = base_label
 
 
 func _setup_menu_difficulty_option() -> void:
