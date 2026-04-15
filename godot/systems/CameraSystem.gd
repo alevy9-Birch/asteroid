@@ -9,14 +9,15 @@ const CAMERA_MIN_Y := 6.0
 const CAMERA_MAX_Y := 140.0
 const WORLD_BOUNDS := 170.0
 
-var yaw := 0.0
-var pitch := -0.82
-var camera_pos := Vector3(0, 62, 72)
+## Web defaults: `camPos(0, 55, 70)`, `yaw = PI`, `pitch = -0.65`.
+var yaw := PI
+var pitch := -0.65
+var camera_pos := Vector3(0, 55, 70)
 
 func reset(camera: Camera3D) -> void:
-	yaw = 0.0
-	pitch = -0.82
-	camera_pos = Vector3(0, 62, 72)
+	yaw = PI
+	pitch = -0.65
+	camera_pos = Vector3(0, 55, 70)
 	apply(camera)
 
 func apply_mouse_look(relative: Vector2) -> void:

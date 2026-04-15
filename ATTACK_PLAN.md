@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Camera look-input parity (`D.5`): clamp single-frame mouse deltas like web to prevent snap jumps.
+Camera default pose parity (`D.5`): match web startup/reset camera position and angles.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -11,6 +11,7 @@ Camera look-input parity (`D.5`): clamp single-frame mouse deltas like web to pr
 - Camera parity slice completed this session:
   - `godot/systems/CameraSystem.gd`: speed and bounds now match web `updateCamera`.
   - `godot/systems/CameraSystem.gd`: look delta clamp added (`±220`) before sensitivity apply.
+  - `godot/systems/CameraSystem.gd`: default and reset pose aligned to web (`camPos`, `yaw`, `pitch`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
