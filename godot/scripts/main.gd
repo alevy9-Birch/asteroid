@@ -447,12 +447,16 @@ func _input(event: InputEvent) -> void:
 				if capture_recover_pending or not _is_capture_active():
 					capture_recover_pending = false
 					return
+				if research_panel_open:
+					return
 				_handle_play_left_click()
 			else:
 				_activate_menu_target()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and phase == AppPhase.PLAYING:
 			if capture_recover_pending or not _is_capture_active():
 				capture_recover_pending = false
+				return
+			if research_panel_open:
 				return
 			_handle_play_right_click()
 	if event.is_action_pressed("ui_pause"):
