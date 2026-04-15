@@ -6,12 +6,53 @@ const IMPACT_TRIGGER_DISTANCE := 2.2
 const IMPACT_TRIGGER_MIN_Y := 0.6
 
 func pick_variant(rand: RandomNumberGenerator, wave: int) -> String:
-	# Placeholder weighted ramp. This is parity-scaffold only; real weights will be imported.
-	if wave < 3:
-		return "normal"
-	if wave < 6:
-		return ["normal", "splitter", "explosive"][rand.randi_range(0, 2)]
-	return VARIANTS[rand.randi_range(0, VARIANTS.size() - 1)]
+	var w := _variant_weights_for_wave(wave)
+	var allowed := _allowed_variant_pool_for_wave(w, wave)
+	var total := 0.0
+	for v in allowed:
+		total += maxf(0.0001, float(w.get(v, 0.01)))
+	var r := rand.randf() * total
+	for v in allowed:
+		r -= maxf(0.0001, float(w.get(v, 0.01)))
+		if r <= 0.0:
+			return v
+	return "normal"
+
+
+func _variant_weights_for_wave(wave: int) -> Dictionary:
+	# Web parity (`getAsteroidVariantWeights`): linear ramp by `waveT = clamp(wave / 18, 0, 1)`.
+	var wave_t := clampf(float(wave) / 18.0, 0.0, 1.0)
+	return {
+		"normal": 1.0,
+		"splitter": 0.035 + 0.11 * wave_t,
+		"explosive": 0.02 + 0.085 * wave_t,
+		"meteor": 0.015 + 0.07 * wave_t,
+		"seeker": 0.02 + 0.06 * wave_t,
+		"planet": 0.008 + 0.03 * wave_t,
+		"gold": 0.015 + 0.06 * wave_t,
+		"spawner": 0.006 + 0.03 * wave_t,
+		"emp": 0.01 + 0.045 * wave_t,
+		"colossus": 0.002 + 0.012 * wave_t,
+	}
+
+
+func _allowed_variant_pool_for_wave(weights: Dictionary, wave: int) -> Array[String]:
+	var max_types := mini(VARIANTS.size(), 2 + int(floor(float(wave) / 3.0)))
+	var scored: Array = []
+	for v in VARIANTS:
+		scored.append({"id": v, "w": float(weights.get(v, 0.01))})
+	scored.sort_custom(func(a, b): return float(a["w"]) > float(b["w"]))
+	var pool: Array[String] = []
+	for e in scored:
+		if pool.size() >= max_types:
+			break
+		pool.append(String(e["id"]))
+	if not pool.has("normal"):
+		if pool.is_empty():
+			pool.append("normal")
+		else:
+			pool[pool.size() - 1] = "normal"
+	return pool
 
 func update_asteroids(
 	delta: float,

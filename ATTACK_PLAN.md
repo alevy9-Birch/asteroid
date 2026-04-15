@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Impact trigger parity (`F.8`): use web near-target trigger for asteroid impact instead of impact-radius trigger.
+Variant selection parity (`F.6`): replace placeholder random picker with web-style weighted wave ramp and capped pool size.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -25,6 +25,7 @@ Impact trigger parity (`F.8`): use web near-target trigger for asteroid impact i
   - `godot/systems/AsteroidSystem.gd`: spawner cooldown now follows web-style dynamic interval (`max(2.2, 5.2 - adj*0.12)`).
   - `godot/scripts/main.gd`: removed fixed `6.0` cooldown reset after spawner meteor launch.
   - `godot/systems/AsteroidSystem.gd`: impact trigger now uses web-style near-target distance (`2.2`) / low-altitude check, with impact radius reserved for damage AOE.
+  - `godot/systems/AsteroidSystem.gd`: variant picking now uses web-style wave-ramped weights plus capped active type pool (`2 + floor(wave/3)`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
