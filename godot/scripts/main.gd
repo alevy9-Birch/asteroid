@@ -154,6 +154,7 @@ var money_spent := 0
 var asteroids_killed := 0
 var discovered_asteroid_variants: Dictionary = {}
 var active_asteroid_discovery := ""
+var active_asteroid_discovery_desc := ""
 var asteroid_discovery_timer_sec := 0.0
 var wave_variant_pool: Array[String] = ["normal"]
 ## Web `statsPowerProduced`: gross gen **`gen * dt`** during **`waveInProgress`** (CC + nuclears when **`credits > 0`**).
@@ -569,6 +570,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	asteroids_killed = 0
 	discovered_asteroid_variants.clear()
 	active_asteroid_discovery = ""
+	active_asteroid_discovery_desc = ""
 	asteroid_discovery_timer_sec = 0.0
 	wave_variant_pool = ["normal"]
 	power_produced = 0.0
@@ -642,6 +644,7 @@ func _process(delta: float) -> void:
 		asteroid_discovery_timer_sec = maxf(0.0, asteroid_discovery_timer_sec - delta)
 		if asteroid_discovery_timer_sec <= 0.0:
 			active_asteroid_discovery = ""
+			active_asteroid_discovery_desc = ""
 	_update_camera_motion(delta)
 	_update_passive_income(delta)
 	_update_power_economy(delta)
@@ -889,6 +892,7 @@ func _register_asteroid_discovery(variant: String) -> void:
 		return
 	discovered_asteroid_variants[variant] = true
 	active_asteroid_discovery = asteroid_system.variant_display_name(variant)
+	active_asteroid_discovery_desc = asteroid_system.variant_discovery_description(variant)
 	asteroid_discovery_timer_sec = 5.0
 	audio_service.emit_event("asteroid_discovery", {"variant": variant})
 
@@ -1361,7 +1365,7 @@ func _update_hud() -> void:
 	if phase == AppPhase.PLAYING:
 		gi += " | Diff: %s" % game_difficulty
 		if not active_asteroid_discovery.is_empty():
-			gi += " | New: %s" % active_asteroid_discovery
+			gi += " | New: %s — %s" % [active_asteroid_discovery, active_asteroid_discovery_desc]
 	if economy_buildings.size() > 0:
 		gi += " | Fac %d" % economy_buildings.size()
 	if supply_depots.size() > 0:

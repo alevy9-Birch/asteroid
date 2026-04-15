@@ -131,6 +131,10 @@ func update_asteroids(
 	for i in range(out.size() - 1, -1, -1):
 		var a = out[i]
 		var variant := String(a.get("variant", "normal"))
+		var stasis_t := maxf(0.0, float(a.get("stasisTimer", 0.0)) - delta)
+		var pulsar_t := maxf(0.0, float(a.get("pulsarSlowTimer", 0.0)) - delta)
+		a["stasisTimer"] = stasis_t
+		a["pulsarSlowTimer"] = pulsar_t
 		var pos: Vector3 = a["pos"]
 		var move_target := command_center_pos
 		# Web parity: seekers continuously retarget the closest live building while moving.
@@ -139,7 +143,9 @@ func update_asteroids(
 		var dir := (move_target - pos).normalized()
 		## Web: per-asteroid `speed` after variant `speedMul`; set at spawn via `compute_spawn_kinematics`.
 		var spd := float(a.get("move_speed", 5.2))
-		pos += dir * spd * delta
+		var slow_mul := 0.52 if pulsar_t > 0.0 else 1.0
+		if stasis_t <= 0.0:
+			pos += dir * spd * slow_mul * delta
 		a["pos"] = pos
 		if variant == "seeker":
 			a["target"] = move_target
@@ -375,6 +381,30 @@ func variant_display_name(variant: String) -> String:
 			return "Colossus"
 		_:
 			return "Normal"
+
+
+func variant_discovery_description(variant: String) -> String:
+	match variant:
+		"splitter":
+			return "Splits into smaller splitters on death."
+		"explosive":
+			return "Detonates on death, even mid-air."
+		"meteor":
+			return "Fast impactor with high single-hit damage."
+		"seeker":
+			return "Steers toward buildings during flight."
+		"planet":
+			return "Huge and durable, but moves slower."
+		"gold":
+			return "Drops bonus credits when destroyed."
+		"spawner":
+			return "Periodically launches fast meteors."
+		"emp":
+			return "Death blast disables nearby turrets."
+		"colossus":
+			return "Massive elite with extreme durability."
+		_:
+			return "Standard asteroid."
 
 func on_asteroid_destroyed(asteroid: Dictionary, reason: String) -> Dictionary:
 	var variant := String(asteroid.get("variant", "normal"))
