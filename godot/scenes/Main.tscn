@@ -201,7 +201,7 @@ text = "Research"
 
 [node name="ResearchHint" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
 layout_mode = 2
-text = "Press R to toggle. Move mouse to pan, scroll to zoom, center reticle hovers. U / I / O / N buy/refund when [$] appears."
+text = "Press R to toggle hero research (with commander). Move mouse to pan, scroll to zoom, center reticle hovers. U / I / O / N buy/refund when [$] appears."
 autowrap_mode = 3
 
 [node name="ResearchCore" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
