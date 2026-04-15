@@ -456,7 +456,7 @@ func _input(event: InputEvent) -> void:
 		_try_buy_upgrade("nuclear")
 	if (event.is_action_pressed("toggle_build_mode") or event.is_action_pressed("toggle_build_mode_alt")) and phase == AppPhase.PLAYING:
 		_toggle_build_mode()
-	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING:
+	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING and _has_commander_selected():
 		research_panel_open = not research_panel_open
 		_update_research_panel_visibility()
 	if event.is_action_pressed("toggle_diagnostics"):
@@ -1775,6 +1775,10 @@ func _update_research_labels() -> void:
 
 func _update_research_panel_visibility() -> void:
 	research_panel.visible = research_panel_open and phase == AppPhase.PLAYING
+
+
+func _has_commander_selected() -> bool:
+	return selected_commander != "none" and not selected_commander.is_empty()
 
 
 func _register_building_placement(building_id: String) -> void:

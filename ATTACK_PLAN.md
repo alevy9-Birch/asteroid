@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Look-readout commander qualifier parity (`D.4/J.1`): use `R hero research (with commander)` in in-play shortcut strip.
+Research toggle commander-gate parity (`D.4/J.3`): only allow `R` research overlay when a commander is selected.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -97,6 +97,7 @@ Look-readout commander qualifier parity (`D.4/J.1`): use `R hero research (with 
 - `godot/ui/HudController.gd`: gameplay shortcut tail now uses web’s explicit commander-qualified wording `R hero research (with commander)`.
 - `godot/scenes/Main.tscn`: research panel hint now explicitly calls out commander-gated hero research in the same web wording (`R ... (with commander)`).
 - `godot/scripts/main.gd`: look-readout shortcut strip now also uses commander-qualified hero-research wording for cross-HUD copy consistency.
+- `godot/scripts/main.gd`: `R` research toggle input is now commander-gated, matching web behavior where hero research cannot open without a selected commander.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
