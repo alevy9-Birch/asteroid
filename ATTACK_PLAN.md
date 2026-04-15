@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Look-info movement wording parity (`D.4`): align `Q/E` descriptor with web `height` wording.
+Gameplay HUD hero-research label parity (`J.1/J.3`): use web phrase `R hero research (with commander)`.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -94,6 +94,7 @@ Look-info movement wording parity (`D.4`): align `Q/E` descriptor with web `heig
 - `godot/scenes/Main.tscn`: research panel hint now uses web-style tree interaction copy (toggle, pan, zoom, reticle hover, plus U/I/O/N buy/refund note).
 - `godot/ui/HudController.gd`: gameplay shortcut tail now says `R research` (instead of `R panel`) for web phrasing consistency.
 - `godot/ui/HudController.gd`: look-info text now uses web terminology `Q/E height` (replacing `Q/E up-down`).
+- `godot/ui/HudController.gd`: gameplay shortcut tail now uses web’s explicit commander-qualified wording `R hero research (with commander)`.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
