@@ -1536,7 +1536,7 @@ func _update_hud() -> void:
 			bm = "depot L"
 		elif bm == "nuclear":
 			bm = "nuclear plant"
-	look_readout.text = "%s | Build: %s | B/C toggle" % [
+	look_readout.text = "%s | Build: %s | C wheel | U skills | R research | RMB sell" % [
 		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),
 		bm,
 	]
