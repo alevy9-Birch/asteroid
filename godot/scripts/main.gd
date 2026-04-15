@@ -556,6 +556,7 @@ func apply_phase(next_phase: AppPhase) -> void:
 	_center_virtual_cursor()
 	_ensure_fullscreen_and_capture()
 	_update_hud()
+	_update_discovery_toast()
 
 
 ## Web-style run lifecycle (menu / gameover entry points). Pause still uses **`apply_phase`** (PLAYING ↔ PAUSED).
@@ -1508,14 +1509,7 @@ func _update_hud() -> void:
 	if nuclear_plants.size() > 0:
 		gi += " | Nuc %d" % nuclear_plants.size()
 	gameplay_info.text = gi
-	if phase == AppPhase.PLAYING and not active_asteroid_discovery.is_empty():
-		discovery_toast.visible = true
-		discovery_toast.modulate = Color(1.0, 1.0, 1.0, 1.0)
-		discovery_toast_swatch.color = asteroid_system.variant_color(active_asteroid_discovery_variant)
-		discovery_toast_title.text = "New Asteroid: %s" % active_asteroid_discovery
-		discovery_toast_body.text = active_asteroid_discovery_desc
-	else:
-		discovery_toast.visible = false
+	_update_discovery_toast()
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	if phase == AppPhase.PLAYING or phase == AppPhase.PAUSED:
 		_update_research_labels()
@@ -1771,6 +1765,19 @@ func _update_research_labels() -> void:
 
 func _update_research_panel_visibility() -> void:
 	research_panel.visible = research_panel_open and phase == AppPhase.PLAYING
+
+
+func _update_discovery_toast() -> void:
+	if phase == AppPhase.PLAYING and not active_asteroid_discovery.is_empty():
+		discovery_toast.visible = true
+		discovery_toast.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		discovery_toast_swatch.color = asteroid_system.variant_color(active_asteroid_discovery_variant)
+		discovery_toast_title.text = "New Asteroid: %s" % active_asteroid_discovery
+		discovery_toast_body.text = active_asteroid_discovery_desc
+		return
+	discovery_toast.visible = false
+	discovery_toast_title.text = "New Asteroid"
+	discovery_toast_body.text = ""
 
 
 func _finalize_run_score() -> void:
