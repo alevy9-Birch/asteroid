@@ -175,7 +175,7 @@ var upgrade_core_phase := -1
 var upgrade_factory_phase := -1
 var upgrade_logistics_phase := -1
 var upgrade_nuclear_phase := -1
-var research_panel_open := true
+var research_panel_open := false
 var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
@@ -571,6 +571,7 @@ func go_to_menu() -> void:
 func _start_new_run(is_sandbox: bool = false) -> void:
 	sandbox_run = is_sandbox
 	build_mode = "turret"
+	research_panel_open = false
 	# Web `resetRun`–style teardown: all per-run entity arrays + CC node (C.1.2).
 	_clear_entities()
 	# Refresh JSON-derived baselines each run (parity extract can change without editor restart).

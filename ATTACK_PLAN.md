@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Tracking consistency parity (`A.2`/`J.3`): resolve stale `[R]` wording in root progress notes after `[$]` marker migration.
+Research default-open parity (`D.4`/`J.3`): reset research overlay to closed state at run start.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -68,6 +68,7 @@ Tracking consistency parity (`A.2`/`J.3`): resolve stale `[R]` wording in root p
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `R`-driven research panel toggle state (`research_panel_open`) and centralized research-panel visibility updates for PLAYING/PAUSED flow.
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `C` alias for build-mode cycling (alongside `B`) and updated look-readout shortcut hint to `B/C`.
 - `godot/scenes/Main.tscn` + `godot/ui/HudController.gd`: updated visible gameplay shortcut copy to include `R` research-panel toggle and `B/C` build-cycle parity hints.
+- `godot/scripts/main.gd`: research overlay now initializes closed and resets closed at each run start; opening is now explicit via `R` toggle path.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
