@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research phase-gating parity (`D.4`/`J.3`): keep research overlay active only in PLAYING and close on phase exit.
+Discovery toast UI parity (`J.2`): add a dedicated HUD toast label for new asteroid discoveries.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -70,6 +70,7 @@ Research phase-gating parity (`D.4`/`J.3`): keep research overlay active only in
 - `godot/scenes/Main.tscn` + `godot/ui/HudController.gd`: updated visible gameplay shortcut copy to include `R` research-panel toggle and `B/C` build-cycle parity hints.
 - `godot/scripts/main.gd`: research overlay now initializes closed and resets closed at each run start; opening is now explicit via `R` toggle path.
 - `godot/scripts/main.gd`: research overlay is now gameplay-only (PLAYING), closes on any phase exit, and no longer toggles while paused.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: added a dedicated `DiscoveryToast` HUD label for new asteroid discovery notices, matching web-style separate toast presentation.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

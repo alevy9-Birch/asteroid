@@ -54,6 +54,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var camera_3d: Camera3D = $World3D/Camera3D
 @onready var ground: MeshInstance3D = $World3D/Ground
 @onready var look_readout: Label = $GameplayLayer/LookReadout
+@onready var discovery_toast: Label = $GameplayLayer/DiscoveryToast
 @onready var gameplay_info: Label = $GameplayLayer/GameplayInfo
 @onready var center_hp_bar: ProgressBar = $GameplayLayer/CenterHpBar
 @onready var diagnostics_label: Label = $GameplayLayer/Diagnostics
@@ -1502,6 +1503,11 @@ func _update_hud() -> void:
 	if nuclear_plants.size() > 0:
 		gi += " | Nuc %d" % nuclear_plants.size()
 	gameplay_info.text = gi
+	if phase == AppPhase.PLAYING and not active_asteroid_discovery.is_empty():
+		discovery_toast.visible = true
+		discovery_toast.text = "New Asteroid: %s\n%s" % [active_asteroid_discovery, active_asteroid_discovery_desc]
+	else:
+		discovery_toast.visible = false
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	if phase == AppPhase.PLAYING or phase == AppPhase.PAUSED:
 		_update_research_labels()
