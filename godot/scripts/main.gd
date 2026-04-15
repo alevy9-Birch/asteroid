@@ -524,7 +524,7 @@ func _is_key_echo_event(event: InputEvent) -> bool:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_IN:
 		_ensure_capture_mode()
-		capture_recover_pending = false
+		capture_recover_pending = true
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		capture_recover_pending = true
 		dragging_build = false

@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.2/D.4 pointer recapture parity: route gameplay RMB through the same capture/consume flow as LMB.
+D.2 pointer lock recovery parity: keep recapture guard armed across focus regain until the next gameplay click.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -138,6 +138,7 @@ D.2/D.4 pointer recapture parity: route gameplay RMB through the same capture/co
 - `godot/scripts/main.gd`: left-click handler now checks `research_panel_open` before `_ensure_fullscreen_and_capture()` in gameplay, so research-overlay clicks no longer trigger recapture side effects.
 - `godot/scripts/main.gd`: drag-build/drag-sell flags now clear on app focus loss and when capture is inactive, matching web pointer-lock loss behavior and preventing stale post-focus repeat actions.
 - `godot/scripts/main.gd`: gameplay RMB now checks research-overlay state before capture and then calls `_ensure_fullscreen_and_capture()` before sell handling, matching web pointerdown recapture flow for both mouse buttons.
+- `godot/scripts/main.gd`: focus-in notification now keeps `capture_recover_pending` armed so the next gameplay click is consumed for recapture safety instead of immediately acting.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
