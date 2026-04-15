@@ -71,10 +71,10 @@ func emit_event(event_name: String, payload: Dictionary = {}) -> void:
 func _play_asteroid_destroyed(payload: Dictionary) -> void:
 	var reason := String(payload.get("reason", "combat"))
 	var v := String(payload.get("variant", ""))
-	if reason != "combat":
-		return
 	var large := v == "colossus" or v == "planet"
-	var key := "asteroid_destroyed_large" if large else "asteroid_destroyed_small"
+	var key := "asteroid_destroyed_small"
+	if reason == "combat" and large:
+		key = "asteroid_destroyed_large"
 	_play_stream_if_exists(SFX_DIR + OPTIONAL_SFX[key])
 
 
