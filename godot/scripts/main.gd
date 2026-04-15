@@ -1479,7 +1479,7 @@ func _update_hud() -> void:
 		wave_timer_hud.visible = false
 	var spawn_status := "Press Space to start"
 	if wave_combat_active and not spawn_window_ended:
-		spawn_status = "Spawning asteroids..."
+		spawn_status = "Spawning asteroids…"
 	elif wave_combat_active:
 		spawn_status = "Asteroids remaining: %d" % asteroids.size()
 	elif first_wave_started and wave > 0 and inactive_time_left_sec > 0.0:
