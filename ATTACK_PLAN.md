@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 input handling robustness: make `U/I/O/N` repeat suppression non-short-circuiting to avoid unintended early returns.
+D.4 input handling robustness: remove remaining return-based echo guards (`P/C/R`) in favor of inline gated handling.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -126,6 +126,7 @@ D.4 input handling robustness: make `U/I/O/N` repeat suppression non-short-circu
 - `godot/scripts/main.gd`: `U/I/O/N` upgrade hotkeys now also use `_is_key_echo_event(event)` so all repeat guards share one path.
 - `godot/scripts/main.gd`: documented that `Space` wave-start intentionally relies on wave-ready gating (no repeat guard), matching web key behavior.
 - `godot/scripts/main.gd`: `U/I/O/N` echo suppression now avoids `return` short-circuits by gating `_try_buy_upgrade(...)` inline.
+- `godot/scripts/main.gd`: `P/C/R` echo suppression now also gates behavior inline (no early `return` from `_input`), aligning repeat-guard handling across all hotkeys.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.

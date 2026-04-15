@@ -455,11 +455,10 @@ func _input(event: InputEvent) -> void:
 				return
 			_handle_play_right_click()
 	if event.is_action_pressed("ui_pause"):
-		if _is_key_echo_event(event):
-			return
-		var next = pause_controller.handle_toggle(int(phase), int(AppPhase.PLAYING), int(AppPhase.PAUSED))
-		if next != int(phase):
-			apply_phase(AppPhase.values()[next])
+		if not _is_key_echo_event(event):
+			var next = pause_controller.handle_toggle(int(phase), int(AppPhase.PLAYING), int(AppPhase.PAUSED))
+			if next != int(phase):
+				apply_phase(AppPhase.values()[next])
 	if event.is_action_pressed("simulate_gameover"):
 		end_run()
 	if event.is_action_pressed("start_wave") and phase == AppPhase.PLAYING:
@@ -483,17 +482,15 @@ func _input(event: InputEvent) -> void:
 		if not _is_key_echo_event(event):
 			_try_buy_upgrade("nuclear")
 	if event.is_action_pressed("cycle_build_mode") and phase == AppPhase.PLAYING:
-		if _is_key_echo_event(event):
-			return
-		if research_panel_open:
-			research_panel_open = false
-			_update_research_panel_visibility()
-		_cycle_build_mode()
+		if not _is_key_echo_event(event):
+			if research_panel_open:
+				research_panel_open = false
+				_update_research_panel_visibility()
+			_cycle_build_mode()
 	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING and _has_commander_selected():
-		if _is_key_echo_event(event):
-			return
-		research_panel_open = not research_panel_open
-		_update_research_panel_visibility()
+		if not _is_key_echo_event(event):
+			research_panel_open = not research_panel_open
+			_update_research_panel_visibility()
 	if event.is_action_pressed("toggle_diagnostics"):
 		diagnostics_visible = not diagnostics_visible
 		diagnostics_label.visible = diagnostics_visible
