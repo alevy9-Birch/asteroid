@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over stats readability parity (`J.2`): format stats block as grouped multiline rows.
+Game-over text de-dup parity (`J.2`): keep context in hint and metrics in dedicated stats block.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -78,6 +78,7 @@ Game-over stats readability parity (`J.2`): format stats block as grouped multil
 - `godot/scripts/main.gd`: discovery toast rendering/reset is now centralized in `_update_discovery_toast()` and called from HUD + phase transitions to avoid stale hidden-state text.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: game-over UI now includes a dedicated `GameOverStats` line with earned/spent/power/kills metrics populated at run finalization.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: game-over stats now render as two grouped lines (money row + power/kills row) for web-like post-run readability.
+- `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over hint text now carries run context (`Wave survived`, commander, sandbox note) while numeric metrics are shown only in `GameOverStats` to remove duplication.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
