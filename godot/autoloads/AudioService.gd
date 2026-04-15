@@ -50,6 +50,9 @@ func set_master_volume(level: float) -> void:
 func emit_event(event_name: String, payload: Dictionary = {}) -> void:
 	if event_name == "":
 		return
+	if event_name == "wave_start" or event_name == "wave_cleared":
+		# Web treats these as markers only (no SFX playback).
+		return
 	if event_name == "game_over":
 		_play_game_over_if_available()
 		return
