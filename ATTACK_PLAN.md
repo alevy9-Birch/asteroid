@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 overlay input parity: cancel active drag-build/drag-sell state while research overlay is open.
+D.2 pointer-recovery lifecycle parity: reset recapture guard on fresh run start.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -140,6 +140,7 @@ D.4 overlay input parity: cancel active drag-build/drag-sell state while researc
 - `godot/scripts/main.gd`: gameplay RMB now checks research-overlay state before capture and then calls `_ensure_fullscreen_and_capture()` before sell handling, matching web pointerdown recapture flow for both mouse buttons.
 - `godot/scripts/main.gd`: focus-in notification now keeps `capture_recover_pending` armed so the next gameplay click is consumed for recapture safety instead of immediately acting.
 - `godot/scripts/main.gd`: research overlay visibility sync now clears drag-build/drag-sell flags whenever `research_panel_open` is true, preventing held-pointer repeat actions from leaking across overlay interaction.
+- `godot/scripts/main.gd`: `_start_new_run()` now resets `capture_recover_pending` so a menu focus-change does not consume the first intended gameplay click of a fresh run.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.

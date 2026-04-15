@@ -683,6 +683,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	sandbox_run = is_sandbox
 	build_mode = "turret"
 	research_panel_open = false
+	capture_recover_pending = false
 	# Web `resetRun`–style teardown: all per-run entity arrays + CC node (C.1.2).
 	_clear_entities()
 	# Refresh JSON-derived baselines each run (parity extract can change without editor restart).
