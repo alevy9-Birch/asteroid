@@ -466,10 +466,11 @@ func _input(event: InputEvent) -> void:
 				_ensure_fullscreen_and_capture()
 				_activate_menu_target()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and phase == AppPhase.PLAYING:
+			if research_panel_open:
+				return
+			_ensure_fullscreen_and_capture()
 			if capture_recover_pending or not _is_capture_active():
 				capture_recover_pending = false
-				return
-			if research_panel_open:
 				return
 			dragging_sell = true
 			drag_sell_timer_sec = 0.0
