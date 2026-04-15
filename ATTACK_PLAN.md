@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Commander menu layout parity (`I.4/J.3`): separate `None` button from the 2x3 hero commander grid.
+Build-key precedence parity (`D.4`): pressing `C` while research is open closes research without cycling build mode.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -114,6 +114,7 @@ Commander menu layout parity (`I.4/J.3`): separate `None` button from the 2x3 he
 - `godot/scripts/main.gd`: sandbox game-over note now appends with web-style spacing (`Waves survived: N Sandbox — score not saved`) instead of a pipe separator.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander picker now uses explicit menu buttons (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) instead of an `OptionButton`, with selected commander shown by pressed/toggle button state.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander menu layout now separates `None` from hero choices and presents heroes in a 2x3 grid, matching web commander block structure more closely.
+- `godot/scripts/main.gd`: `C` build-key input now treats open research as higher-priority context and closes research without also cycling build mode on that same key press.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
