@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Camera default pose parity (`D.5`): match web startup/reset camera position and angles.
+Virtual cursor margin parity (`D.3`): use web-equivalent edge margin for menu cursor clamping.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -12,6 +12,13 @@ Camera default pose parity (`D.5`): match web startup/reset camera position and 
   - `godot/systems/CameraSystem.gd`: speed and bounds now match web `updateCamera`.
   - `godot/systems/CameraSystem.gd`: look delta clamp added (`±220`) before sensitivity apply.
   - `godot/systems/CameraSystem.gd`: default and reset pose aligned to web (`camPos`, `yaw`, `pitch`).
+- Pointer-lock recovery slice completed this session:
+  - `godot/scripts/main.gd`: gameplay look/click now requires active mouse capture.
+  - `godot/scripts/main.gd`: first click after focus loss recaptures only (no build/sell action on that click).
+- Virtual cursor slice completed this session:
+  - `godot/ui/MainMenuController.gd`: menu hit testing now scans top-most first and ignores disabled/hidden controls.
+  - `godot/ui/MainMenuController.gd`: activation path guards against disabled/hidden targets.
+  - `godot/ui/MainMenuController.gd`: cursor clamp margin aligned to web value (`14`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

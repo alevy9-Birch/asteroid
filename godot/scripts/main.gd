@@ -94,6 +94,8 @@ var master_volume := 0.85
 var menu_cursor := Vector2.ZERO
 var highlighted_button: Button
 var all_menu_buttons: Array[Button] = []
+## Web pointer-lock parity: after focus/pointer-lock loss, first click re-captures only.
+var capture_recover_pending := false
 var turrets: Array = []
 ## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
 var economy_buildings: Array = []
@@ -387,10 +389,16 @@ func _input(event: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			_ensure_fullscreen_and_capture()
 			if phase == AppPhase.PLAYING:
+				if capture_recover_pending or not _is_capture_active():
+					capture_recover_pending = false
+					return
 				_handle_play_left_click()
 			else:
 				_activate_menu_target()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and phase == AppPhase.PLAYING:
+			if capture_recover_pending or not _is_capture_active():
+				capture_recover_pending = false
+				return
 			_handle_play_right_click()
 	if event.is_action_pressed("ui_pause"):
 		var next = pause_controller.handle_toggle(int(phase), int(AppPhase.PLAYING), int(AppPhase.PAUSED))
@@ -423,6 +431,9 @@ func _input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_IN:
 		_ensure_capture_mode()
+		capture_recover_pending = false
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		capture_recover_pending = true
 
 
 func _setup_inputs() -> void:
@@ -582,6 +593,8 @@ func _handle_mouse_motion(event: InputEventMouseMotion) -> void:
 	var viewport_size := get_viewport_rect().size
 	if phase == AppPhase.PLAYING:
 		menu_cursor = main_menu_controller.update_cursor(menu_cursor, event.relative, viewport_size)
+		if not _is_capture_active():
+			return
 		camera_system.apply_mouse_look(event.relative)
 		look_readout.text = "Yaw: %.2f | Pitch: %.2f" % [camera_system.yaw, camera_system.pitch]
 		return
@@ -1525,6 +1538,10 @@ func _ensure_fullscreen_and_capture() -> void:
 func _ensure_capture_mode() -> void:
 	# Keep OS cursor hidden; for menu overlays we still use relative motion to steer a virtual cursor.
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _is_capture_active() -> bool:
+	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 
 
 func _wave_state_dict() -> Dictionary:
