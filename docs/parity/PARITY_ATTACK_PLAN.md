@@ -31,6 +31,31 @@ Single place to see what the port **actually runs** today (see **§3** for check
 - **Score:** web **`computeRunScore`** coefficients + difficulty mul; **`power_produced`** tracks gross gen.
 - **Data:** **`parity_web_defs.json`** + **`WebParityDefs`** readers (**`read_building_footprint`**, etc.); research **`prereqIds`** for the four slots; **`balanceVars`** keys present (often **1** — extractor bakes **`VARS.C/P/S/E`** into building numbers).
 
+### 1.2) Functional parity snapshot (what runs where)
+
+Use this as the quick answer to "can I play this in Godot yet, and what is still web-only?"
+
+#### In Godot now (playable prototype)
+
+- **Run loop and shell:** menu, play, pause, game over, play-again, sandbox toggle.
+- **Buildable pieces:** command center baseline + auto turret + factory + supply depots (S/L) + nuclear plant.
+- **Core combat loop:** asteroid spawning/scaling + projectile turret fire + impacts + kill credit payouts.
+- **Economy core:** wave-gated payouts, supply cap from CC/depots, passive power drain hooks, nuclear generation rule (`credits > 0`).
+- **Research prototype:** U/I/O/N purchase flow, costs from defs, prereq chain checks, and basic gameplay effects.
+- **Scoring:** `computeRunScore`-style coefficients, difficulty multiplier, best-score persistence, sandbox score suppression.
+- **Parity data ingestion:** generated web defs consumed by `WebParityDefs` helpers for footprint/cost/power/supply fields.
+
+#### Still only in web (or not parity-complete in Godot)
+
+- **Full building roster + build wheel UX:** complete catalog, category wheel, and full unlock graph behavior.
+- **Weapon families:** hitscan, missile systems/volleys, ballistic, railgun, shield bubbles/interception, and exact power model parity.
+- **Asteroid behavior parity:** full variant tuning (splitter/explosive/meteor/seeker/planet/gold/spawner/emp/colossus), discovery rules, and status effects.
+- **Upgrade parity:** full modifier graph (`modifiers`, phase/refund semantics, effective-def application, hero-gated unlocks).
+- **Commander parity:** hero-specific simulation differences, building allowlists, and full UI feedback.
+- **UI parity:** rich HUD panels, research tree/wheel overlays, discovery toasts, detailed post-run stats grid, leaderboard UX.
+- **Audio parity:** 1:1 event map, complete SFX/music catalog, and web-equivalent bus mixing behavior.
+- **Persistence parity:** full leaderboard record shape/order semantics and complete web-equivalent save/restore behavior.
+
 ---
 
 ## 2) Rules of engagement

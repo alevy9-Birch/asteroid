@@ -15,6 +15,7 @@ func update_asteroids(delta: float, asteroids: Array, command_center_pos: Vector
 	var out := asteroids.duplicate(true)
 	for i in range(out.size() - 1, -1, -1):
 		var a = out[i]
+		var variant := String(a.get("variant", "normal"))
 		var pos: Vector3 = a["pos"]
 		var dir := (command_center_pos - pos).normalized()
 		## Web: per-asteroid `speed` after variant `speedMul`; set at spawn via `compute_spawn_kinematics`.

@@ -17,8 +17,8 @@ const MainMenuControllerScript = preload("res://ui/MainMenuController.gd")
 const PauseControllerScript = preload("res://ui/PauseController.gd")
 const GameOverControllerScript = preload("res://ui/GameOverController.gd")
 const HudControllerScript = preload("res://ui/HudController.gd")
-const MENU_HIGHLIGHT_COLOR := Color(0.20, 0.45, 0.85, 1.0)
-const MENU_DEFAULT_COLOR := Color(1, 1, 1, 1)
+var MENU_HIGHLIGHT_COLOR := Color(0.20, 0.45, 0.85, 1.0)
+var MENU_DEFAULT_COLOR := Color(1, 1, 1, 1)
 const GRID_SIZE := 2.0
 ## Web `inactiveDurationSec`.
 const INACTIVE_DURATION_SEC := 60.0
@@ -140,7 +140,7 @@ var spawn_timer := 0.0
 var intermission_timer := 0.0
 ## Web **`GameDifficulty`** — menu **`MenuDifficultyOption`**; drives **`WaveScaling`** + **`computeRunScore`** mul.
 var game_difficulty := "hard"
-const MENU_DIFFICULTY_IDS: PackedStringArray = PackedStringArray(["easy", "medium", "hard", "brutal", "deadly"])
+var MENU_DIFFICULTY_IDS: PackedStringArray = PackedStringArray(["easy", "medium", "hard", "brutal", "deadly"])
 ## Web `inactiveTimeLeftSec` / `currentInactivePhase` (sell refund + upgrade phase).
 var inactive_time_left_sec := 0.0
 var current_inactive_phase := 0
