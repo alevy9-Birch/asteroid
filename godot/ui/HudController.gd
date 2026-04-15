@@ -19,7 +19,7 @@ func format_gameplay_info(
 	var wr := "wait"
 	if wave_ready:
 		wr = "ready"
-	var tail := " | LMB/RMB | P pause"
+	var tail := " | LMB/RMB | P pause | R panel"
 	if not refund_hint.is_empty():
 		tail = " | %s%s" % [refund_hint, tail]
 	return "Wave %d | %dc | HP %d/%d | P %d/%d | S %d/%d | Tur %d | Ast %d | Space:%s | %s%s" % [

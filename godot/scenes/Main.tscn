@@ -160,7 +160,7 @@ text = "Research"
 
 [node name="ResearchHint" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]
 layout_mode = 2
-text = "Press U / I / O / N to buy. Press same key to refund when [$] appears."
+text = "R: toggle panel | U / I / O / N: buy/refund when [$] appears | B/C: cycle build."
 autowrap_mode = 3
 
 [node name="ResearchCore" type="Label" parent="GameplayLayer/ResearchPanel/ResearchVBox"]

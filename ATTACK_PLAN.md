@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Build shortcut parity (`D.4`): add `C` as a build-mode cycle alias while preserving existing `B` flow.
+Shortcut copy parity (`D.4`/`J.3`): align visible in-game hint text with active build/research shortcut set.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -67,6 +67,7 @@ Build shortcut parity (`D.4`): add `C` as a build-mode cycle alias while preserv
 - `godot/scenes/Main.tscn`: research panel hint copy now explains same-key refunds and the `[$]` refundable marker.
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `R`-driven research panel toggle state (`research_panel_open`) and centralized research-panel visibility updates for PLAYING/PAUSED flow.
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `C` alias for build-mode cycling (alongside `B`) and updated look-readout shortcut hint to `B/C`.
+- `godot/scenes/Main.tscn` + `godot/ui/HudController.gd`: updated visible gameplay shortcut copy to include `R` research-panel toggle and `B/C` build-cycle parity hints.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
