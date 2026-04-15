@@ -361,7 +361,7 @@ func _placed_for_build() -> Array:
 	return out
 
 
-func _toggle_build_mode() -> void:
+func _cycle_build_mode() -> void:
 	var modes := _available_build_modes()
 	if modes.size() <= 1:
 		build_mode = "turret"
@@ -482,7 +482,7 @@ func _input(event: InputEvent) -> void:
 			research_panel_open = false
 			_update_research_panel_visibility()
 			return
-		_toggle_build_mode()
+		_cycle_build_mode()
 	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING and _has_commander_selected():
 		research_panel_open = not research_panel_open
 		_update_research_panel_visibility()
