@@ -65,6 +65,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var research_factory_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchFactory
 @onready var research_logistics_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchLogistics
 @onready var research_nuclear_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchNuclear
+@onready var research_hint_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchHint
 @onready var research_panel: PanelContainer = $GameplayLayer/ResearchPanel
 @onready var menu_overlay: PanelContainer = $MenuOverlay
 @onready var pause_overlay: PanelContainer = $PauseOverlay
@@ -1779,6 +1780,10 @@ func _update_research_labels() -> void:
 	research_factory_label.text = upgrade_system.research_label_with_prereq_hint("factory", upgrade_factory, rs)
 	research_logistics_label.text = upgrade_system.research_label_with_prereq_hint("logistics", upgrade_logistics, rs)
 	research_nuclear_label.text = upgrade_system.research_label_with_prereq_hint("nuclear", upgrade_nuclear, rs)
+	if _has_commander_selected():
+		research_hint_label.text = "Press R to toggle hero research (with commander). Move mouse to pan, scroll to zoom, center reticle hovers. U / I / O / N buy/refund when [$] appears."
+	else:
+		research_hint_label.text = "Hero research unavailable without commander. Move mouse to pan, scroll to zoom, center reticle hovers. U / I / O / N buy/refund when [$] appears."
 
 
 func _update_research_panel_visibility() -> void:
