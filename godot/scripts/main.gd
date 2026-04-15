@@ -1459,6 +1459,11 @@ func _update_hud() -> void:
 	var refund_hint := ""
 	if not _is_wave_combat_active() and first_wave_started and inactive_time_left_sec > 0.0:
 		refund_hint = "Sell (RMB): 100% if built this break"
+	if not _is_wave_combat_active() and _has_refundable_prototype_upgrade():
+		if refund_hint.is_empty():
+			refund_hint = "Refund upgrade: press same U/I/O/N key"
+		else:
+			refund_hint += " | Refund upgrade: press same U/I/O/N key"
 	var wave_ready := _compute_wave_ready()
 	var gi := hud_controller.format_gameplay_info(
 		wave,
@@ -1504,6 +1509,20 @@ func _update_hud() -> void:
 		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),
 		bm,
 	]
+
+
+func _has_refundable_prototype_upgrade() -> bool:
+	if wave_combat_active:
+		return false
+	if upgrade_core and upgrade_core_phase == current_inactive_phase:
+		return true
+	if upgrade_factory and upgrade_factory_phase == current_inactive_phase:
+		return true
+	if upgrade_logistics and upgrade_logistics_phase == current_inactive_phase:
+		return true
+	if upgrade_nuclear and upgrade_nuclear_phase == current_inactive_phase:
+		return true
+	return false
 
 
 func _update_power_economy(delta: float) -> void:

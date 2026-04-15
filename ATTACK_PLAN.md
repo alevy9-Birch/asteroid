@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Upgrade phase-state sync parity (`A.2`/`I.2`): mirror `upgrade_*_phase` refund timing state into `GameState` runtime sync.
+Refund affordance parity (`J.3`/`I.2`): surface upgrade refund availability in gameplay HUD hint during inactive phase.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -62,6 +62,7 @@ Upgrade phase-state sync parity (`A.2`/`I.2`): mirror `upgrade_*_phase` refund t
   - `godot/systems/UpgradeSystem.gd`: buy/refund paths now enforce wave-combat phase guards at system level (not just input caller).
   - `godot/scripts/main.gd`: build mode now auto-normalizes to `turret` when refund/cleanup removes the selected unlocked build category.
   - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: upgrade phase ownership metadata (`upgrade_*_phase`) is now mirrored in runtime sync state.
+- `godot/scripts/main.gd`: gameplay HUD now shows an explicit same-key upgrade refund hint during inactive phase whenever any prototype slot is refundable.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
