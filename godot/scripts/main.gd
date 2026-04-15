@@ -21,6 +21,10 @@ var MENU_HIGHLIGHT_COLOR := Color(0.20, 0.45, 0.85, 1.0)
 var MENU_DEFAULT_COLOR := Color(1, 1, 1, 1)
 const GRID_SIZE := 2.0
 const ASTEROID_TARGET_HALF := 40.0
+const ASTEROID_SPAWN_RADIUS_MIN := 160.0
+const ASTEROID_SPAWN_RADIUS_MAX := 220.0
+const ASTEROID_SPAWN_HEIGHT_MIN := 90.0
+const ASTEROID_SPAWN_HEIGHT_MAX := 120.0
 ## Web `inactiveDurationSec`.
 const INACTIVE_DURATION_SEC := 60.0
 ## Fallbacks if `WebParityDefs` fails; normally overridden from **`auto_turret`** / **`command_center`**.
@@ -707,18 +711,13 @@ func _clear_entities() -> void:
 
 
 func _spawn_asteroid() -> void:
-	var arena := 95.0
-	var side := rand.randi_range(0, 3)
-	var p := Vector3.ZERO
-	match side:
-		0:
-			p = Vector3(rand.randf_range(-arena, arena), 1.2, -arena)
-		1:
-			p = Vector3(arena, 1.2, rand.randf_range(-arena, arena))
-		2:
-			p = Vector3(rand.randf_range(-arena, arena), 1.2, arena)
-		_:
-			p = Vector3(-arena, 1.2, rand.randf_range(-arena, arena))
+	var spawn_angle := rand.randf_range(0.0, TAU)
+	var spawn_r := rand.randf_range(ASTEROID_SPAWN_RADIUS_MIN, ASTEROID_SPAWN_RADIUS_MAX)
+	var p := Vector3(
+		cos(spawn_angle) * spawn_r,
+		rand.randf_range(ASTEROID_SPAWN_HEIGHT_MIN, ASTEROID_SPAWN_HEIGHT_MAX),
+		sin(spawn_angle) * spawn_r
+	)
 	var node: MeshInstance3D
 	if asteroid_pool.is_empty():
 		node = MeshInstance3D.new()

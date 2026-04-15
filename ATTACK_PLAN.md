@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Asteroid spawn-target parity (`F.6`/`F.7`): randomize non-seeker target points to web board range and preserve parent target for spawned meteors/splitter children.
+Asteroid spawn-geometry parity (`F.6`/`F.7`): align spawn radius and altitude generation with web `spawnAsteroid` (`r=160..220`, `y=90..120`).
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -45,6 +45,7 @@ Asteroid spawn-target parity (`F.6`/`F.7`): randomize non-seeker target points t
   - `godot/scripts/main.gd`: impact-triggered AOE/EMP effects now resolve around the asteroid target point for impact deaths.
   - `godot/scripts/main.gd`: non-seeker spawn targets now use randomized web-style grid points (`[-40, 40]` on X/Z) instead of fixed command-center target.
   - `godot/scripts/main.gd`: spawned meteors/splitter children now inherit parent target so split/spawn trajectories remain consistent with parent impact lane.
+  - `godot/scripts/main.gd`: base asteroid entry now matches web radial/high-altitude spawn geometry (`r=160..220`, `y=90..120`) instead of low side-edge spawn.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
