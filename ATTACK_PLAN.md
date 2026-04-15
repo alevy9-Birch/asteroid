@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Menu shortcut hint commander-awareness parity (`J.1/J.3`): only show `R` hero research in menu guidance when commander is selected.
+Menu commander status hint parity (`J.1/J.3`): add web-style neutral-tech/hero-research availability message in main menu.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -103,6 +103,7 @@ Menu shortcut hint commander-awareness parity (`J.1/J.3`): only show `R` hero re
 - `godot/scripts/main.gd`: `C`/`B` build-cycle input now closes an open research overlay before cycling build mode, matching web-style panel precedence.
 - `godot/scripts/main.gd`: research panel hint copy now updates dynamically to show commander-dependent hero research availability vs unavailability.
 - `godot/scripts/main.gd`: main-menu control hint line now dynamically includes `R hero research (with commander)` only when commander research is available.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: menu now includes a dedicated commander-status hint line with web-style neutral-tech copy and commander-present variant text.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

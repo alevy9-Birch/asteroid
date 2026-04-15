@@ -249,6 +249,12 @@ text = "Move the mouse to steer the virtual cursor; click selects. WASD move · 
 horizontal_alignment = 1
 autowrap_mode = 3
 
+[node name="MenuCommanderHint" type="Label" parent="MenuOverlay/MenuVBox"]
+layout_mode = 2
+text = "Neutral tech only — no hero buildings or hero research."
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="MenuDifficultyRow" type="HBoxContainer" parent="MenuOverlay/MenuVBox"]
 layout_mode = 2
 alignment = 1

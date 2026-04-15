@@ -75,6 +75,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var menu_volume_value: Label = $MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolumeValue
 @onready var pause_volume_value: Label = $PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolumeValue
 @onready var menu_hint_label: Label = $MenuOverlay/MenuVBox/MenuHint
+@onready var menu_commander_hint_label: Label = $MenuOverlay/MenuVBox/MenuCommanderHint
 @onready var gameover_hint: Label = $GameOverOverlay/GameOverVBox/GameOverHint
 @onready var gameover_stats: Label = $GameOverOverlay/GameOverVBox/GameOverStats
 @onready var gameover_score: Label = $GameOverOverlay/GameOverVBox/GameOverScore
@@ -1534,6 +1535,10 @@ func _update_hud() -> void:
 	if _has_commander_selected():
 		menu_hint_label.text += " · R hero research (with commander)"
 	menu_hint_label.text += " · RMB sell · Space wave · P pause"
+	if _has_commander_selected():
+		menu_commander_hint_label.text = "Commander selected: %s — hero buildings and hero research available." % selected_commander.capitalize()
+	else:
+		menu_commander_hint_label.text = "Neutral tech only — no hero buildings or hero research."
 	var bm := "turret"
 	if upgrade_factory or upgrade_logistics or upgrade_nuclear:
 		bm = build_mode
