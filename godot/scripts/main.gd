@@ -1567,10 +1567,7 @@ func _update_hud() -> void:
 	if phase == AppPhase.PLAYING or phase == AppPhase.PAUSED:
 		_update_research_labels()
 	_update_research_panel_visibility()
-	menu_hint_label.text = "Move the mouse to steer the virtual cursor; click selects. WASD move · Q/E height · mouse look · C build wheel · U skills"
-	if _has_commander_selected():
-		menu_hint_label.text += " · R hero research (with commander)"
-	menu_hint_label.text += " · RMB sell · Space wave · P pause"
+	menu_hint_label.text = "Move the mouse to steer the virtual cursor; click selects. WASD move · Q/E height · mouse look · C build wheel · U skills · R hero research (with commander) · RMB sell · Space wave · P pause"
 	if _has_commander_selected():
 		menu_commander_hint_label.text = "Commander selected: %s — hero buildings and hero research available." % selected_commander.capitalize()
 	else:

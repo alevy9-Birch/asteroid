@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Menu commander selector parity (`I.3/I.4/J.3`): add main-menu commander picker and wire it to run config.
+Menu controls copy parity (`J.1/J.3`): keep web-style static shortcut line with commander qualifier.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -105,6 +105,7 @@ Menu commander selector parity (`I.3/I.4/J.3`): add main-menu commander picker a
 - `godot/scripts/main.gd`: main-menu control hint line now dynamically includes `R hero research (with commander)` only when commander research is available.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: menu now includes a dedicated commander-status hint line with web-style neutral-tech copy and commander-present variant text.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: main menu now includes a commander `OptionButton` (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) wired to `selected_commander` for run-start commander defaults.
+- `godot/scripts/main.gd`: main-menu shortcut line now matches web static copy (`R hero research (with commander)` always shown), while commander availability is conveyed by the dedicated commander-status hint.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
