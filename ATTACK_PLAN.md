@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Refund affordance parity (`J.3`/`I.2`): surface upgrade refund availability in gameplay HUD hint during inactive phase.
+Refund marker parity (`J.3`/`I.2`): align owned-upgrade refundable marker with web dollar affordance.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -63,6 +63,7 @@ Refund affordance parity (`J.3`/`I.2`): surface upgrade refund availability in g
   - `godot/scripts/main.gd`: build mode now auto-normalizes to `turret` when refund/cleanup removes the selected unlocked build category.
   - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: upgrade phase ownership metadata (`upgrade_*_phase`) is now mirrored in runtime sync state.
 - `godot/scripts/main.gd`: gameplay HUD now shows an explicit same-key upgrade refund hint during inactive phase whenever any prototype slot is refundable.
+- `godot/systems/UpgradeSystem.gd`: refundable owned research labels now use a dollar marker (`[$]`) to better match web refund affordance styling.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

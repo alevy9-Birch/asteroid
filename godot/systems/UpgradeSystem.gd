@@ -180,7 +180,7 @@ func research_label_with_prereq_hint(which: String, owned: bool, state: Dictiona
 		var phase_key := _slot_phase_key(which)
 		var can_refund := int(state.get(phase_key, -999)) == int(state.get("current_inactive_phase", -1))
 		if can_refund and not bool(state.get("wave_combat_active", false)):
-			return "%s  [R]" % line
+			return "%s  [$]" % line
 		return line
 	var uid := _upgrade_id(which)
 	if WebParityDefs.ok:
