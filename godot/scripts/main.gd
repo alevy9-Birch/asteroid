@@ -971,6 +971,11 @@ func _rebuild_wave_variant_pool() -> void:
 func _remove_asteroid(index: int, reason: String = "combat") -> void:
 	var a = asteroids[index]
 	var eff = asteroid_system.on_asteroid_destroyed(a, reason)
+	var variant := String(a.get("variant", "normal"))
+	if reason == "shield":
+		audio_service.emit_event("asteroid_destroyed", {"variant": variant, "reason": "shield"})
+	elif reason != "impact":
+		audio_service.emit_event("asteroid_destroyed", {"variant": variant, "reason": "combat"})
 	var apos: Vector3 = a["pos"]
 	var impact_origin := apos
 	if reason == "impact" and a.has("target") and typeof(a["target"]) == TYPE_VECTOR3:
@@ -1597,8 +1602,6 @@ func _update_projectiles(delta: float) -> void:
 	for j in range(kills.size() - 1, -1, -1):
 		var ai = int(kills[j])
 		if ai >= 0 and ai < asteroids.size():
-			var kv := String(asteroids[ai].get("variant", "normal"))
-			audio_service.emit_event("asteroid_destroyed", {"variant": kv, "reason": "combat"})
 			_remove_asteroid(ai, "combat")
 		if phase != AppPhase.PLAYING:
 			break

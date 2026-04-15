@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Audio event vocabulary parity (`K.2`): map additional web event types (`upgrade_refund`, `shield_hit`) in `AudioService` so parity callsites are supported.
+Asteroid-destroyed audio reason parity (`K.2`): emit reason-based `asteroid_destroyed` audio centrally in `_remove_asteroid` (web-style handling).
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -50,6 +50,7 @@ Audio event vocabulary parity (`K.2`): map additional web event types (`upgrade_
   - `godot/scripts/main.gd`: splitter children now spawn with web-style side offsets (left/right split pattern) instead of random spread.
   - `godot/scripts/main.gd`: splitter children now also diverge into side lanes via web-style yaw offsets from the parent lane (instead of sharing identical target).
   - `godot/autoloads/AudioService.gd`: web parity audio event ids now include `upgrade_refund` and `shield_hit` in optional SFX mapping.
+  - `godot/scripts/main.gd`: asteroid destroy audio is now reason-based from `_remove_asteroid` (combat/shield only, impact separate), matching web handler structure.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
