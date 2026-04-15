@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Build input-action naming parity (`D.4`): replace legacy `toggle_build_mode_alt` action with explicit `cycle_build_mode` (`C`).
+D.4 parity record cleanup: resolve stale `B`/`B-C` references so tracking reflects current `C`-only build-cycle behavior.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -66,8 +66,8 @@ Build input-action naming parity (`D.4`): replace legacy `toggle_build_mode_alt`
 - `godot/systems/UpgradeSystem.gd`: refundable owned research labels now use a dollar marker (`[$]`) to better match web refund affordance styling.
 - `godot/scenes/Main.tscn`: research panel hint copy now explains same-key refunds and the `[$]` refundable marker.
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `R`-driven research panel toggle state (`research_panel_open`) and centralized research-panel visibility updates for PLAYING/PAUSED flow.
-- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `C` alias for build-mode cycling (alongside `B`) and updated look-readout shortcut hint to `B/C`.
-- `godot/scenes/Main.tscn` + `godot/ui/HudController.gd`: updated visible gameplay shortcut copy to include `R` research-panel toggle and `B/C` build-cycle parity hints.
+- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: build-cycle input now standardized to `C` action flow, with runtime hints updated accordingly.
+- `godot/scenes/Main.tscn` + `godot/ui/HudController.gd`: gameplay shortcut copy updates include `R` research-panel toggle and `C` build-cycle parity hints.
 - `godot/scripts/main.gd`: research overlay now initializes closed and resets closed at each run start; opening is now explicit via `R` toggle path.
 - `godot/scripts/main.gd`: research overlay is now gameplay-only (PLAYING), closes on any phase exit, and no longer toggles while paused.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: added a dedicated `DiscoveryToast` HUD label for new asteroid discovery notices, matching web-style separate toast presentation.
@@ -121,6 +121,7 @@ Build input-action naming parity (`D.4`): replace legacy `toggle_build_mode_alt`
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: build-cycle action id renamed from legacy `toggle_build_mode_alt` to `cycle_build_mode`, with startup cleanup removing both old build action ids.
+- Tracking cleanup: removed stale `B`/`B-C` parity notes so this plan reflects current `C`-only build-cycle behavior.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

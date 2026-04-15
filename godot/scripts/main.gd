@@ -122,7 +122,7 @@ var turrets: Array = []
 ## Web **`factory_business`**: economy **`creditPayout` / `creditIntervalSec`**, passive **`powerDrainPerSec`×`POWER_DRAIN_GLOBAL_MUL`**, starvation when **`power_stored`≤0**.
 var economy_buildings: Array = []
 var building_placement_counts: Dictionary = {}
-## **`turret`** | **`factory`** (I) | **`depot_s`** / **`depot_l`** (O) | **`nuclear`** (N research). **B** cycles unlocked modes.
+## **`turret`** | **`factory`** (I) | **`depot_s`** / **`depot_l`** (O) | **`nuclear`** (N research). **C** cycles unlocked modes.
 var build_mode := "turret"
 var factory_cost: int = 160
 var factory_supply_cost: int = 4
