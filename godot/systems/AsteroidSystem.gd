@@ -260,7 +260,7 @@ func variant_size_mul(variant: String) -> float:
 		"emp":
 			return 1.12
 		"colossus":
-			return 3.8
+			return 10.0
 		_:
 			return 1.0
 

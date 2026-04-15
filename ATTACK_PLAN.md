@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Variant selection parity (`F.6`): replace placeholder random picker with web-style weighted wave ramp and capped pool size.
+Colossus visual scale parity (`F.6`): align colossus asteroid size multiplier with web values.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -26,6 +26,7 @@ Variant selection parity (`F.6`): replace placeholder random picker with web-sty
   - `godot/scripts/main.gd`: removed fixed `6.0` cooldown reset after spawner meteor launch.
   - `godot/systems/AsteroidSystem.gd`: impact trigger now uses web-style near-target distance (`2.2`) / low-altitude check, with impact radius reserved for damage AOE.
   - `godot/systems/AsteroidSystem.gd`: variant picking now uses web-style wave-ramped weights plus capped active type pool (`2 + floor(wave/3)`).
+  - `godot/systems/AsteroidSystem.gd`: `colossus` size multiplier aligned to web (`10.0`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
