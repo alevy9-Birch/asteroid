@@ -9,10 +9,6 @@
 - [BOOT/PARSE] Decision: Convert constructor-based constants in `main.gd` to runtime vars for compatibility (`PackedStringArray(...)`, `Color(...)`). | Why: current parser raised constant-expression errors. | Alternative: keep constants and require a different Godot parser/runtime behavior.
 - [ASTEROIDS] Decision: Define `variant` in `AsteroidSystem.update_asteroids()` from asteroid payload before use. | Why: code referenced `variant` before declaration, causing parse/runtime failure. | Alternative: inline repeated dictionary lookups at each branch.
 
-# DECISIONS
-
-[Startup Parse Baseline] Decision: Keep `MENU_DIFFICULTY_IDS` as a runtime variable in `godot/scripts/main.gd` instead of a typed constant expression. | Why: `PackedStringArray(...)` assignment triggered a Godot parser error for constant expressions in this environment. | Alternative: Keep it as `const` and require a stricter/newer parser behavior.
-
-[Startup Parse Baseline] Decision: Declare `variant` explicitly in `godot/systems/AsteroidSystem.gd::update_asteroids` before use. | Why: Parser/runtime scope error occurred (`Identifier "variant" not declared`). | Alternative: Inline dictionary lookup everywhere instead of local variable extraction.
-
-[Session Validation] Decision: Treat automated headless validation as blocked and require manual run feedback until Godot CLI path is configured. | Why: `godot` is unavailable on PATH and MCP project-info validation reports missing `C:\Program Files\Godot\Godot.exe`. | Alternative: Pause all parity implementation work until CLI tooling is fixed.
+- [ATTACK_PLAN] Decision: Resolve duplicated root `ATTACK_PLAN.md` sections into a single canonical structure. | Why: file had contradictory duplicate blocks from prior sessions; a single source reduces ambiguity for queued runs. | Alternative: keep both blocks and infer latest state heuristically each session.
+- [CAMERA D.5] Decision: Mirror web `updateCamera` movement constants in Godot (`speed=38`, y clamp `6..140`, x/z clamp `±170`). | Why: current Godot camera movement was slower and more constrained than web source-of-truth values. | Alternative: keep current Godot tuning and treat camera handling as an approved difference.
+- [VALIDATION] Decision: Continue logging headless parse check as blocked in automation while still running available lint/static checks. | Why: `godot --headless --check-only` cannot execute in this terminal context. | Alternative: skip all validation steps until CLI path is fixed.

@@ -2,10 +2,11 @@ extends RefCounted
 class_name CameraSystem
 
 const LOOK_SENSITIVITY := 0.0022
-const CAMERA_MOVE_SPEED := 26.0
-const CAMERA_MIN_Y := 8.0
-const CAMERA_MAX_Y := 90.0
-const WORLD_BOUNDS := 100.0
+## Web `BaseDefenseGame.updateCamera`: `speed = 38`, clamp y `[6, 140]`, x/z `[-170, 170]`.
+const CAMERA_MOVE_SPEED := 38.0
+const CAMERA_MIN_Y := 6.0
+const CAMERA_MAX_Y := 140.0
+const WORLD_BOUNDS := 170.0
 
 var yaw := 0.0
 var pitch := -0.82
