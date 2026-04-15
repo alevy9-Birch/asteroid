@@ -1844,7 +1844,7 @@ func _finalize_run_score() -> void:
 	]
 	gameover_stats.text += "\nMost common building: %s" % _most_common_building_label()
 	if sandbox_run:
-		gameover_hint.text += " | Sandbox (score not saved)"
+		gameover_hint.text += " | Sandbox — score not saved"
 	gameover_score.text = "Score: %d" % run_score
 	if sandbox_run:
 		gameover_best.text = "Best: %d (sandbox run)" % best_score

@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over label copy parity (`J.2`): align post-run wording with web (`Waves survived`, explicit stat labels).
+Game-over sandbox hint parity (`J.2`): align sandbox note punctuation/copy with web end-screen.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -81,6 +81,7 @@ Game-over label copy parity (`J.2`): align post-run wording with web (`Waves sur
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over hint text now carries run context (`Wave survived`, commander, sandbox note) while numeric metrics are shown only in `GameOverStats` to remove duplication.
 - `godot/scripts/main.gd`: run now tracks per-building placement counts and appends web-style `Most common building` to `GameOverStats`.
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd` + `godot/scenes/Main.tscn`: game-over copy now uses web-style wording (`Waves survived`, `Money earned/spent`, `Power produced`, `Asteroids killed`).
+- `godot/scripts/main.gd`: sandbox game-over hint now uses web-style note copy (`Sandbox — score not saved`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
