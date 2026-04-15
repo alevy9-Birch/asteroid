@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research hint parity (`J.3`/`I.2`): document same-key refund flow and dollar marker in panel copy.
+Research overlay toggle parity (`D.4`/`J.3`): add web-style dedicated shortcut to show/hide research panel.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -65,6 +65,7 @@ Research hint parity (`J.3`/`I.2`): document same-key refund flow and dollar mar
 - `godot/scripts/main.gd`: gameplay HUD now shows an explicit same-key upgrade refund hint during inactive phase whenever any prototype slot is refundable.
 - `godot/systems/UpgradeSystem.gd`: refundable owned research labels now use a dollar marker (`[$]`) to better match web refund affordance styling.
 - `godot/scenes/Main.tscn`: research panel hint copy now explains same-key refunds and the `[$]` refundable marker.
+- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `R`-driven research panel toggle state (`research_panel_open`) and centralized research-panel visibility updates for PLAYING/PAUSED flow.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

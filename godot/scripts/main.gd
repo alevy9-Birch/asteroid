@@ -61,6 +61,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var research_factory_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchFactory
 @onready var research_logistics_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchLogistics
 @onready var research_nuclear_label: Label = $GameplayLayer/ResearchPanel/ResearchVBox/ResearchNuclear
+@onready var research_panel: PanelContainer = $GameplayLayer/ResearchPanel
 @onready var menu_overlay: PanelContainer = $MenuOverlay
 @onready var pause_overlay: PanelContainer = $PauseOverlay
 @onready var gameover_overlay: PanelContainer = $GameOverOverlay
@@ -174,6 +175,7 @@ var upgrade_core_phase := -1
 var upgrade_factory_phase := -1
 var upgrade_logistics_phase := -1
 var upgrade_nuclear_phase := -1
+var research_panel_open := true
 var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
@@ -447,6 +449,9 @@ func _input(event: InputEvent) -> void:
 		_try_buy_upgrade("nuclear")
 	if event.is_action_pressed("toggle_build_mode") and phase == AppPhase.PLAYING:
 		_toggle_build_mode()
+	if event.is_action_pressed("toggle_research_panel") and (phase == AppPhase.PLAYING or phase == AppPhase.PAUSED):
+		research_panel_open = not research_panel_open
+		_update_research_panel_visibility()
 	if event.is_action_pressed("toggle_diagnostics"):
 		diagnostics_visible = not diagnostics_visible
 		diagnostics_label.visible = diagnostics_visible
@@ -613,6 +618,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	_reset_camera()
 	_create_gameplay_entities()
 	_update_research_labels()
+	_update_research_panel_visibility()
 	_recompute_power_cap()
 	_sync_game_state_runtime()
 	apply_phase(AppPhase.PLAYING)
@@ -1496,6 +1502,7 @@ func _update_hud() -> void:
 	hud_controller.apply_center_hp(center_hp_bar, command_center_hp, center_max_hp)
 	if phase == AppPhase.PLAYING or phase == AppPhase.PAUSED:
 		_update_research_labels()
+	_update_research_panel_visibility()
 	var bm := "turret"
 	if upgrade_factory or upgrade_logistics or upgrade_nuclear:
 		bm = build_mode
@@ -1743,6 +1750,10 @@ func _update_research_labels() -> void:
 	research_factory_label.text = upgrade_system.research_label_with_prereq_hint("factory", upgrade_factory, rs)
 	research_logistics_label.text = upgrade_system.research_label_with_prereq_hint("logistics", upgrade_logistics, rs)
 	research_nuclear_label.text = upgrade_system.research_label_with_prereq_hint("nuclear", upgrade_nuclear, rs)
+
+
+func _update_research_panel_visibility() -> void:
+	research_panel.visible = research_panel_open and (phase == AppPhase.PLAYING or phase == AppPhase.PAUSED)
 
 
 func _finalize_run_score() -> void:
