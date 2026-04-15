@@ -445,7 +445,4 @@ func on_asteroid_destroyed(asteroid: Dictionary, reason: String) -> Dictionary:
 	elif variant == "emp":
 		res.emp_radius = 14.0
 		res.emp_disable_sec = 3.5
-	elif variant == "colossus":
-		res.aoe_radius = 14.0
-		res.aoe_damage = 62.0
 	return res
