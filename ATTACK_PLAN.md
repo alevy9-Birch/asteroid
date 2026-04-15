@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Spawner meteor child parity (`F.6`/`F.7`): align spawned meteor offset and derived stats (`speed/hp/impact`) with web `spawnMeteorFromSpawner`.
+Splitter child spawn-offset parity (`F.6`/`F.7`): use web side-based splitter child offsets instead of broad random offset placement.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -47,6 +47,7 @@ Spawner meteor child parity (`F.6`/`F.7`): align spawned meteor offset and deriv
   - `godot/scripts/main.gd`: spawned meteors/splitter children now inherit parent target so split/spawn trajectories remain consistent with parent impact lane.
   - `godot/scripts/main.gd`: base asteroid entry now matches web radial/high-altitude spawn geometry (`r=160..220`, `y=90..120`) instead of low side-edge spawn.
   - `godot/scripts/main.gd`: spawner-created meteors now use web-like parent-derived stats and close local spawn offset (`speed/hp/impact` parity).
+  - `godot/scripts/main.gd`: splitter children now spawn with web-style side offsets (left/right split pattern) instead of random spread.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

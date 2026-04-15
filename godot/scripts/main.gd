@@ -983,7 +983,8 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 		var child_variant := String(eff.get("spawn_variant", "splitter"))
 		var child_level := int(a.get("splitLevel", 0)) + 1
 		for n in range(int(eff["spawn_children"])):
-			var off = Vector3(rand.randf_range(-2.0, 2.0), 0, rand.randf_range(-2.0, 2.0))
+			var side := -1.0 if n % 2 == 0 else 1.0
+			var off := Vector3(side * 0.55, 0.2, side * 0.25)
 			_spawn_asteroid_at(apos + off, child_variant, child_level, a.get("target", impact_origin))
 	if int(eff.get("spawn_meteors", 0)) > 0:
 		for _n in range(int(eff["spawn_meteors"])):
