@@ -14,7 +14,7 @@ const OPTIONAL_SFX := {
 	"aoe_pop": "explosion_crunch.ogg",
 	"upgrade_purchase": "computer.ogg",
 	"upgrade_refund": "door_close.ogg",
-	"shield_hit": "explosion_low.ogg",
+	"shield_hit": "force_field.ogg",
 	"asteroid_impact": "explosion_low.ogg",
 	"asteroid_destroyed_small": "laser_small.ogg",
 	"asteroid_destroyed_large": "laser_large.ogg",
