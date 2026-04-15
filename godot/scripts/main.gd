@@ -332,15 +332,7 @@ func _placed_for_build() -> Array:
 
 
 func _toggle_build_mode() -> void:
-	var modes: PackedStringArray = PackedStringArray()
-	modes.append("turret")
-	if upgrade_factory:
-		modes.append("factory")
-	if upgrade_logistics:
-		modes.append("depot_s")
-		modes.append("depot_l")
-	if upgrade_nuclear:
-		modes.append("nuclear")
+	var modes := _available_build_modes()
 	if modes.size() <= 1:
 		build_mode = "turret"
 		return
@@ -348,6 +340,24 @@ func _toggle_build_mode() -> void:
 	if idx < 0:
 		idx = 0
 	build_mode = modes[(idx + 1) % modes.size()]
+
+
+func _available_build_modes() -> PackedStringArray:
+	var modes: PackedStringArray = PackedStringArray(["turret"])
+	if upgrade_factory:
+		modes.append("factory")
+	if upgrade_logistics:
+		modes.append("depot_s")
+		modes.append("depot_l")
+	if upgrade_nuclear:
+		modes.append("nuclear")
+	return modes
+
+
+func _normalize_build_mode_for_unlocks() -> void:
+	if _available_build_modes().has(build_mode):
+		return
+	build_mode = "turret"
 
 
 func _check_command_center_defeat() -> void:
@@ -1691,6 +1701,7 @@ func _try_buy_upgrade(which: String) -> void:
 	kill_credit_bonus = int(out.kill_credit_bonus)
 	turret_range_bonus = float(out.turret_range_bonus)
 	turret_cooldown_bonus = float(out.turret_cooldown_bonus)
+	_normalize_build_mode_for_unlocks()
 	audio_service.emit_event("upgrade_refund", {"upgrade": which}) if owned else audio_service.emit_event("upgrade_purchase", {"upgrade": which})
 	_update_research_labels()
 
