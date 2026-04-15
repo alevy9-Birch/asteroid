@@ -924,6 +924,9 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 	var a = asteroids[index]
 	var eff = asteroid_system.on_asteroid_destroyed(a, reason)
 	var apos: Vector3 = a["pos"]
+	var impact_origin := apos
+	if reason == "impact" and a.has("target") and typeof(a["target"]) == TYPE_VECTOR3:
+		impact_origin = Vector3(a["target"])
 	var node: MeshInstance3D = a["node"]
 	if node.get_parent() != null:
 		node.get_parent().remove_child(node)
@@ -932,14 +935,14 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 	asteroids.remove_at(index)
 	if float(eff.get("aoe_radius", 0.0)) > 0.0:
 		audio_service.emit_event("aoe_pop")
-		if _dist_xz(apos, command_center_pos) <= float(eff["aoe_radius"]):
+		if _dist_xz(impact_origin, command_center_pos) <= float(eff["aoe_radius"]):
 			command_center_hp = max(0.0, command_center_hp - float(eff["aoe_damage"]))
 	if float(eff.get("emp_radius", 0.0)) > 0.0:
 		audio_service.emit_event("emp_pulse")
 		for ti in range(turrets.size()):
 			var t = turrets[ti]
 			var tp: Vector3 = t["pos"]
-			if _dist_xz(tp, apos) <= float(eff["emp_radius"]):
+			if _dist_xz(tp, impact_origin) <= float(eff["emp_radius"]):
 				t["empDisable"] = max(float(t.get("empDisable", 0.0)), float(eff["emp_disable_sec"]))
 				turrets[ti] = t
 	if int(eff.get("spawn_children", 0)) > 0:

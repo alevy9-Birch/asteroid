@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Asteroid grid-distance parity (`F.7`/`F.8`): use web-style XZ distance checks for seeker targeting and asteroid impact/AOE/EMP proximity logic.
+Asteroid target-point parity (`F.7`/`F.8`): make non-seeker movement/impact honor each asteroid’s per-spawn target point instead of always command center position.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -41,6 +41,8 @@ Asteroid grid-distance parity (`F.7`/`F.8`): use web-style XZ distance checks fo
   - `godot/systems/AsteroidSystem.gd`: `radarMarkTimer` now decays each update for parity with web asteroid timer updates.
   - `godot/systems/AsteroidSystem.gd`: seeker closest-target and impact-trigger checks now use web-style planar XZ distance instead of full 3D distance.
   - `godot/scripts/main.gd`: seeker spawn target and asteroid death AOE/EMP range checks now use planar XZ distance to match web `Math.hypot` behavior.
+  - `godot/systems/AsteroidSystem.gd`: non-seeker asteroids now steer toward and impact against their own `target` point (fallback to CC), matching web target-point lifecycle.
+  - `godot/scripts/main.gd`: impact-triggered AOE/EMP effects now resolve around the asteroid target point for impact deaths.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

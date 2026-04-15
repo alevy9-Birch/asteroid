@@ -139,6 +139,8 @@ func update_asteroids(
 		a["radarMarkTimer"] = radar_t
 		var pos: Vector3 = a["pos"]
 		var move_target := command_center_pos
+		if a.has("target") and typeof(a["target"]) == TYPE_VECTOR3:
+			move_target = Vector3(a["target"])
 		# Web parity: seekers continuously retarget the closest live building while moving.
 		if variant == "seeker":
 			move_target = _closest_target_point(pos, seeker_targets, command_center_pos)
@@ -149,8 +151,7 @@ func update_asteroids(
 		if stasis_t <= 0.0:
 			pos += dir * spd * slow_mul * delta
 		a["pos"] = pos
-		if variant == "seeker":
-			a["target"] = move_target
+		a["target"] = move_target
 		var node: MeshInstance3D = a["node"]
 		node.position = pos
 		if variant == "spawner":
@@ -189,8 +190,11 @@ func find_impacts(asteroids: Array, command_center_pos: Vector3) -> Array:
 	var hits: Array = []
 	for i in range(asteroids.size()):
 		var pos: Vector3 = asteroids[i]["pos"]
+		var target := command_center_pos
+		if asteroids[i].has("target") and typeof(asteroids[i]["target"]) == TYPE_VECTOR3:
+			target = Vector3(asteroids[i]["target"])
 		# Web parity: impact trigger is near-target distance (2.2) or very low altitude, not AOE radius.
-		if _dist_xz(pos, command_center_pos) < IMPACT_TRIGGER_DISTANCE or pos.y <= IMPACT_TRIGGER_MIN_Y:
+		if _dist_xz(pos, target) < IMPACT_TRIGGER_DISTANCE or pos.y <= IMPACT_TRIGGER_MIN_Y:
 			var variant := String(asteroids[i].get("variant", "normal"))
 			var dmg := float(asteroids[i].get("impact_damage", 70.0))
 			hits.append({
