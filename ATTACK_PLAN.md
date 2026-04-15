@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research panel commander qualifier parity (`J.3`): include web wording `R hero research (with commander)` in panel hint.
+Look-readout commander qualifier parity (`D.4/J.1`): use `R hero research (with commander)` in in-play shortcut strip.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -96,6 +96,7 @@ Research panel commander qualifier parity (`J.3`): include web wording `R hero r
 - `godot/ui/HudController.gd`: look-info text now uses web terminology `Q/E height` (replacing `Q/E up-down`).
 - `godot/ui/HudController.gd`: gameplay shortcut tail now uses web’s explicit commander-qualified wording `R hero research (with commander)`.
 - `godot/scenes/Main.tscn`: research panel hint now explicitly calls out commander-gated hero research in the same web wording (`R ... (with commander)`).
+- `godot/scripts/main.gd`: look-readout shortcut strip now also uses commander-qualified hero-research wording for cross-HUD copy consistency.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
