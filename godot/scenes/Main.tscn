@@ -264,15 +264,15 @@ theme_override_constants/separation = 12
 layout_mode = 2
 text = "Commander"
 
-[node name="MenuCommanderButtons" type="GridContainer" parent="MenuOverlay/MenuVBox/MenuCommanderRow"]
-layout_mode = 2
-columns = 4
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
-
-[node name="CommanderNoneButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
+[node name="CommanderNoneButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow"]
 layout_mode = 2
 text = "None"
+
+[node name="MenuCommanderButtons" type="GridContainer" parent="MenuOverlay/MenuVBox/MenuCommanderRow"]
+layout_mode = 2
+columns = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 
 [node name="CommanderArchangelButton" type="Button" parent="MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderButtons"]
 layout_mode = 2

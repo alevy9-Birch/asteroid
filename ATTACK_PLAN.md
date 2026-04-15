@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Commander button active-state parity (`I.4/J.3`): selected commander uses pressed-state styling instead of text markers.
+Commander menu layout parity (`I.4/J.3`): separate `None` button from the 2x3 hero commander grid.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -113,6 +113,7 @@ Commander button active-state parity (`I.4/J.3`): selected commander uses presse
 - `godot/scripts/main.gd`: game-over score/best/stats numeric values now use grouped formatting (e.g. `12,345`) for closer web `toLocaleString()` parity.
 - `godot/scripts/main.gd`: sandbox game-over note now appends with web-style spacing (`Waves survived: N Sandbox — score not saved`) instead of a pipe separator.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander picker now uses explicit menu buttons (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) instead of an `OptionButton`, with selected commander shown by pressed/toggle button state.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander menu layout now separates `None` from hero choices and presents heroes in a 2x3 grid, matching web commander block structure more closely.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
