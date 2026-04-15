@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Build-mode unlock fallback parity (`I.2`/`D.4`): force `build_mode` back to `turret` if an upgrade refund removes the currently selected build category.
+Upgrade phase-state sync parity (`A.2`/`I.2`): mirror `upgrade_*_phase` refund timing state into `GameState` runtime sync.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -61,6 +61,7 @@ Build-mode unlock fallback parity (`I.2`/`D.4`): force `build_mode` back to `tur
   - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: owned research labels now show `[R]` when refundable in the current inactive phase.
   - `godot/systems/UpgradeSystem.gd`: buy/refund paths now enforce wave-combat phase guards at system level (not just input caller).
   - `godot/scripts/main.gd`: build mode now auto-normalizes to `turret` when refund/cleanup removes the selected unlocked build category.
+  - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: upgrade phase ownership metadata (`upgrade_*_phase`) is now mirrored in runtime sync state.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

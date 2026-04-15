@@ -1839,6 +1839,10 @@ func _sync_game_state_runtime() -> void:
 	game_state.upgrade_factory = upgrade_factory
 	game_state.upgrade_logistics = upgrade_logistics
 	game_state.upgrade_nuclear = upgrade_nuclear
+	game_state.upgrade_core_phase = upgrade_core_phase
+	game_state.upgrade_factory_phase = upgrade_factory_phase
+	game_state.upgrade_logistics_phase = upgrade_logistics_phase
+	game_state.upgrade_nuclear_phase = upgrade_nuclear_phase
 	game_state.turret_damage_mult = turret_damage_mult
 	game_state.kill_credit_bonus = kill_credit_bonus
 	game_state.turret_range_bonus = turret_range_bonus

@@ -43,6 +43,10 @@ var upgrade_core := false
 var upgrade_factory := false
 var upgrade_logistics := false
 var upgrade_nuclear := false
+var upgrade_core_phase := -1
+var upgrade_factory_phase := -1
+var upgrade_logistics_phase := -1
+var upgrade_nuclear_phase := -1
 
 var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
@@ -79,6 +83,10 @@ func reset_run() -> void:
 	upgrade_factory = false
 	upgrade_logistics = false
 	upgrade_nuclear = false
+	upgrade_core_phase = -1
+	upgrade_factory_phase = -1
+	upgrade_logistics_phase = -1
+	upgrade_nuclear_phase = -1
 	turret_damage_mult = 1.0
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0
