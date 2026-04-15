@@ -82,17 +82,36 @@ offset_bottom = 132.0
 theme_override_font_sizes/font_size = 18
 text = "Yaw: 0.00 | Pitch: 0.00"
 
-[node name="DiscoveryToast" type="Label" parent="GameplayLayer"]
+[node name="DiscoveryToast" type="PanelContainer" parent="GameplayLayer"]
 visible = false
 layout_mode = 0
 offset_left = 22.0
 offset_top = 170.0
 offset_right = 760.0
 offset_bottom = 236.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_wavehud")
+
+[node name="DiscoveryToastMargin" type="MarginContainer" parent="GameplayLayer/DiscoveryToast"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="DiscoveryToastVBox" type="VBoxContainer" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="DiscoveryToastTitle" type="Label" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastVBox"]
+layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "New Asteroid: ..."
+text = "New Asteroid"
+
+[node name="DiscoveryToastBody" type="Label" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Variant details"
 autowrap_mode = 3
-modulate = Color(0.95, 0.95, 0.98, 1)
 
 [node name="Diagnostics" type="Label" parent="GameplayLayer"]
 layout_mode = 0
