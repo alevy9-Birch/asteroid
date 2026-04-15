@@ -53,6 +53,7 @@ var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
 var turret_cooldown_bonus := 0.0
+var nuclear_power_gen_mult := 1.0
 
 func reset_run() -> void:
 	## Mirrors web `resetRun` scalars; **`main.gd` `start_run` → `_start_new_run`** is authoritative (calls `_sync_game_state_runtime`).
@@ -93,6 +94,7 @@ func reset_run() -> void:
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0
 	turret_cooldown_bonus = 0.0
+	nuclear_power_gen_mult = 1.0
 	emit_state()
 
 func set_phase(next_phase: AppPhase) -> void:

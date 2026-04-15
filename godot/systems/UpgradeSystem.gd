@@ -11,6 +11,9 @@ const SLOT_UPGRADE_IDS := {
 const SLOT_KEYS := ["core", "factory", "logistics", "nuclear"]
 
 const FALLBACK_COSTS := {"core": 120, "factory": 140, "logistics": 160, "nuclear": 950}
+const TURRET_TARGETING_RANGE_ADD := 5.0
+const TURRET_TARGETING_DAMAGE_ADD := 2.0
+const GENERATOR_EFFICIENCY_NUCLEAR_POWER_MUL := 1.15
 
 
 func _upgrade_id(which: String) -> String:
@@ -47,7 +50,9 @@ func try_buy_upgrade(which: String, state: Dictionary) -> Dictionary:
 		out.money_spent += cost
 		out.upgrade_core = true
 		out.upgrade_core_phase = int(out.get("current_inactive_phase", -1))
-		out.turret_damage_mult = 1.2
+		var base_damage := maxf(0.01, float(out.get("turret_base_damage", 1.0)))
+		out.turret_damage_mult = (base_damage + TURRET_TARGETING_DAMAGE_ADD) / base_damage
+		out.turret_range_bonus = TURRET_TARGETING_RANGE_ADD
 	elif which == "factory":
 		if out.upgrade_factory or out.credits < cost:
 			out.ok = false
@@ -56,7 +61,6 @@ func try_buy_upgrade(which: String, state: Dictionary) -> Dictionary:
 		out.money_spent += cost
 		out.upgrade_factory = true
 		out.upgrade_factory_phase = int(out.get("current_inactive_phase", -1))
-		out.kill_credit_bonus = 4
 	elif which == "logistics":
 		if out.upgrade_logistics or out.credits < cost:
 			out.ok = false
@@ -65,8 +69,7 @@ func try_buy_upgrade(which: String, state: Dictionary) -> Dictionary:
 		out.money_spent += cost
 		out.upgrade_logistics = true
 		out.upgrade_logistics_phase = int(out.get("current_inactive_phase", -1))
-		out.turret_range_bonus = 3.5
-		out.turret_cooldown_bonus = 0.06
+		out.nuclear_power_gen_mult = GENERATOR_EFFICIENCY_NUCLEAR_POWER_MUL
 	elif which == "nuclear":
 		if out.upgrade_nuclear or out.credits < cost:
 			out.ok = false
@@ -126,11 +129,11 @@ func _refund_slot(state: Dictionary, which: String) -> void:
 	match which:
 		"core":
 			state.turret_damage_mult = 1.0
-		"factory":
-			state.kill_credit_bonus = 0
-		"logistics":
 			state.turret_range_bonus = 0.0
-			state.turret_cooldown_bonus = 0.0
+		"factory":
+			pass
+		"logistics":
+			state.nuclear_power_gen_mult = 1.0
 		"nuclear":
 			pass
 

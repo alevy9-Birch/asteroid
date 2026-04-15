@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 input handling robustness: remove remaining return-based echo guards (`P/C/R`) in favor of inline gated handling.
+I.2 prototype upgrade modifier semantics parity: align `turret_targeting`, `unlock_factory`, and `generator_efficiency` effects with web behavior.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -127,6 +127,10 @@ D.4 input handling robustness: remove remaining return-based echo guards (`P/C/R
 - `godot/scripts/main.gd`: documented that `Space` wave-start intentionally relies on wave-ready gating (no repeat guard), matching web key behavior.
 - `godot/scripts/main.gd`: `U/I/O/N` echo suppression now avoids `return` short-circuits by gating `_try_buy_upgrade(...)` inline.
 - `godot/scripts/main.gd`: `P/C/R` echo suppression now also gates behavior inline (no early `return` from `_input`), aligning repeat-guard handling across all hotkeys.
+- `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: `turret_targeting` now applies web-style auto-turret bonuses (`+5` range and `+2` damage equivalent), replacing the old prototype-only multiplier.
+- `godot/systems/UpgradeSystem.gd`: `unlock_factory` no longer injects non-web kill-credit bonus; it now acts as unlock-only parity behavior.
+- `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: `generator_efficiency` now drives nuclear power generation multiplier (`1.15`) instead of non-web turret range/cooldown bonuses.
+- `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: added/synced `nuclear_power_gen_mult` runtime state so upgrade effects are mirrored consistently.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.

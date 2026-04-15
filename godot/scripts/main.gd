@@ -207,6 +207,7 @@ var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
 var turret_cooldown_bonus := 0.0
+var nuclear_power_gen_mult := 1.0
 var diagnostics_visible := false
 var asteroid_pool: Array[MeshInstance3D] = []
 ## Web parity (`BaseDefenseGame.ts`): first wave starts only on player action; later waves use intermission auto-start.
@@ -700,6 +701,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0
 	turret_cooldown_bonus = 0.0
+	nuclear_power_gen_mult = 1.0
 	command_center_econ_timer = 0.0
 	first_wave_started = false
 	var s = commander_system.apply_commander_defaults(selected_commander, {"commander": "none"})
@@ -1648,7 +1650,7 @@ func _update_power_economy(delta: float) -> void:
 	var gen := maxf(0.0, command_center_power_gen_per_sec)
 	if credits > 0:
 		for np in nuclear_plants:
-			gen += maxf(0.0, float(np.get("power_gen_per_sec", 0.0)))
+			gen += maxf(0.0, float(np.get("power_gen_per_sec", 0.0))) * nuclear_power_gen_mult
 	power_produced += gen * delta
 	var net := (gen - econ_drain * WebParityDefs.POWER_DRAIN_GLOBAL_MUL) * delta
 	power_stored = int(round(clampf(float(power_stored) + net, 0.0, float(power_cap))))
@@ -1798,10 +1800,12 @@ func _try_buy_upgrade(which: String) -> void:
 		"upgrade_nuclear_phase": upgrade_nuclear_phase,
 		"current_inactive_phase": current_inactive_phase,
 		"wave_combat_active": wave_combat_active,
+		"turret_base_damage": turret_damage,
 		"turret_damage_mult": turret_damage_mult,
 		"kill_credit_bonus": kill_credit_bonus,
 		"turret_range_bonus": turret_range_bonus,
 		"turret_cooldown_bonus": turret_cooldown_bonus,
+		"nuclear_power_gen_mult": nuclear_power_gen_mult,
 	}
 	var owned := false
 	match which:
@@ -1830,6 +1834,7 @@ func _try_buy_upgrade(which: String) -> void:
 	kill_credit_bonus = int(out.kill_credit_bonus)
 	turret_range_bonus = float(out.turret_range_bonus)
 	turret_cooldown_bonus = float(out.turret_cooldown_bonus)
+	nuclear_power_gen_mult = float(out.get("nuclear_power_gen_mult", 1.0))
 	_normalize_build_mode_for_unlocks()
 	audio_service.emit_event("upgrade_refund", {"upgrade": which}) if owned else audio_service.emit_event("upgrade_purchase", {"upgrade": which})
 	_update_research_labels()
@@ -2059,3 +2064,4 @@ func _sync_game_state_runtime() -> void:
 	game_state.kill_credit_bonus = kill_credit_bonus
 	game_state.turret_range_bonus = turret_range_bonus
 	game_state.turret_cooldown_bonus = turret_cooldown_bonus
+	game_state.nuclear_power_gen_mult = nuclear_power_gen_mult
