@@ -992,12 +992,11 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 			command_center_hp = max(0.0, command_center_hp - float(eff["aoe_damage"]))
 	if float(eff.get("emp_radius", 0.0)) > 0.0:
 		audio_service.emit_event("emp_pulse")
-		for ti in range(turrets.size()):
-			var t = turrets[ti]
-			var tp: Vector3 = t["pos"]
-			if _dist_xz(tp, impact_origin) <= float(eff["emp_radius"]):
-				t["empDisable"] = max(float(t.get("empDisable", 0.0)), float(eff["emp_disable_sec"]))
-				turrets[ti] = t
+		var hit_count := _emp_building_hit_count(impact_origin, float(eff["emp_radius"]))
+		var drain_per := float(eff.get("emp_power_drain_per_building", 0.0))
+		if hit_count > 0 and drain_per > 0.0:
+			var drain := float(hit_count) * drain_per * POWER_DRAIN_GLOBAL_MUL
+			power_stored = maxf(0.0, power_stored - drain)
 	if int(eff.get("spawn_children", 0)) > 0:
 		var child_variant := String(eff.get("spawn_variant", "splitter"))
 		var child_level := int(a.get("splitLevel", 0)) + 1
@@ -1012,6 +1011,33 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 			var moff = Vector3(rand.randf_range(-2.5, 2.5), 0, rand.randf_range(-2.5, 2.5))
 			_spawn_asteroid_at(apos + moff, "meteor", 0, a.get("target", impact_origin))
 	_check_command_center_defeat()
+
+
+func _emp_building_hit_count(origin: Vector3, radius: float) -> int:
+	var n := 0
+	if _dist_xz(command_center_pos, origin) <= radius:
+		n += 1
+	for t in turrets:
+		if not t.has("pos"):
+			continue
+		if _dist_xz(Vector3(t["pos"]), origin) <= radius:
+			n += 1
+	for e in economy_buildings:
+		if not e.has("pos"):
+			continue
+		if _dist_xz(Vector3(e["pos"]), origin) <= radius:
+			n += 1
+	for d in supply_depots:
+		if not d.has("pos"):
+			continue
+		if _dist_xz(Vector3(d["pos"]), origin) <= radius:
+			n += 1
+	for np in nuclear_plants:
+		if not np.has("pos"):
+			continue
+		if _dist_xz(Vector3(np["pos"]), origin) <= radius:
+			n += 1
+	return n
 
 
 func _update_turrets(delta: float) -> void:

@@ -433,7 +433,7 @@ func on_asteroid_destroyed(asteroid: Dictionary, reason: String) -> Dictionary:
 		"aoe_radius": 0.0,
 		"aoe_damage": 0.0,
 		"emp_radius": 0.0,
-		"emp_disable_sec": 0.0,
+		"emp_power_drain_per_building": 0.0,
 		"spawn_meteors": 0,
 	}
 	if variant == "splitter" and split_level < 2:
@@ -443,6 +443,6 @@ func on_asteroid_destroyed(asteroid: Dictionary, reason: String) -> Dictionary:
 		res.aoe_radius = 10.0
 		res.aoe_damage = 38.0
 	elif variant == "emp":
-		res.emp_radius = 14.0
-		res.emp_disable_sec = 3.5
+		res.emp_radius = 18.0
+		res.emp_power_drain_per_building = 22.0
 	return res

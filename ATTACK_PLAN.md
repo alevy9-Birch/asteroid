@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Colossus death behavior parity (`F.6`): remove non-web colossus AOE-on-death effect.
+EMP death effect parity (`F.6`/`H.4`): switch EMP asteroid death from turret disable to web-style power drain in radius.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -56,6 +56,7 @@ Colossus death behavior parity (`F.6`): remove non-web colossus AOE-on-death eff
   - `godot/autoloads/AudioService.gd`: `build_sell` now uses a dedicated short clip path and is stopped at ~72ms to match web cadence.
   - `godot/systems/AsteroidSystem.gd`: spawner death no longer emits an extra meteor spawn; only alive spawner cadence remains (web parity).
   - `godot/systems/AsteroidSystem.gd`: colossus death no longer applies non-web AOE damage; colossus remains threat via base stats and impact.
+  - `godot/systems/AsteroidSystem.gd` + `godot/scripts/main.gd`: EMP death now drains stored power by nearby structure count (`r=18`, per-building drain) instead of disabling turrets.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
