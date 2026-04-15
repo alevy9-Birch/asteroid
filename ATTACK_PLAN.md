@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 parity record cleanup: resolve stale `B`/`B-C` references so tracking reflects current `C`-only build-cycle behavior.
+D.4 `C` key context-switch parity: when research is open, pressing `C` should close research and enter build flow on that same key press.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -114,7 +114,7 @@ D.4 parity record cleanup: resolve stale `B`/`B-C` references so tracking reflec
 - `godot/scripts/main.gd`: sandbox game-over note now appends with web-style spacing (`Waves survived: N Sandbox — score not saved`) instead of a pipe separator.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander picker now uses explicit menu buttons (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) instead of an `OptionButton`, with selected commander shown by pressed/toggle button state.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: commander menu layout now separates `None` from hero choices and presents heroes in a 2x3 grid, matching web commander block structure more closely.
-- `godot/scripts/main.gd`: `C` build-key input now treats open research as higher-priority context and closes research without also cycling build mode on that same key press.
+- `godot/scripts/main.gd`: pressing `C` while research is open now closes research and then enters build flow on that same key press (Godot cycle-mode approximation of web wheel-open behavior).
 - `godot/scripts/main.gd`: build-mode cycling input now responds to `C` action path only, removing `B` trigger behavior for closer web control parity.
 - `godot/scripts/main.gd`: held-key echo on `C` build input is now ignored, preventing rapid multi-cycle jumps from a single key hold.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `toggle_build_mode_alt` (`C`) as the active build-toggle action.

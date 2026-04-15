@@ -481,7 +481,6 @@ func _input(event: InputEvent) -> void:
 		if research_panel_open:
 			research_panel_open = false
 			_update_research_panel_visibility()
-			return
 		_cycle_build_mode()
 	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING and _has_commander_selected():
 		research_panel_open = not research_panel_open
