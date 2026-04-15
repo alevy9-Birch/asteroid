@@ -1774,6 +1774,8 @@ func _update_research_labels() -> void:
 
 
 func _update_research_panel_visibility() -> void:
+	if not _has_commander_selected():
+		research_panel_open = false
 	research_panel.visible = research_panel_open and phase == AppPhase.PLAYING
 
 
