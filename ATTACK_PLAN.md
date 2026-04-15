@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research panel hint copy parity (`J.3`): align panel guidance text with web skill-tree interaction wording.
+Gameplay HUD research label parity (`J.1/J.3`): use web wording `R research` instead of `R panel`.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -92,6 +92,7 @@ Research panel hint copy parity (`J.3`): align panel guidance text with web skil
 - `godot/scripts/main.gd`: spawning status copy now uses the same web ellipsis glyph (`Spawning asteroids…`) used by the timer caption.
 - `godot/scenes/Main.tscn`: `GameOverHint` default text now matches web wording (`Waves survived: 0`) before runtime state fill.
 - `godot/scenes/Main.tscn`: research panel hint now uses web-style tree interaction copy (toggle, pan, zoom, reticle hover, plus U/I/O/N buy/refund note).
+- `godot/ui/HudController.gd`: gameplay shortcut tail now says `R research` (instead of `R panel`) for web phrasing consistency.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
