@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 research-toggle repeat parity: ignore held-key repeat for `R` so research does not rapidly flicker open/closed.
+D.4 upgrade-hotkey repeat parity: ignore held-key repeat for `U/I/O/N` so one key press triggers one buy/refund action.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -118,6 +118,7 @@ D.4 research-toggle repeat parity: ignore held-key repeat for `R` so research do
 - `godot/scripts/main.gd`: build-mode cycling input now responds to `C` action path only, removing `B` trigger behavior for closer web control parity.
 - `godot/scripts/main.gd`: held-key echo on `C` build input is now ignored, preventing rapid multi-cycle jumps from a single key hold.
 - `godot/scripts/main.gd`: held-key echo on `R` research toggle is now ignored, matching web keydown repeat guards and preventing rapid open/close flicker.
+- `godot/scripts/main.gd`: held-key echo on `U/I/O/N` upgrade hotkeys is now ignored so each press triggers at most one buy/refund attempt.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `toggle_build_mode_alt` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
