@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Discovery toast lifecycle parity (`J.2`): centralize toast update/reset behavior to avoid stale UI state.
+Game-over stats block parity (`J.2`): add a dedicated stats label mirroring core web post-run metrics.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -76,6 +76,7 @@ Discovery toast lifecycle parity (`J.2`): centralize toast update/reset behavior
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: discovery toast is now structured as a panel with separate title/body labels (instead of one multiline label), improving web-like readability.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: discovery toast now uses a dedicated variant color swatch node while keeping panel/text colors neutral for web-like icon emphasis and readability.
 - `godot/scripts/main.gd`: discovery toast rendering/reset is now centralized in `_update_discovery_toast()` and called from HUD + phase transitions to avoid stale hidden-state text.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: game-over UI now includes a dedicated `GameOverStats` line with earned/spent/power/kills metrics populated at run finalization.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

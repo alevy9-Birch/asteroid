@@ -74,6 +74,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var menu_volume_value: Label = $MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolumeValue
 @onready var pause_volume_value: Label = $PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolumeValue
 @onready var gameover_hint: Label = $GameOverOverlay/GameOverVBox/GameOverHint
+@onready var gameover_stats: Label = $GameOverOverlay/GameOverVBox/GameOverStats
 @onready var gameover_score: Label = $GameOverOverlay/GameOverVBox/GameOverScore
 @onready var gameover_best: Label = $GameOverOverlay/GameOverVBox/GameOverBest
 @onready var wave_timer_hud: PanelContainer = $GameplayLayer/WaveTimerHud
@@ -1795,6 +1796,12 @@ func _finalize_run_score() -> void:
 	gameover_hint.text = gameover_controller.format_hint(
 		wave, asteroids_killed, money_earned, money_spent, selected_commander
 	)
+	gameover_stats.text = "Earned %dc | Spent %dc | Power %d P·s | Kills %d" % [
+		money_earned,
+		money_spent,
+		int(round(power_produced)),
+		asteroids_killed,
+	]
 	if sandbox_run:
 		gameover_hint.text += " | Sandbox (score not saved)"
 	gameover_score.text = "Score: %d" % run_score
