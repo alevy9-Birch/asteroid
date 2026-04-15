@@ -98,16 +98,26 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 8
 
-[node name="DiscoveryToastVBox" type="VBoxContainer" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin"]
+[node name="DiscoveryToastRow" type="HBoxContainer" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin"]
 layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DiscoveryToastSwatch" type="ColorRect" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastRow"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+color = Color(0.95, 0.55, 0.45, 1)
+
+[node name="DiscoveryToastVBox" type="VBoxContainer" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastRow"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 3
 
-[node name="DiscoveryToastTitle" type="Label" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastVBox"]
+[node name="DiscoveryToastTitle" type="Label" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastRow/DiscoveryToastVBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "New Asteroid"
 
-[node name="DiscoveryToastBody" type="Label" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastVBox"]
+[node name="DiscoveryToastBody" type="Label" parent="GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastRow/DiscoveryToastVBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 text = "Variant details"

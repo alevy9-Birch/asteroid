@@ -55,8 +55,9 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var ground: MeshInstance3D = $World3D/Ground
 @onready var look_readout: Label = $GameplayLayer/LookReadout
 @onready var discovery_toast: PanelContainer = $GameplayLayer/DiscoveryToast
-@onready var discovery_toast_title: Label = $GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastVBox/DiscoveryToastTitle
-@onready var discovery_toast_body: Label = $GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastVBox/DiscoveryToastBody
+@onready var discovery_toast_swatch: ColorRect = $GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastRow/DiscoveryToastSwatch
+@onready var discovery_toast_title: Label = $GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastRow/DiscoveryToastVBox/DiscoveryToastTitle
+@onready var discovery_toast_body: Label = $GameplayLayer/DiscoveryToast/DiscoveryToastMargin/DiscoveryToastRow/DiscoveryToastVBox/DiscoveryToastBody
 @onready var gameplay_info: Label = $GameplayLayer/GameplayInfo
 @onready var center_hp_bar: ProgressBar = $GameplayLayer/CenterHpBar
 @onready var diagnostics_label: Label = $GameplayLayer/Diagnostics
@@ -1509,7 +1510,8 @@ func _update_hud() -> void:
 	gameplay_info.text = gi
 	if phase == AppPhase.PLAYING and not active_asteroid_discovery.is_empty():
 		discovery_toast.visible = true
-		discovery_toast.modulate = asteroid_system.variant_color(active_asteroid_discovery_variant)
+		discovery_toast.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		discovery_toast_swatch.color = asteroid_system.variant_color(active_asteroid_discovery_variant)
 		discovery_toast_title.text = "New Asteroid: %s" % active_asteroid_discovery
 		discovery_toast_body.text = active_asteroid_discovery_desc
 	else:

@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Discovery toast structure parity (`J.2`): convert toast into title/body panel layout for readability.
+Discovery toast swatch parity (`J.2`): add in-toast variant color chip instead of whole-panel tint.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -74,6 +74,7 @@ Discovery toast structure parity (`J.2`): convert toast into title/body panel la
 - `godot/scripts/main.gd`: removed duplicated inline discovery suffix from `GameplayInfo`; discovery messaging now routes through `DiscoveryToast` only.
 - `godot/scripts/main.gd`: discovery toast now tracks discovered variant id and tints toast color from `AsteroidSystem.variant_color` for stronger web-style visual parity.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: discovery toast is now structured as a panel with separate title/body labels (instead of one multiline label), improving web-like readability.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: discovery toast now uses a dedicated variant color swatch node while keeping panel/text colors neutral for web-like icon emphasis and readability.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
