@@ -133,8 +133,10 @@ func update_asteroids(
 		var variant := String(a.get("variant", "normal"))
 		var stasis_t := maxf(0.0, float(a.get("stasisTimer", 0.0)) - delta)
 		var pulsar_t := maxf(0.0, float(a.get("pulsarSlowTimer", 0.0)) - delta)
+		var radar_t := maxf(0.0, float(a.get("radarMarkTimer", 0.0)) - delta)
 		a["stasisTimer"] = stasis_t
 		a["pulsarSlowTimer"] = pulsar_t
+		a["radarMarkTimer"] = radar_t
 		var pos: Vector3 = a["pos"]
 		var move_target := command_center_pos
 		# Web parity: seekers continuously retarget the closest live building while moving.

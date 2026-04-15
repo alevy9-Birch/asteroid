@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Asteroid status-effect movement parity (`F.7`): apply stasis freeze and pulsar slow timers during movement updates.
+Radar mark timer parity (`F.7`): decrement `radarMarkTimer` on asteroids each frame in movement update.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -38,6 +38,7 @@ Asteroid status-effect movement parity (`F.7`): apply stasis freeze and pulsar s
   - `godot/scripts/main.gd`: discovery HUD now shows display names (e.g., `Seeker`) instead of raw ids.
   - `godot/systems/AsteroidSystem.gd`: discovery notices now include variant descriptions in HUD text.
   - `godot/systems/AsteroidSystem.gd`: movement now honors `stasisTimer` freeze and `pulsarSlowTimer` slow (`0.52`) like web.
+  - `godot/systems/AsteroidSystem.gd`: `radarMarkTimer` now decays each update for parity with web asteroid timer updates.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
