@@ -8,12 +8,22 @@ const IMPACT_TRIGGER_MIN_Y := 0.6
 func pick_variant(rand: RandomNumberGenerator, wave: int) -> String:
 	var w := _variant_weights_for_wave(wave)
 	var allowed := _allowed_variant_pool_for_wave(w, wave)
+	return _pick_weighted(rand, w, allowed)
+
+
+func pick_variant_with_discovery(rand: RandomNumberGenerator, wave: int, discovered: Array[String]) -> String:
+	var w := _variant_weights_for_wave(wave)
+	var allowed := _allowed_variant_pool_with_discovery(w, wave, discovered)
+	return _pick_weighted(rand, w, allowed)
+
+
+func _pick_weighted(rand: RandomNumberGenerator, weights: Dictionary, allowed: Array[String]) -> String:
 	var total := 0.0
 	for v in allowed:
-		total += maxf(0.0001, float(w.get(v, 0.01)))
+		total += maxf(0.0001, float(weights.get(v, 0.01)))
 	var r := rand.randf() * total
 	for v in allowed:
-		r -= maxf(0.0001, float(w.get(v, 0.01)))
+		r -= maxf(0.0001, float(weights.get(v, 0.01)))
 		if r <= 0.0:
 			return v
 	return "normal"
@@ -52,6 +62,49 @@ func _allowed_variant_pool_for_wave(weights: Dictionary, wave: int) -> Array[Str
 			pool.append("normal")
 		else:
 			pool[pool.size() - 1] = "normal"
+	return pool
+
+
+func _allowed_variant_pool_with_discovery(weights: Dictionary, wave: int, discovered: Array[String]) -> Array[String]:
+	# Web parity (`configureWaveVariantPool`): build pool from known set, keep normal, then inject one unknown variant.
+	var max_types := mini(VARIANTS.size(), 2 + int(floor(float(wave) / 3.0)))
+	var known: Array[String] = []
+	for v in discovered:
+		if not VARIANTS.has(v):
+			continue
+		if known.has(v):
+			continue
+		known.append(v)
+	if not known.has("normal"):
+		known.push_front("normal")
+	if known.is_empty():
+		known.append("normal")
+	known.sort_custom(func(a, b): return float(weights.get(a, 0.01)) > float(weights.get(b, 0.01)))
+	var pool: Array[String] = known.slice(0, max_types)
+	if not pool.has("normal"):
+		if pool.size() >= max_types and pool.size() > 0:
+			pool[pool.size() - 1] = "normal"
+		else:
+			pool.append("normal")
+
+	var unknown: Array[String] = []
+	for v in VARIANTS:
+		if not known.has(v):
+			unknown.append(v)
+	if unknown.size() > 0 and wave >= 2:
+		unknown.sort_custom(func(a, b): return float(weights.get(a, 0.01)) > float(weights.get(b, 0.01)))
+		var intro := unknown[0]
+		if not pool.has(intro):
+			if pool.size() >= max_types:
+				var idx := -1
+				for i in range(pool.size()):
+					if pool[i] != "normal":
+						idx = i
+						break
+				if idx >= 0:
+					pool[idx] = intro
+			else:
+				pool.append(intro)
 	return pool
 
 func update_asteroids(

@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Asteroid discovery parity (`F.6/F.9`): track newly seen variants per run and surface temporary discovery notice.
+Variant pool parity with discovery (`F.6`): build spawn variants from discovered set and intro one unknown variant per wave rules.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -30,6 +30,8 @@ Asteroid discovery parity (`F.6/F.9`): track newly seen variants per run and sur
   - `godot/scripts/main.gd`: seeker asteroids now get closest-structure target at spawn time (not delayed until first update tick).
   - `godot/scripts/main.gd`: run-scoped asteroid discovery state added (`discovered`, active discovery, 5s timer), with HUD “New: <variant>” notice.
   - `godot/autoloads/AudioService.gd`: added optional `asteroid_discovery` SFX event hook.
+  - `godot/systems/AsteroidSystem.gd`: added discovery-aware wave pool assembly matching web `configureWaveVariantPool` behavior.
+  - `godot/scripts/main.gd`: spawn path now uses discovery-aware variant picking (`pick_variant_with_discovery`).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

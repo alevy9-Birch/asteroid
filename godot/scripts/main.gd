@@ -729,7 +729,7 @@ func _spawn_asteroid() -> void:
 	if node.get_parent() == null:
 		world_3d.add_child(node)
 	node.position = p
-	var variant := asteroid_system.pick_variant(rand, wave)
+	var variant := asteroid_system.pick_variant_with_discovery(rand, wave, _discovered_variant_list())
 	_register_asteroid_discovery(variant)
 	var ab := WaveScaling.asteroid_base_stats(wave, game_difficulty)
 	var kin := asteroid_system.compute_spawn_kinematics(
@@ -887,6 +887,13 @@ func _register_asteroid_discovery(variant: String) -> void:
 	active_asteroid_discovery = variant
 	asteroid_discovery_timer_sec = 5.0
 	audio_service.emit_event("asteroid_discovery", {"variant": variant})
+
+
+func _discovered_variant_list() -> Array[String]:
+	var out: Array[String] = []
+	for k in discovered_asteroid_variants.keys():
+		out.append(String(k))
+	return out
 
 
 func _remove_asteroid(index: int, reason: String = "combat") -> void:
