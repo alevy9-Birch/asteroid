@@ -447,7 +447,7 @@ func _input(event: InputEvent) -> void:
 		_try_buy_upgrade("logistics")
 	if event.is_action_pressed("buy_upgrade_nuclear") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("nuclear")
-	if event.is_action_pressed("toggle_build_mode") and phase == AppPhase.PLAYING:
+	if (event.is_action_pressed("toggle_build_mode") or event.is_action_pressed("toggle_build_mode_alt")) and phase == AppPhase.PLAYING:
 		_toggle_build_mode()
 	if event.is_action_pressed("toggle_research_panel") and (phase == AppPhase.PLAYING or phase == AppPhase.PAUSED):
 		research_panel_open = not research_panel_open
@@ -1512,7 +1512,7 @@ func _update_hud() -> void:
 			bm = "depot L"
 		elif bm == "nuclear":
 			bm = "nuclear plant"
-	look_readout.text = "%s | Build: %s | B toggle" % [
+	look_readout.text = "%s | Build: %s | B/C toggle" % [
 		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),
 		bm,
 	]

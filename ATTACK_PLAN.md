@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research overlay toggle parity (`D.4`/`J.3`): add web-style dedicated shortcut to show/hide research panel.
+Build shortcut parity (`D.4`): add `C` as a build-mode cycle alias while preserving existing `B` flow.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -66,6 +66,7 @@ Research overlay toggle parity (`D.4`/`J.3`): add web-style dedicated shortcut t
 - `godot/systems/UpgradeSystem.gd`: refundable owned research labels now use a dollar marker (`[$]`) to better match web refund affordance styling.
 - `godot/scenes/Main.tscn`: research panel hint copy now explains same-key refunds and the `[$]` refundable marker.
 - `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `R`-driven research panel toggle state (`research_panel_open`) and centralized research-panel visibility updates for PLAYING/PAUSED flow.
+- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: added `C` alias for build-mode cycling (alongside `B`) and updated look-readout shortcut hint to `B/C`.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
