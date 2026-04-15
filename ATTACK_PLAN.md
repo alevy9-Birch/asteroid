@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Research panel visibility commander-gate parity (`J.3`): force-close/hide panel when no commander is selected.
+Commander-aware shortcut hint parity (`J.1/J.3`): only show `R` hero research hint when commander is selected.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -99,6 +99,7 @@ Research panel visibility commander-gate parity (`J.3`): force-close/hide panel 
 - `godot/scripts/main.gd`: look-readout shortcut strip now also uses commander-qualified hero-research wording for cross-HUD copy consistency.
 - `godot/scripts/main.gd`: `R` research toggle input is now commander-gated, matching web behavior where hero research cannot open without a selected commander.
 - `godot/scripts/main.gd`: research panel visibility now force-closes when commander is `none`, preventing stale-open hero research UI state.
+- `godot/ui/HudController.gd` + `godot/scripts/main.gd`: gameplay shortcut hints now show `R hero research (with commander)` only when commander research is actually available.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

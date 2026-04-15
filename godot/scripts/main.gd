@@ -1507,6 +1507,7 @@ func _update_hud() -> void:
 		wave_ready,
 		spawn_status,
 		refund_hint,
+		_has_commander_selected(),
 	)
 	if sandbox_run:
 		gi = "SANDBOX (no hiscore save) | " + gi
@@ -1533,10 +1534,14 @@ func _update_hud() -> void:
 			bm = "depot L"
 		elif bm == "nuclear":
 			bm = "nuclear plant"
-	look_readout.text = "%s | Build: %s | C wheel | U skills | R hero research (with commander) | RMB sell" % [
+	var look_txt := "%s | Build: %s | C wheel | U skills" % [
 		hud_controller.format_look_info(camera_system.yaw, camera_system.pitch),
 		bm,
 	]
+	if _has_commander_selected():
+		look_txt += " | R hero research (with commander)"
+	look_txt += " | RMB sell"
+	look_readout.text = look_txt
 
 
 func _has_refundable_prototype_upgrade() -> bool:
