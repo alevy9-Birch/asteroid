@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Commander-aware shortcut hint parity (`J.1/J.3`): only show `R` hero research hint when commander is selected.
+C shortcut precedence parity (`D.4`): pressing `C` closes research overlay before build cycling.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -100,6 +100,7 @@ Commander-aware shortcut hint parity (`J.1/J.3`): only show `R` hero research hi
 - `godot/scripts/main.gd`: `R` research toggle input is now commander-gated, matching web behavior where hero research cannot open without a selected commander.
 - `godot/scripts/main.gd`: research panel visibility now force-closes when commander is `none`, preventing stale-open hero research UI state.
 - `godot/ui/HudController.gd` + `godot/scripts/main.gd`: gameplay shortcut hints now show `R hero research (with commander)` only when commander research is actually available.
+- `godot/scripts/main.gd`: `C`/`B` build-cycle input now closes an open research overlay before cycling build mode, matching web-style panel precedence.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

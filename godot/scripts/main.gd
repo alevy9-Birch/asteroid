@@ -455,6 +455,9 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("buy_upgrade_nuclear") and phase == AppPhase.PLAYING and not _is_wave_combat_active():
 		_try_buy_upgrade("nuclear")
 	if (event.is_action_pressed("toggle_build_mode") or event.is_action_pressed("toggle_build_mode_alt")) and phase == AppPhase.PLAYING:
+		if research_panel_open:
+			research_panel_open = false
+			_update_research_panel_visibility()
 		_toggle_build_mode()
 	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING and _has_commander_selected():
 		research_panel_open = not research_panel_open
