@@ -1913,6 +1913,9 @@ func _update_research_labels() -> void:
 func _update_research_panel_visibility() -> void:
 	if not _has_commander_selected():
 		research_panel_open = false
+	if research_panel_open:
+		dragging_build = false
+		dragging_sell = false
 	research_panel.visible = research_panel_open and phase == AppPhase.PLAYING
 
 
