@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Commander runtime state sync parity (`A.2/I.3`): mirror selected commander through `GameState` runtime fields.
+Commander hint copy parity (`J.3`): keep menu commander note static to match web wording behavior.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -108,6 +108,7 @@ Commander runtime state sync parity (`A.2/I.3`): mirror selected commander throu
 - `godot/scripts/main.gd`: main-menu shortcut line now matches web static copy (`R hero research (with commander)` always shown), while commander availability is conveyed by the dedicated commander-status hint.
 - `godot/systems/CommanderSystem.gd` + `godot/scripts/main.gd` + `godot/ui/GameOverController.gd`: commander ids now map through a shared display-name helper so menu/game-over text uses player-facing labels instead of raw ids.
 - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: selected commander now mirrors into `GameState.selected_commander` during runtime sync/reset for centralized run-context state parity.
+- `godot/scripts/main.gd`: menu commander note is now static web wording (`Neutral tech only — no hero buildings or hero research.`), avoiding non-web dynamic copy changes.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

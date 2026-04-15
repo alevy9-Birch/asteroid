@@ -1565,10 +1565,7 @@ func _update_hud() -> void:
 		_update_research_labels()
 	_update_research_panel_visibility()
 	menu_hint_label.text = "Move the mouse to steer the virtual cursor; click selects. WASD move · Q/E height · mouse look · C build wheel · U skills · R hero research (with commander) · RMB sell · Space wave · P pause"
-	if _has_commander_selected():
-		menu_commander_hint_label.text = "Commander selected: %s — hero buildings and hero research available." % commander_system.display_name(selected_commander)
-	else:
-		menu_commander_hint_label.text = "Neutral tech only — no hero buildings or hero research."
+	menu_commander_hint_label.text = "Neutral tech only — no hero buildings or hero research."
 	var bm := "turret"
 	if upgrade_factory or upgrade_logistics or upgrade_nuclear:
 		bm = build_mode
