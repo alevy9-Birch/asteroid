@@ -155,6 +155,7 @@ var asteroids_killed := 0
 var discovered_asteroid_variants: Dictionary = {}
 var active_asteroid_discovery := ""
 var asteroid_discovery_timer_sec := 0.0
+var wave_variant_pool: Array[String] = ["normal"]
 ## Web `statsPowerProduced`: gross gen **`gen * dt`** during **`waveInProgress`** (CC + nuclears when **`credits > 0`**).
 var power_produced := 0.0
 var run_score := 0
@@ -569,6 +570,7 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	discovered_asteroid_variants.clear()
 	active_asteroid_discovery = ""
 	asteroid_discovery_timer_sec = 0.0
+	wave_variant_pool = ["normal"]
 	power_produced = 0.0
 	run_score = 0
 	upgrade_core = false
@@ -729,7 +731,9 @@ func _spawn_asteroid() -> void:
 	if node.get_parent() == null:
 		world_3d.add_child(node)
 	node.position = p
-	var variant := asteroid_system.pick_variant_with_discovery(rand, wave, _discovered_variant_list())
+	if wave_variant_pool.is_empty():
+		_rebuild_wave_variant_pool()
+	var variant := asteroid_system.pick_variant_from_pool(rand, wave, wave_variant_pool)
 	_register_asteroid_discovery(variant)
 	var ab := WaveScaling.asteroid_base_stats(wave, game_difficulty)
 	var kin := asteroid_system.compute_spawn_kinematics(
@@ -894,6 +898,10 @@ func _discovered_variant_list() -> Array[String]:
 	for k in discovered_asteroid_variants.keys():
 		out.append(String(k))
 	return out
+
+
+func _rebuild_wave_variant_pool() -> void:
+	wave_variant_pool = asteroid_system.build_wave_variant_pool_with_discovery(wave, _discovered_variant_list())
 
 
 func _remove_asteroid(index: int, reason: String = "combat") -> void:
@@ -1636,6 +1644,7 @@ func _wave_state_dict() -> Dictionary:
 
 func _apply_wave_state(st: Dictionary) -> void:
 	var prev_combat := wave_combat_active
+	var prev_wave := wave
 	wave = int(st.get("wave", wave))
 	wave_combat_active = bool(st.get("wave_combat_active", wave_combat_active))
 	to_spawn = int(st.get("to_spawn", to_spawn))
@@ -1647,6 +1656,8 @@ func _apply_wave_state(st: Dictionary) -> void:
 	inactive_time_left_sec = float(st.get("inactive_time_left_sec", inactive_time_left_sec))
 	current_inactive_phase = int(st.get("current_inactive_phase", current_inactive_phase))
 	game_difficulty = str(st.get("difficulty", game_difficulty))
+	if wave != prev_wave:
+		_rebuild_wave_variant_pool()
 	if wave_combat_active and not prev_combat:
 		audio_service.emit_event("wave_start", {})
 	if prev_combat and not wave_combat_active:

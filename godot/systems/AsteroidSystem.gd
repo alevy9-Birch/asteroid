@@ -17,6 +17,18 @@ func pick_variant_with_discovery(rand: RandomNumberGenerator, wave: int, discove
 	return _pick_weighted(rand, w, allowed)
 
 
+func pick_variant_from_pool(rand: RandomNumberGenerator, wave: int, pool: Array[String]) -> String:
+	var w := _variant_weights_for_wave(wave)
+	if pool.is_empty():
+		return _pick_weighted(rand, w, _allowed_variant_pool_for_wave(w, wave))
+	return _pick_weighted(rand, w, pool)
+
+
+func build_wave_variant_pool_with_discovery(wave: int, discovered: Array[String]) -> Array[String]:
+	var w := _variant_weights_for_wave(wave)
+	return _allowed_variant_pool_with_discovery(w, wave, discovered)
+
+
 func _pick_weighted(rand: RandomNumberGenerator, weights: Dictionary, allowed: Array[String]) -> String:
 	var total := 0.0
 	for v in allowed:

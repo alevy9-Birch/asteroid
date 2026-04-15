@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Variant pool parity with discovery (`F.6`): build spawn variants from discovered set and intro one unknown variant per wave rules.
+Wave-fixed variant pool parity (`F.6`): configure variant pool on wave transition and keep it stable during that wave.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -32,6 +32,8 @@ Variant pool parity with discovery (`F.6`): build spawn variants from discovered
   - `godot/autoloads/AudioService.gd`: added optional `asteroid_discovery` SFX event hook.
   - `godot/systems/AsteroidSystem.gd`: added discovery-aware wave pool assembly matching web `configureWaveVariantPool` behavior.
   - `godot/scripts/main.gd`: spawn path now uses discovery-aware variant picking (`pick_variant_with_discovery`).
+  - `godot/scripts/main.gd`: wave variant pool is now rebuilt on wave changes and reused for all spawns in that wave.
+  - `godot/systems/AsteroidSystem.gd`: added pool-based variant picker and public pool builder for wave-level orchestration.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
