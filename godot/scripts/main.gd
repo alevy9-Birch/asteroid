@@ -888,7 +888,7 @@ func _register_asteroid_discovery(variant: String) -> void:
 	if discovered_asteroid_variants.has(variant):
 		return
 	discovered_asteroid_variants[variant] = true
-	active_asteroid_discovery = variant
+	active_asteroid_discovery = asteroid_system.variant_display_name(variant)
 	asteroid_discovery_timer_sec = 5.0
 	audio_service.emit_event("asteroid_discovery", {"variant": variant})
 

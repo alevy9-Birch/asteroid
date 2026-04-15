@@ -352,6 +352,30 @@ func variant_color(variant: String) -> Color:
 		_:
 			return Color(0.95, 0.55, 0.45, 1.0)
 
+
+func variant_display_name(variant: String) -> String:
+	match variant:
+		"splitter":
+			return "Splitter"
+		"explosive":
+			return "Explosive"
+		"meteor":
+			return "Meteor"
+		"seeker":
+			return "Seeker"
+		"planet":
+			return "Planet"
+		"gold":
+			return "Gold"
+		"spawner":
+			return "Spawner"
+		"emp":
+			return "EMP"
+		"colossus":
+			return "Colossus"
+		_:
+			return "Normal"
+
 func on_asteroid_destroyed(asteroid: Dictionary, reason: String) -> Dictionary:
 	var variant := String(asteroid.get("variant", "normal"))
 	var split_level := int(asteroid.get("splitLevel", 0))

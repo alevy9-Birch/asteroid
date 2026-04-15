@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Wave-fixed variant pool parity (`F.6`): configure variant pool on wave transition and keep it stable during that wave.
+Discovery label parity (`F.9`): surface user-facing asteroid variant names in discovery notice (not raw ids).
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -34,6 +34,8 @@ Wave-fixed variant pool parity (`F.6`): configure variant pool on wave transitio
   - `godot/scripts/main.gd`: spawn path now uses discovery-aware variant picking (`pick_variant_with_discovery`).
   - `godot/scripts/main.gd`: wave variant pool is now rebuilt on wave changes and reused for all spawns in that wave.
   - `godot/systems/AsteroidSystem.gd`: added pool-based variant picker and public pool builder for wave-level orchestration.
+  - `godot/systems/AsteroidSystem.gd`: added `variant_display_name` mapping for discovery UI text.
+  - `godot/scripts/main.gd`: discovery HUD now shows display names (e.g., `Seeker`) instead of raw ids.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
