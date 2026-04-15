@@ -806,12 +806,11 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> 
 
 
 func _update_asteroids(delta: float) -> void:
-	asteroids = asteroid_system.update_asteroids(delta, asteroids, command_center_pos, _seeker_target_points())
+	asteroids = asteroid_system.update_asteroids(delta, asteroids, command_center_pos, _seeker_target_points(), wave, game_difficulty)
 	for i in range(asteroids.size() - 1, -1, -1):
 		var a = asteroids[i]
 		if bool(a.get("spawnReady", false)):
 			a["spawnReady"] = false
-			a["spawnCooldown"] = 6.0
 			asteroids[i] = a
 			_spawn_asteroid_at(Vector3(a["pos"]) + Vector3(rand.randf_range(-3.0, 3.0), 0, rand.randf_range(-3.0, 3.0)), "meteor")
 	var impacts = asteroid_system.find_impacts(asteroids, command_center_pos)

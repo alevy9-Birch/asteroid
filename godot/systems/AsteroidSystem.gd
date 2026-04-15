@@ -16,6 +16,8 @@ func update_asteroids(
 	asteroids: Array,
 	command_center_pos: Vector3,
 	seeker_targets: Array = [],
+	wave: int = 1,
+	difficulty: String = "hard",
 ) -> Array:
 	var out := asteroids.duplicate(true)
 	for i in range(out.size() - 1, -1, -1):
@@ -37,8 +39,12 @@ func update_asteroids(
 		node.position = pos
 		if variant == "spawner":
 			var cd := float(a.get("spawnCooldown", 0.0)) - delta
+			if cd <= 0.0:
+				a["spawnReady"] = true
+				cd += _next_spawner_cooldown_sec(wave, difficulty)
+			else:
+				a["spawnReady"] = false
 			a["spawnCooldown"] = cd
-			a["spawnReady"] = cd <= 0.0
 		out[i] = a
 	return out
 
@@ -55,6 +61,13 @@ func _closest_target_point(from_pos: Vector3, targets: Array, fallback: Vector3)
 			best_d = d
 			best = tp
 	return best
+
+
+func _next_spawner_cooldown_sec(wave: int, difficulty: String) -> float:
+	# Web parity (`BaseDefenseGame.updateAsteroids`): max(2.2, 5.2 - adj * 0.12)
+	var sc := WaveScaling.enemy_scaling_wave(maxi(1, wave), difficulty)
+	var adj := float(sc.get("adj", 1.0))
+	return maxf(2.2, 5.2 - adj * 0.12)
 
 func find_impacts(asteroids: Array, command_center_pos: Vector3) -> Array:
 	var hits: Array = []
