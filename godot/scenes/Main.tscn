@@ -255,6 +255,19 @@ text = "Neutral tech only — no hero buildings or hero research."
 horizontal_alignment = 1
 autowrap_mode = 3
 
+[node name="MenuCommanderRow" type="HBoxContainer" parent="MenuOverlay/MenuVBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="MenuCommanderLabel" type="Label" parent="MenuOverlay/MenuVBox/MenuCommanderRow"]
+layout_mode = 2
+text = "Commander"
+
+[node name="MenuCommanderOption" type="OptionButton" parent="MenuOverlay/MenuVBox/MenuCommanderRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+
 [node name="MenuDifficultyRow" type="HBoxContainer" parent="MenuOverlay/MenuVBox"]
 layout_mode = 2
 alignment = 1

@@ -72,6 +72,7 @@ const PROJECTILE_LIFETIME := 1.3
 @onready var gameover_overlay: PanelContainer = $GameOverOverlay
 @onready var virtual_cursor: ColorRect = $VirtualCursor
 @onready var menu_difficulty_option: OptionButton = $MenuOverlay/MenuVBox/MenuDifficultyRow/MenuDifficultyOption
+@onready var menu_commander_option: OptionButton = $MenuOverlay/MenuVBox/MenuCommanderRow/MenuCommanderOption
 @onready var menu_volume_value: Label = $MenuOverlay/MenuVBox/MenuVolumeRow/MenuVolumeValue
 @onready var pause_volume_value: Label = $PauseOverlay/PauseVBox/PauseVolumeRow/PauseVolumeValue
 @onready var menu_hint_label: Label = $MenuOverlay/MenuVBox/MenuHint
@@ -158,6 +159,15 @@ var intermission_timer := 0.0
 ## Web **`GameDifficulty`** — menu **`MenuDifficultyOption`**; drives **`WaveScaling`** + **`computeRunScore`** mul.
 var game_difficulty := "hard"
 var MENU_DIFFICULTY_IDS: PackedStringArray = PackedStringArray(["easy", "medium", "hard", "brutal", "deadly"])
+var MENU_COMMANDER_IDS: PackedStringArray = PackedStringArray([
+	"none",
+	"archangel",
+	"dominion",
+	"nova",
+	"citadel",
+	"jupiter",
+	"kingpin",
+])
 ## Web `inactiveTimeLeftSec` / `currentInactivePhase` (sell refund + upgrade phase).
 var inactive_time_left_sec := 0.0
 var current_inactive_phase := 0
@@ -207,6 +217,7 @@ func _ready() -> void:
 	_setup_world_visuals()
 	_setup_inputs()
 	_collect_buttons()
+	_setup_menu_commander_option()
 	_setup_menu_difficulty_option()
 	_connect_button_handlers()
 	rand.randomize()
@@ -499,6 +510,31 @@ func _collect_buttons() -> void:
 	for n in nodes:
 		all_menu_buttons.append(n as Button)
 	all_menu_buttons.append(menu_difficulty_option as Button)
+	all_menu_buttons.append(menu_commander_option as Button)
+
+
+func _setup_menu_commander_option() -> void:
+	menu_commander_option.clear()
+	for commander_id in MENU_COMMANDER_IDS:
+		if commander_id == "none":
+			menu_commander_option.add_item("None")
+		else:
+			menu_commander_option.add_item(commander_id.capitalize())
+	var sel := MENU_COMMANDER_IDS.find(selected_commander)
+	if sel < 0:
+		sel = 0
+	menu_commander_option.select(sel)
+	selected_commander = MENU_COMMANDER_IDS[sel]
+	var cmd_cb := Callable(self, "_on_menu_commander_selected")
+	if not menu_commander_option.item_selected.is_connected(cmd_cb):
+		menu_commander_option.item_selected.connect(cmd_cb)
+
+
+func _on_menu_commander_selected(index: int) -> void:
+	if index < 0 or index >= MENU_COMMANDER_IDS.size():
+		return
+	selected_commander = MENU_COMMANDER_IDS[index]
+	_update_hud()
 
 
 func _setup_menu_difficulty_option() -> void:

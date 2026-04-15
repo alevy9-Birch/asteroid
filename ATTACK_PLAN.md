@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Menu commander status hint parity (`J.1/J.3`): add web-style neutral-tech/hero-research availability message in main menu.
+Menu commander selector parity (`I.3/I.4/J.3`): add main-menu commander picker and wire it to run config.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -104,6 +104,7 @@ Menu commander status hint parity (`J.1/J.3`): add web-style neutral-tech/hero-r
 - `godot/scripts/main.gd`: research panel hint copy now updates dynamically to show commander-dependent hero research availability vs unavailability.
 - `godot/scripts/main.gd`: main-menu control hint line now dynamically includes `R hero research (with commander)` only when commander research is available.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: menu now includes a dedicated commander-status hint line with web-style neutral-tech copy and commander-present variant text.
+- `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: main menu now includes a commander `OptionButton` (`None`, `Archangel`, `Dominion`, `Nova`, `Citadel`, `Jupiter`, `Kingpin`) wired to `selected_commander` for run-start commander defaults.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
