@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-K.2 audio event parity: align `shield_hit` clip mapping with web audio engine.
+K.2 audio event parity: prefer web `metal_impact` for `game_over` event playback.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -142,6 +142,7 @@ K.2 audio event parity: align `shield_hit` clip mapping with web audio engine.
 - `godot/scripts/main.gd`: research overlay visibility sync now clears drag-build/drag-sell flags whenever `research_panel_open` is true, preventing held-pointer repeat actions from leaking across overlay interaction.
 - `godot/scripts/main.gd`: `_start_new_run()` now resets `capture_recover_pending` so a menu focus-change does not consume the first intended gameplay click of a fresh run.
 - `godot/autoloads/AudioService.gd`: `shield_hit` now maps to `force_field.ogg` (instead of `explosion_low.ogg`) to match web `gameAudioEngine` event handling.
+- `godot/autoloads/AudioService.gd`: `game_over` now prefers web-equivalent `metal_impact.ogg` and only falls back to optional `game_over.wav` when needed.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.

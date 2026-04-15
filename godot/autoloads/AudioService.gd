@@ -105,9 +105,9 @@ func _play_build_sell_short() -> void:
 
 
 func _play_game_over_if_available() -> void:
-	if _play_stream_if_exists(GAME_OVER_STREAM_PATH):
+	if _play_stream_if_exists(SFX_DIR + "metal_impact.ogg"):
 		return
-	_play_stream_if_exists(SFX_DIR + "metal_impact.ogg")
+	_play_stream_if_exists(GAME_OVER_STREAM_PATH)
 
 
 func _play_stream_if_exists(path: String) -> bool:
