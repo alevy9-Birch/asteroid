@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Shortcut copy parity (`D.4`/`J.3`): align visible in-game hint text with active build/research shortcut set.
+Tracking consistency parity (`A.2`/`J.3`): resolve stale `[R]` wording in root progress notes after `[$]` marker migration.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -58,7 +58,7 @@ Shortcut copy parity (`D.4`/`J.3`): align visible in-game hint text with active 
   - `godot/systems/AsteroidSystem.gd`: colossus death no longer applies non-web AOE damage; colossus remains threat via base stats and impact.
   - `godot/systems/AsteroidSystem.gd` + `godot/scripts/main.gd`: EMP death now drains stored power by nearby structure count (`r=18`, per-building drain) instead of disabling turrets.
   - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: prototype upgrades now support same-phase refund on key re-press, with current-phase prereq-dependent auto-refund and `upgrade_refund` audio parity hook.
-  - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: owned research labels now show `[R]` when refundable in the current inactive phase.
+- `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: owned research labels now show `[$]` when refundable in the current inactive phase.
   - `godot/systems/UpgradeSystem.gd`: buy/refund paths now enforce wave-combat phase guards at system level (not just input caller).
   - `godot/scripts/main.gd`: build mode now auto-normalizes to `turret` when refund/cleanup removes the selected unlocked build category.
   - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: upgrade phase ownership metadata (`upgrade_*_phase`) is now mirrored in runtime sync state.
