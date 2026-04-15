@@ -21,14 +21,19 @@ const OPTIONAL_SFX := {
 }
 
 var _sfx: AudioStreamPlayer
+var _build_sell_sfx: AudioStreamPlayer
 var _last_shield_hit_ms := 0
 const SHIELD_HIT_MIN_INTERVAL_MS := 72
+const BUILD_SELL_STOP_SEC := 0.072
 
 
 func _ready() -> void:
 	_sfx = AudioStreamPlayer.new()
 	_sfx.name = "SfxPlayer"
 	add_child(_sfx)
+	_build_sell_sfx = AudioStreamPlayer.new()
+	_build_sell_sfx.name = "BuildSellSfxPlayer"
+	add_child(_build_sell_sfx)
 
 
 func emit_event(event_name: String, payload: Dictionary = {}) -> void:
@@ -42,6 +47,9 @@ func emit_event(event_name: String, payload: Dictionary = {}) -> void:
 		return
 	if event_name == "shield_hit":
 		_play_shield_hit_throttled()
+		return
+	if event_name == "build_sell":
+		_play_build_sell_short()
 		return
 	var fname: String = OPTIONAL_SFX.get(event_name, "")
 	if fname.is_empty():
@@ -65,6 +73,24 @@ func _play_shield_hit_throttled() -> void:
 		return
 	_last_shield_hit_ms = now
 	_play_stream_if_exists(SFX_DIR + OPTIONAL_SFX["shield_hit"])
+
+
+func _play_build_sell_short() -> void:
+	if _build_sell_sfx == null:
+		return
+	var path := SFX_DIR + String(OPTIONAL_SFX.get("build_sell", ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return
+	var st = load(path)
+	if not (st is AudioStream):
+		return
+	_build_sell_sfx.stream = st as AudioStream
+	_build_sell_sfx.play()
+	var timer := get_tree().create_timer(BUILD_SELL_STOP_SEC)
+	timer.timeout.connect(func() -> void:
+		if _build_sell_sfx != null and _build_sell_sfx.playing:
+			_build_sell_sfx.stop()
+	)
 
 
 func _play_game_over_if_available() -> void:
