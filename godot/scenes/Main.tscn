@@ -360,7 +360,7 @@ horizontal_alignment = 1
 
 [node name="GameOverHint" type="Label" parent="GameOverOverlay/GameOverVBox"]
 layout_mode = 2
-text = "Wave 0 survived"
+text = "Waves survived: 0"
 horizontal_alignment = 1
 
 [node name="GameOverStats" type="Label" parent="GameOverOverlay/GameOverVBox"]

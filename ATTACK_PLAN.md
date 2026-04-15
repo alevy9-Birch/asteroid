@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Wave-status punctuation parity (`J.1`): use web-style ellipsis text for active spawning status.
+Game-over default hint parity (`J.2`): align scene-default game-over hint text with web wording.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -90,6 +90,7 @@ Wave-status punctuation parity (`J.1`): use web-style ellipsis text for active s
 - `godot/scripts/main.gd`: look-readout shortcut segment now uses web-aligned control wording (`C wheel`, `U skills`, `R research`, `RMB sell`).
 - `godot/scripts/main.gd`: gameplay `spawn_status` copy now uses web-style wave text (`Press Space to start`, `Spawning asteroids...`, `Asteroids remaining`, `Next wave in ... (Space)`).
 - `godot/scripts/main.gd`: spawning status copy now uses the same web ellipsis glyph (`Spawning asteroids…`) used by the timer caption.
+- `godot/scenes/Main.tscn`: `GameOverHint` default text now matches web wording (`Waves survived: 0`) before runtime state fill.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
