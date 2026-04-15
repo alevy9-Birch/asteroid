@@ -452,17 +452,18 @@ func _input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and not mb.pressed:
 			dragging_sell = false
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			_ensure_fullscreen_and_capture()
 			if phase == AppPhase.PLAYING:
+				if research_panel_open:
+					return
+				_ensure_fullscreen_and_capture()
 				if capture_recover_pending or not _is_capture_active():
 					capture_recover_pending = false
-					return
-				if research_panel_open:
 					return
 				dragging_build = true
 				drag_build_timer_sec = 0.0
 				_handle_play_left_click()
 			else:
+				_ensure_fullscreen_and_capture()
 				_activate_menu_target()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and phase == AppPhase.PLAYING:
 			if capture_recover_pending or not _is_capture_active():
