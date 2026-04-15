@@ -28,6 +28,7 @@ var intermission_timer := 0.0
 var inactive_time_left_sec := 0.0
 var current_inactive_phase := 0
 var game_difficulty := "hard"
+var selected_commander := "none"
 ## Web `waveReady`: manual next wave allowed (Space) — false during `waveInProgress`; when inactive, true iff `inactiveTimeLeftSec > 0`.
 var wave_ready := true
 
@@ -73,6 +74,7 @@ func reset_run() -> void:
 	inactive_time_left_sec = 0.0
 	current_inactive_phase = 0
 	game_difficulty = "hard"
+	selected_commander = "none"
 	wave_ready = true
 	money_earned = 0
 	money_spent = 0

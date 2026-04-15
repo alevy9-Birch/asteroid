@@ -1992,6 +1992,7 @@ func _sync_game_state_runtime() -> void:
 	game_state.inactive_time_left_sec = inactive_time_left_sec
 	game_state.current_inactive_phase = current_inactive_phase
 	game_state.game_difficulty = game_difficulty
+	game_state.selected_commander = selected_commander
 	game_state.money_earned = money_earned
 	game_state.money_spent = money_spent
 	game_state.asteroids_killed = asteroids_killed
