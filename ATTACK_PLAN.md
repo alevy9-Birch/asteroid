@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Build-sell clip parity (`K.2`): play `build_sell` as a short (~72ms) burst like web `gameAudioEngine`.
+Spawner death behavior parity (`F.6`): remove non-web meteor spawn-on-death for `spawner` asteroids.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -54,6 +54,7 @@ Build-sell clip parity (`K.2`): play `build_sell` as a short (~72ms) burst like 
   - `godot/autoloads/AudioService.gd`: `asteroid_destroyed` now plays only for `combat` reason and `shield_hit` now uses a 72ms anti-spam cooldown (web parity).
   - `godot/autoloads/AudioService.gd`: `wave_start` and `wave_cleared` are now silent markers (no SFX), matching web audio behavior.
   - `godot/autoloads/AudioService.gd`: `build_sell` now uses a dedicated short clip path and is stopped at ~72ms to match web cadence.
+  - `godot/systems/AsteroidSystem.gd`: spawner death no longer emits an extra meteor spawn; only alive spawner cadence remains (web parity).
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
