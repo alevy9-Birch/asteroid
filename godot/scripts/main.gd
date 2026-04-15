@@ -1494,8 +1494,6 @@ func _update_hud() -> void:
 		gi = "SANDBOX (no hiscore save) | " + gi
 	if phase == AppPhase.PLAYING:
 		gi += " | Diff: %s" % game_difficulty
-		if not active_asteroid_discovery.is_empty():
-			gi += " | New: %s — %s" % [active_asteroid_discovery, active_asteroid_discovery_desc]
 	if economy_buildings.size() > 0:
 		gi += " | Fac %d" % economy_buildings.size()
 	if supply_depots.size() > 0:

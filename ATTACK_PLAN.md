@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Discovery toast UI parity (`J.2`): add a dedicated HUD toast label for new asteroid discoveries.
+Discovery HUD de-dup parity (`J.2`): move discovery messaging out of `GameplayInfo` into dedicated toast only.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -71,6 +71,7 @@ Discovery toast UI parity (`J.2`): add a dedicated HUD toast label for new aster
 - `godot/scripts/main.gd`: research overlay now initializes closed and resets closed at each run start; opening is now explicit via `R` toggle path.
 - `godot/scripts/main.gd`: research overlay is now gameplay-only (PLAYING), closes on any phase exit, and no longer toggles while paused.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: added a dedicated `DiscoveryToast` HUD label for new asteroid discovery notices, matching web-style separate toast presentation.
+- `godot/scripts/main.gd`: removed duplicated inline discovery suffix from `GameplayInfo`; discovery messaging now routes through `DiscoveryToast` only.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
