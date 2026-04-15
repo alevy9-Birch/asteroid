@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Splitter child lane-divergence parity (`F.6`/`F.7`): steer splitter children into side-diverged lanes from parent heading (web yaw-offset behavior).
+Audio event vocabulary parity (`K.2`): map additional web event types (`upgrade_refund`, `shield_hit`) in `AudioService` so parity callsites are supported.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -49,6 +49,7 @@ Splitter child lane-divergence parity (`F.6`/`F.7`): steer splitter children int
   - `godot/scripts/main.gd`: spawner-created meteors now use web-like parent-derived stats and close local spawn offset (`speed/hp/impact` parity).
   - `godot/scripts/main.gd`: splitter children now spawn with web-style side offsets (left/right split pattern) instead of random spread.
   - `godot/scripts/main.gd`: splitter children now also diverge into side lanes via web-style yaw offsets from the parent lane (instead of sharing identical target).
+  - `godot/autoloads/AudioService.gd`: web parity audio event ids now include `upgrade_refund` and `shield_hit` in optional SFX mapping.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
