@@ -455,6 +455,8 @@ func _input(event: InputEvent) -> void:
 				return
 			_handle_play_right_click()
 	if event.is_action_pressed("ui_pause"):
+		if event is InputEventKey and (event as InputEventKey).echo:
+			return
 		var next = pause_controller.handle_toggle(int(phase), int(AppPhase.PLAYING), int(AppPhase.PAUSED))
 		if next != int(phase):
 			apply_phase(AppPhase.values()[next])

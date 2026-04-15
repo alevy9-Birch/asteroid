@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 tracking consistency cleanup: remove stale `C/B` and legacy `toggle_build_mode_alt` references from session records.
+D.4 pause-key repeat parity: ignore held-key repeat for `P` so pause toggles only once per key press.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -119,6 +119,7 @@ D.4 tracking consistency cleanup: remove stale `C/B` and legacy `toggle_build_mo
 - `godot/scripts/main.gd`: held-key echo on `C` build input is now ignored, preventing rapid multi-cycle jumps from a single key hold.
 - `godot/scripts/main.gd`: held-key echo on `R` research toggle is now ignored, matching web keydown repeat guards and preventing rapid open/close flicker.
 - `godot/scripts/main.gd`: held-key echo on `U/I/O/N` upgrade hotkeys is now ignored so each press triggers at most one buy/refund attempt.
+- `godot/scripts/main.gd`: held-key echo on `P` pause toggle is now ignored so pause state changes once per press (web parity for pause key repeat guard).
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
