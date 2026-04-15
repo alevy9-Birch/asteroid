@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Audio destroy/shield parity (`K.2`): enforce web `asteroid_destroyed` combat-only playback and add `shield_hit` anti-spam cooldown.
+Wave edge audio silence parity (`K.2`): keep `wave_start` and `wave_cleared` events silent like web `gameAudioEngine`.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -52,6 +52,7 @@ Audio destroy/shield parity (`K.2`): enforce web `asteroid_destroyed` combat-onl
   - `godot/autoloads/AudioService.gd`: web parity audio event ids now include `upgrade_refund` and `shield_hit` in optional SFX mapping.
   - `godot/scripts/main.gd`: asteroid destroy audio is now reason-based from `_remove_asteroid` (combat/shield only, impact separate), matching web handler structure.
   - `godot/autoloads/AudioService.gd`: `asteroid_destroyed` now plays only for `combat` reason and `shield_hit` now uses a 72ms anti-spam cooldown (web parity).
+  - `godot/autoloads/AudioService.gd`: `wave_start` and `wave_cleared` are now silent markers (no SFX), matching web audio behavior.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
