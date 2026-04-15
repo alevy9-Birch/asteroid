@@ -1839,6 +1839,20 @@ func _register_building_placement(building_id: String) -> void:
 	building_placement_counts[building_id] = int(building_placement_counts.get(building_id, 0)) + 1
 
 
+func _format_int_grouped(value: int) -> String:
+	var sign := ""
+	var abs_value := value
+	if abs_value < 0:
+		sign = "-"
+		abs_value = -abs_value
+	var txt := str(abs_value)
+	var out := ""
+	while txt.length() > 3:
+		out = "," + txt.substr(txt.length() - 3, 3) + out
+		txt = txt.substr(0, txt.length() - 3)
+	return sign + txt + out
+
+
 func _building_label_for_stats(building_id: String) -> String:
 	match building_id:
 		"auto_turret":
@@ -1895,24 +1909,24 @@ func _finalize_run_score() -> void:
 			game_difficulty,
 		)
 	gameover_hint.text = gameover_controller.format_hint(wave)
-	gameover_stats.text = "Money earned: %dc | Money spent: %dc\nPower produced: %d P·s | Asteroids killed: %d" % [
-		money_earned,
-		money_spent,
-		int(round(power_produced)),
-		asteroids_killed,
+	gameover_stats.text = "Money earned: %sc | Money spent: %sc\nPower produced: %s P·s | Asteroids killed: %s" % [
+		_format_int_grouped(money_earned),
+		_format_int_grouped(money_spent),
+		_format_int_grouped(int(round(power_produced))),
+		_format_int_grouped(asteroids_killed),
 	]
 	gameover_stats.text += "\nMost common building: %s" % _most_common_building_label()
 	if sandbox_run:
 		gameover_hint.text += " | Sandbox — score not saved"
-	gameover_score.text = "Score: %d" % run_score
+	gameover_score.text = "Score: %s" % _format_int_grouped(run_score)
 	if sandbox_run:
-		gameover_best.text = "Best: %d (sandbox run)" % best_score
+		gameover_best.text = "Best: %s (sandbox run)" % _format_int_grouped(best_score)
 	elif run_score > best_score:
 		best_score = run_score
 		score_system.save_best_score(best_score)
-		gameover_best.text = "Best: %d" % best_score
+		gameover_best.text = "Best: %s" % _format_int_grouped(best_score)
 	else:
-		gameover_best.text = "Best: %d" % best_score
+		gameover_best.text = "Best: %s" % _format_int_grouped(best_score)
 
 
 func _ensure_fullscreen_and_capture() -> void:

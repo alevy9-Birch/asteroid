@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Game-over header commander parity (`J.2`): remove commander suffix from `Waves survived` line.
+Game-over numeric formatting parity (`J.2`): add grouped number formatting to score/stats values.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -110,6 +110,7 @@ Game-over header commander parity (`J.2`): remove commander suffix from `Waves s
 - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: selected commander now mirrors into `GameState.selected_commander` during runtime sync/reset for centralized run-context state parity.
 - `godot/scripts/main.gd`: menu commander note is now static web wording (`Neutral tech only — no hero buildings or hero research.`), avoiding non-web dynamic copy changes.
 - `godot/ui/GameOverController.gd` + `godot/scripts/main.gd`: game-over header now shows only `Waves survived: <n>` (no commander suffix), matching web header behavior.
+- `godot/scripts/main.gd`: game-over score/best/stats numeric values now use grouped formatting (e.g. `12,345`) for closer web `toLocaleString()` parity.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
