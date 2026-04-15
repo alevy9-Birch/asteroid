@@ -10,6 +10,7 @@ const SFX_DIR := "res://audio/sfx/"
 const OPTIONAL_SFX := {
 	"wave_start": "thr_whoosh.ogg",
 	"wave_cleared": "door_close.ogg",
+	"asteroid_discovery": "computer.ogg",
 	"build_place": "door_open.ogg",
 	"build_sell": "door_close.ogg",
 	"emp_pulse": "emp_burst.ogg",

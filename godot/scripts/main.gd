@@ -152,6 +152,9 @@ var command_center_pos := Vector3.ZERO
 var money_earned := 0
 var money_spent := 0
 var asteroids_killed := 0
+var discovered_asteroid_variants: Dictionary = {}
+var active_asteroid_discovery := ""
+var asteroid_discovery_timer_sec := 0.0
 ## Web `statsPowerProduced`: gross gen **`gen * dt`** during **`waveInProgress`** (CC + nuclears when **`credits > 0`**).
 var power_produced := 0.0
 var run_score := 0
@@ -563,6 +566,9 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	money_earned = 0
 	money_spent = 0
 	asteroids_killed = 0
+	discovered_asteroid_variants.clear()
+	active_asteroid_discovery = ""
+	asteroid_discovery_timer_sec = 0.0
 	power_produced = 0.0
 	run_score = 0
 	upgrade_core = false
@@ -630,6 +636,10 @@ func _activate_menu_target() -> void:
 func _process(delta: float) -> void:
 	if phase != AppPhase.PLAYING:
 		return
+	if asteroid_discovery_timer_sec > 0.0:
+		asteroid_discovery_timer_sec = maxf(0.0, asteroid_discovery_timer_sec - delta)
+		if asteroid_discovery_timer_sec <= 0.0:
+			active_asteroid_discovery = ""
 	_update_camera_motion(delta)
 	_update_passive_income(delta)
 	_update_power_economy(delta)
@@ -720,6 +730,7 @@ func _spawn_asteroid() -> void:
 		world_3d.add_child(node)
 	node.position = p
 	var variant := asteroid_system.pick_variant(rand, wave)
+	_register_asteroid_discovery(variant)
 	var ab := WaveScaling.asteroid_base_stats(wave, game_difficulty)
 	var kin := asteroid_system.compute_spawn_kinematics(
 		variant,
@@ -750,6 +761,7 @@ func _spawn_asteroid() -> void:
 
 
 func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> void:
+	_register_asteroid_discovery(variant)
 	var node: MeshInstance3D
 	if asteroid_pool.is_empty():
 		node = MeshInstance3D.new()
@@ -864,6 +876,17 @@ func _asteroid_target_for_variant(variant: String, from_pos: Vector3) -> Vector3
 			best_d = d
 			best = tp
 	return best
+
+
+func _register_asteroid_discovery(variant: String) -> void:
+	if variant.is_empty():
+		return
+	if discovered_asteroid_variants.has(variant):
+		return
+	discovered_asteroid_variants[variant] = true
+	active_asteroid_discovery = variant
+	asteroid_discovery_timer_sec = 5.0
+	audio_service.emit_event("asteroid_discovery", {"variant": variant})
 
 
 func _remove_asteroid(index: int, reason: String = "combat") -> void:
@@ -1322,6 +1345,8 @@ func _update_hud() -> void:
 		gi = "SANDBOX (no hiscore save) | " + gi
 	if phase == AppPhase.PLAYING:
 		gi += " | Diff: %s" % game_difficulty
+		if not active_asteroid_discovery.is_empty():
+			gi += " | New: %s" % active_asteroid_discovery
 	if economy_buildings.size() > 0:
 		gi += " | Fac %d" % economy_buildings.size()
 	if supply_depots.size() > 0:

@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Seeker spawn-target parity (`F.7`): initialize seeker target to closest live structure at spawn.
+Asteroid discovery parity (`F.6/F.9`): track newly seen variants per run and surface temporary discovery notice.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -28,6 +28,8 @@ Seeker spawn-target parity (`F.7`): initialize seeker target to closest live str
   - `godot/systems/AsteroidSystem.gd`: variant picking now uses web-style wave-ramped weights plus capped active type pool (`2 + floor(wave/3)`).
   - `godot/systems/AsteroidSystem.gd`: `colossus` size multiplier aligned to web (`10.0`).
   - `godot/scripts/main.gd`: seeker asteroids now get closest-structure target at spawn time (not delayed until first update tick).
+  - `godot/scripts/main.gd`: run-scoped asteroid discovery state added (`discovered`, active discovery, 5s timer), with HUD “New: <variant>” notice.
+  - `godot/autoloads/AudioService.gd`: added optional `asteroid_discovery` SFX event hook.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
