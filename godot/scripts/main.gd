@@ -463,7 +463,8 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("simulate_gameover"):
 		end_run()
 	if event.is_action_pressed("start_wave") and phase == AppPhase.PLAYING:
-		# Web `startNextWave(true)` only when `waveReady` (manual early-start uses inactive timer > 0 after wave 1+).
+		# Web `startNextWave(true)` has no key-repeat guard; readiness check alone prevents duplicate starts.
+		# Manual early-start uses inactive timer > 0 after wave 1+.
 		if _compute_wave_ready():
 			var st = wave_system.start_next_wave(_wave_state_dict(), asteroids.size())
 			_apply_wave_state(st)

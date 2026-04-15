@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 input parity hardening: apply shared repeat helper to `U/I/O/N` upgrade hotkeys for one-source repeat semantics.
+D.4 input parity guard policy: document intentional no-repeat-guard behavior for `Space` wave start to match web semantics.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -124,6 +124,7 @@ D.4 input parity hardening: apply shared repeat helper to `U/I/O/N` upgrade hotk
 - Tracking cleanup: corrected stale research-panel lifecycle note to gameplay-only (`PLAYING`) wording.
 - `godot/scripts/main.gd`: repeat-guard checks now route through shared `_is_key_echo_event(event)` helper for consistent hotkey parity handling.
 - `godot/scripts/main.gd`: `U/I/O/N` upgrade hotkeys now also use `_is_key_echo_event(event)` so all repeat guards share one path.
+- `godot/scripts/main.gd`: documented that `Space` wave-start intentionally relies on wave-ready gating (no repeat guard), matching web key behavior.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
