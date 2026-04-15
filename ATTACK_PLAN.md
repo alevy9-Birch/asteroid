@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-EMP death effect parity (`F.6`/`H.4`): switch EMP asteroid death from turret disable to web-style power drain in radius.
+Upgrade refund parity (`I.2`): support same-inactive-phase refund for prototype upgrades with prereq-dependent cleanup.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -57,6 +57,7 @@ EMP death effect parity (`F.6`/`H.4`): switch EMP asteroid death from turret dis
   - `godot/systems/AsteroidSystem.gd`: spawner death no longer emits an extra meteor spawn; only alive spawner cadence remains (web parity).
   - `godot/systems/AsteroidSystem.gd`: colossus death no longer applies non-web AOE damage; colossus remains threat via base stats and impact.
   - `godot/systems/AsteroidSystem.gd` + `godot/scripts/main.gd`: EMP death now drains stored power by nearby structure count (`r=18`, per-building drain) instead of disabling turrets.
+  - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: prototype upgrades now support same-phase refund on key re-press, with current-phase prereq-dependent auto-refund and `upgrade_refund` audio parity hook.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

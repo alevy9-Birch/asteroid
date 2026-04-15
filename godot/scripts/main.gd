@@ -170,6 +170,10 @@ var upgrade_core := false
 var upgrade_factory := false
 var upgrade_logistics := false
 var upgrade_nuclear := false
+var upgrade_core_phase := -1
+var upgrade_factory_phase := -1
+var upgrade_logistics_phase := -1
+var upgrade_nuclear_phase := -1
 var turret_damage_mult := 1.0
 var kill_credit_bonus := 0
 var turret_range_bonus := 0.0
@@ -584,6 +588,10 @@ func _start_new_run(is_sandbox: bool = false) -> void:
 	upgrade_factory = false
 	upgrade_logistics = false
 	upgrade_nuclear = false
+	upgrade_core_phase = -1
+	upgrade_factory_phase = -1
+	upgrade_logistics_phase = -1
+	upgrade_nuclear_phase = -1
 	turret_damage_mult = 1.0
 	kill_credit_bonus = 0
 	turret_range_bonus = 0.0
@@ -1645,12 +1653,27 @@ func _try_buy_upgrade(which: String) -> void:
 		"upgrade_factory": upgrade_factory,
 		"upgrade_logistics": upgrade_logistics,
 		"upgrade_nuclear": upgrade_nuclear,
+		"upgrade_core_phase": upgrade_core_phase,
+		"upgrade_factory_phase": upgrade_factory_phase,
+		"upgrade_logistics_phase": upgrade_logistics_phase,
+		"upgrade_nuclear_phase": upgrade_nuclear_phase,
+		"current_inactive_phase": current_inactive_phase,
 		"turret_damage_mult": turret_damage_mult,
 		"kill_credit_bonus": kill_credit_bonus,
 		"turret_range_bonus": turret_range_bonus,
 		"turret_cooldown_bonus": turret_cooldown_bonus,
 	}
-	var out = upgrade_system.try_buy_upgrade(which, s)
+	var owned := false
+	match which:
+		"core":
+			owned = upgrade_core
+		"factory":
+			owned = upgrade_factory
+		"logistics":
+			owned = upgrade_logistics
+		"nuclear":
+			owned = upgrade_nuclear
+	var out = upgrade_system.try_refund_upgrade(which, s) if owned else upgrade_system.try_buy_upgrade(which, s)
 	if not bool(out.ok):
 		return
 	credits = int(out.credits)
@@ -1659,11 +1682,15 @@ func _try_buy_upgrade(which: String) -> void:
 	upgrade_factory = bool(out.upgrade_factory)
 	upgrade_logistics = bool(out.upgrade_logistics)
 	upgrade_nuclear = bool(out.upgrade_nuclear)
+	upgrade_core_phase = int(out.get("upgrade_core_phase", -1))
+	upgrade_factory_phase = int(out.get("upgrade_factory_phase", -1))
+	upgrade_logistics_phase = int(out.get("upgrade_logistics_phase", -1))
+	upgrade_nuclear_phase = int(out.get("upgrade_nuclear_phase", -1))
 	turret_damage_mult = float(out.turret_damage_mult)
 	kill_credit_bonus = int(out.kill_credit_bonus)
 	turret_range_bonus = float(out.turret_range_bonus)
 	turret_cooldown_bonus = float(out.turret_cooldown_bonus)
-	audio_service.emit_event("upgrade_purchase", {"upgrade": which})
+	audio_service.emit_event("upgrade_refund", {"upgrade": which}) if owned else audio_service.emit_event("upgrade_purchase", {"upgrade": which})
 	_update_research_labels()
 
 
