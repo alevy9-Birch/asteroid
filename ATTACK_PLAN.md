@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-D.4 upgrade-hotkey repeat parity: ignore held-key repeat for `U/I/O/N` so one key press triggers one buy/refund action.
+D.4 tracking consistency cleanup: remove stale `C/B` and legacy `toggle_build_mode_alt` references from session records.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -100,7 +100,7 @@ D.4 upgrade-hotkey repeat parity: ignore held-key repeat for `U/I/O/N` so one ke
 - `godot/scripts/main.gd`: `R` research toggle input is now commander-gated, matching web behavior where hero research cannot open without a selected commander.
 - `godot/scripts/main.gd`: research panel visibility now force-closes when commander is `none`, preventing stale-open hero research UI state.
 - `godot/ui/HudController.gd` + `godot/scripts/main.gd`: gameplay shortcut hints now show `R hero research (with commander)` only when commander research is actually available.
-- `godot/scripts/main.gd`: `C`/`B` build-cycle input now closes an open research overlay before cycling build mode, matching web-style panel precedence.
+- `godot/scripts/main.gd`: `C` build-cycle input now closes an open research overlay before cycling build mode, matching web-style panel precedence.
 - `godot/scripts/main.gd`: research panel hint copy now updates dynamically to show commander-dependent hero research availability vs unavailability.
 - `godot/scripts/main.gd`: main-menu control hint line now dynamically includes `R hero research (with commander)` only when commander research is available.
 - `godot/scenes/Main.tscn` + `godot/scripts/main.gd`: menu now includes a dedicated commander-status hint line with web-style neutral-tech copy and commander-present variant text.
@@ -119,10 +119,10 @@ D.4 upgrade-hotkey repeat parity: ignore held-key repeat for `U/I/O/N` so one ke
 - `godot/scripts/main.gd`: held-key echo on `C` build input is now ignored, preventing rapid multi-cycle jumps from a single key hold.
 - `godot/scripts/main.gd`: held-key echo on `R` research toggle is now ignored, matching web keydown repeat guards and preventing rapid open/close flicker.
 - `godot/scripts/main.gd`: held-key echo on `U/I/O/N` upgrade hotkeys is now ignored so each press triggers at most one buy/refund attempt.
-- `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `toggle_build_mode_alt` (`C`) as the active build-toggle action.
+- `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.
-- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: build-cycle action id renamed from legacy `toggle_build_mode_alt` to `cycle_build_mode`, with startup cleanup removing both old build action ids.
+- `godot/systems/InputSystem.gd` + `godot/scripts/main.gd`: build-cycle action id now uses `cycle_build_mode` (formerly `toggle_build_mode_alt`), with startup cleanup removing both old build action ids.
 - Tracking cleanup: removed stale `B`/`B-C` parity notes so this plan reflects current `C`-only build-cycle behavior.
 
 ## In Progress
