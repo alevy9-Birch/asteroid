@@ -1701,6 +1701,12 @@ func _update_research_labels() -> void:
 		"upgrade_factory": upgrade_factory,
 		"upgrade_logistics": upgrade_logistics,
 		"upgrade_nuclear": upgrade_nuclear,
+		"upgrade_core_phase": upgrade_core_phase,
+		"upgrade_factory_phase": upgrade_factory_phase,
+		"upgrade_logistics_phase": upgrade_logistics_phase,
+		"upgrade_nuclear_phase": upgrade_nuclear_phase,
+		"current_inactive_phase": current_inactive_phase,
+		"wave_combat_active": wave_combat_active,
 	}
 	research_core_label.text = upgrade_system.research_label_with_prereq_hint("core", upgrade_core, rs)
 	research_factory_label.text = upgrade_system.research_label_with_prereq_hint("factory", upgrade_factory, rs)

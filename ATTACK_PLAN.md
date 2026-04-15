@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Upgrade refund parity (`I.2`): support same-inactive-phase refund for prototype upgrades with prereq-dependent cleanup.
+Upgrade refund UI parity (`I.2`/`J.3`): show refundable state on owned research labels during current inactive phase.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -58,6 +58,7 @@ Upgrade refund parity (`I.2`): support same-inactive-phase refund for prototype 
   - `godot/systems/AsteroidSystem.gd`: colossus death no longer applies non-web AOE damage; colossus remains threat via base stats and impact.
   - `godot/systems/AsteroidSystem.gd` + `godot/scripts/main.gd`: EMP death now drains stored power by nearby structure count (`r=18`, per-building drain) instead of disabling turrets.
   - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: prototype upgrades now support same-phase refund on key re-press, with current-phase prereq-dependent auto-refund and `upgrade_refund` audio parity hook.
+  - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: owned research labels now show `[R]` when refundable in the current inactive phase.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
