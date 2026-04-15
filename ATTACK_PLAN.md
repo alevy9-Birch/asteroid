@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-I.2 prototype upgrade modifier semantics parity: align `turret_targeting`, `unlock_factory`, and `generator_efficiency` effects with web behavior.
+D.4 input/overlay parity: suppress gameplay camera look while research overlay is open.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -131,6 +131,7 @@ I.2 prototype upgrade modifier semantics parity: align `turret_targeting`, `unlo
 - `godot/systems/UpgradeSystem.gd`: `unlock_factory` no longer injects non-web kill-credit bonus; it now acts as unlock-only parity behavior.
 - `godot/systems/UpgradeSystem.gd` + `godot/scripts/main.gd`: `generator_efficiency` now drives nuclear power generation multiplier (`1.15`) instead of non-web turret range/cooldown bonuses.
 - `godot/autoloads/GameState.gd` + `godot/scripts/main.gd`: added/synced `nuclear_power_gen_mult` runtime state so upgrade effects are mirrored consistently.
+- `godot/scripts/main.gd`: mouse-look is now suppressed while `research_panel_open` in `PLAYING`, matching web behavior that pauses gameplay camera look during overlay interaction.
 - `godot/systems/InputSystem.gd`: startup input-map defaults no longer add legacy `toggle_build_mode` (`B`), leaving `cycle_build_mode` (`C`) as the active build-toggle action.
 - `godot/systems/InputSystem.gd`: startup input setup now erases any existing `toggle_build_mode` action so old `B` bindings do not persist across sessions.
 - `godot/scripts/main.gd`: internal build-key helper renamed to `_cycle_build_mode()` to match actual one-step cycling behavior.

@@ -725,6 +725,8 @@ func _handle_mouse_motion(event: InputEventMouseMotion) -> void:
 		menu_cursor = main_menu_controller.update_cursor(menu_cursor, event.relative, viewport_size)
 		if not _is_capture_active():
 			return
+		if research_panel_open:
+			return
 		camera_system.apply_mouse_look(event.relative)
 		look_readout.text = "Yaw: %.2f | Pitch: %.2f" % [camera_system.yaw, camera_system.pitch]
 		return
