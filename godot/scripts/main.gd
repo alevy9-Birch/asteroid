@@ -20,6 +20,7 @@ const HudControllerScript = preload("res://ui/HudController.gd")
 var MENU_HIGHLIGHT_COLOR := Color(0.20, 0.45, 0.85, 1.0)
 var MENU_DEFAULT_COLOR := Color(1, 1, 1, 1)
 const GRID_SIZE := 2.0
+const ASTEROID_TARGET_HALF := 40.0
 ## Web `inactiveDurationSec`.
 const INACTIVE_DURATION_SEC := 60.0
 ## Fallbacks if `WebParityDefs` fails; normally overridden from **`auto_turret`** / **`command_center`**.
@@ -767,7 +768,7 @@ func _spawn_asteroid() -> void:
 	})
 
 
-func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> void:
+func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0, target_override: Variant = null) -> void:
 	_register_asteroid_discovery(variant)
 	var node: MeshInstance3D
 	if asteroid_pool.is_empty():
@@ -796,7 +797,11 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> 
 	var ms2 := float(kin2.get("move_speed", 5.2))
 	var idmg := float(kin2.get("impact_damage", 70.0))
 	var irad := float(kin2.get("impact_radius", 2.6))
-	var target2 := _asteroid_target_for_variant(variant, pos)
+	var target2 := (
+		Vector3(target_override)
+		if typeof(target_override) == TYPE_VECTOR3
+		else _asteroid_target_for_variant(variant, pos)
+	)
 	if split_level > 0:
 		var hmul := 0.32
 		var smul := 1.12
@@ -835,7 +840,12 @@ func _update_asteroids(delta: float) -> void:
 		if bool(a.get("spawnReady", false)):
 			a["spawnReady"] = false
 			asteroids[i] = a
-			_spawn_asteroid_at(Vector3(a["pos"]) + Vector3(rand.randf_range(-3.0, 3.0), 0, rand.randf_range(-3.0, 3.0)), "meteor")
+			_spawn_asteroid_at(
+				Vector3(a["pos"]) + Vector3(rand.randf_range(-3.0, 3.0), 0, rand.randf_range(-3.0, 3.0)),
+				"meteor",
+				0,
+				a.get("target", command_center_pos)
+			)
 	var impacts = asteroid_system.find_impacts(asteroids, command_center_pos)
 	for k in range(impacts.size() - 1, -1, -1):
 		var hit = impacts[k]
@@ -870,7 +880,7 @@ func _seeker_target_points() -> Array:
 
 func _asteroid_target_for_variant(variant: String, from_pos: Vector3) -> Vector3:
 	if variant != "seeker":
-		return command_center_pos
+		return _random_asteroid_target()
 	var points := _seeker_target_points()
 	var best := command_center_pos
 	var best_d := INF
@@ -883,6 +893,14 @@ func _asteroid_target_for_variant(variant: String, from_pos: Vector3) -> Vector3
 			best_d = d
 			best = tp
 	return best
+
+
+func _random_asteroid_target() -> Vector3:
+	return Vector3(
+		float(rand.randi_range(-int(ASTEROID_TARGET_HALF), int(ASTEROID_TARGET_HALF))),
+		0.0,
+		float(rand.randi_range(-int(ASTEROID_TARGET_HALF), int(ASTEROID_TARGET_HALF)))
+	)
 
 
 func _dist_xz(a: Vector3, b: Vector3) -> float:
@@ -950,11 +968,11 @@ func _remove_asteroid(index: int, reason: String = "combat") -> void:
 		var child_level := int(a.get("splitLevel", 0)) + 1
 		for n in range(int(eff["spawn_children"])):
 			var off = Vector3(rand.randf_range(-2.0, 2.0), 0, rand.randf_range(-2.0, 2.0))
-			_spawn_asteroid_at(apos + off, child_variant, child_level)
+			_spawn_asteroid_at(apos + off, child_variant, child_level, a.get("target", impact_origin))
 	if int(eff.get("spawn_meteors", 0)) > 0:
 		for _n in range(int(eff["spawn_meteors"])):
 			var moff = Vector3(rand.randf_range(-2.5, 2.5), 0, rand.randf_range(-2.5, 2.5))
-			_spawn_asteroid_at(apos + moff, "meteor")
+			_spawn_asteroid_at(apos + moff, "meteor", 0, a.get("target", impact_origin))
 	_check_command_center_defeat()
 
 
