@@ -2,6 +2,8 @@ extends RefCounted
 class_name AsteroidSystem
 
 const VARIANTS := ["normal", "splitter", "explosive", "meteor", "seeker", "planet", "gold", "spawner", "emp", "colossus"]
+const IMPACT_TRIGGER_DISTANCE := 2.2
+const IMPACT_TRIGGER_MIN_Y := 0.6
 
 func pick_variant(rand: RandomNumberGenerator, wave: int) -> String:
 	# Placeholder weighted ramp. This is parity-scaffold only; real weights will be imported.
@@ -73,8 +75,8 @@ func find_impacts(asteroids: Array, command_center_pos: Vector3) -> Array:
 	var hits: Array = []
 	for i in range(asteroids.size()):
 		var pos: Vector3 = asteroids[i]["pos"]
-		var rad := float(asteroids[i].get("impact_radius", 2.6))
-		if pos.distance_to(command_center_pos) < rad:
+		# Web parity: impact trigger is near-target distance (2.2) or very low altitude, not AOE radius.
+		if pos.distance_to(command_center_pos) < IMPACT_TRIGGER_DISTANCE or pos.y <= IMPACT_TRIGGER_MIN_Y:
 			var variant := String(asteroids[i].get("variant", "normal"))
 			var dmg := float(asteroids[i].get("impact_damage", 70.0))
 			hits.append({

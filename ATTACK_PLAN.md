@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Spawner cooldown parity (`F.6/F.7`): scale spawner meteor interval with wave difficulty instead of fixed cooldown reset.
+Impact trigger parity (`F.8`): use web near-target trigger for asteroid impact instead of impact-radius trigger.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -24,6 +24,7 @@ Spawner cooldown parity (`F.6/F.7`): scale spawner meteor interval with wave dif
   - `godot/scripts/main.gd`: provides live structure target list (`CC`, turrets, economy, depots, nuclear) for seeker steering.
   - `godot/systems/AsteroidSystem.gd`: spawner cooldown now follows web-style dynamic interval (`max(2.2, 5.2 - adj*0.12)`).
   - `godot/scripts/main.gd`: removed fixed `6.0` cooldown reset after spawner meteor launch.
+  - `godot/systems/AsteroidSystem.gd`: impact trigger now uses web-style near-target distance (`2.2`) / low-altitude check, with impact radius reserved for damage AOE.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).
