@@ -483,6 +483,8 @@ func _input(event: InputEvent) -> void:
 			_update_research_panel_visibility()
 		_cycle_build_mode()
 	if event.is_action_pressed("toggle_research_panel") and phase == AppPhase.PLAYING and _has_commander_selected():
+		if event is InputEventKey and (event as InputEventKey).echo:
+			return
 		research_panel_open = not research_panel_open
 		_update_research_panel_visibility()
 	if event.is_action_pressed("toggle_diagnostics"):
