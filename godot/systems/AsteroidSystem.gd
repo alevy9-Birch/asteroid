@@ -11,17 +11,28 @@ func pick_variant(rand: RandomNumberGenerator, wave: int) -> String:
 		return ["normal", "splitter", "explosive"][rand.randi_range(0, 2)]
 	return VARIANTS[rand.randi_range(0, VARIANTS.size() - 1)]
 
-func update_asteroids(delta: float, asteroids: Array, command_center_pos: Vector3) -> Array:
+func update_asteroids(
+	delta: float,
+	asteroids: Array,
+	command_center_pos: Vector3,
+	seeker_targets: Array = [],
+) -> Array:
 	var out := asteroids.duplicate(true)
 	for i in range(out.size() - 1, -1, -1):
 		var a = out[i]
 		var variant := String(a.get("variant", "normal"))
 		var pos: Vector3 = a["pos"]
-		var dir := (command_center_pos - pos).normalized()
+		var move_target := command_center_pos
+		# Web parity: seekers continuously retarget the closest live building while moving.
+		if variant == "seeker":
+			move_target = _closest_target_point(pos, seeker_targets, command_center_pos)
+		var dir := (move_target - pos).normalized()
 		## Web: per-asteroid `speed` after variant `speedMul`; set at spawn via `compute_spawn_kinematics`.
 		var spd := float(a.get("move_speed", 5.2))
 		pos += dir * spd * delta
 		a["pos"] = pos
+		if variant == "seeker":
+			a["target"] = move_target
 		var node: MeshInstance3D = a["node"]
 		node.position = pos
 		if variant == "spawner":
@@ -30,6 +41,20 @@ func update_asteroids(delta: float, asteroids: Array, command_center_pos: Vector
 			a["spawnReady"] = cd <= 0.0
 		out[i] = a
 	return out
+
+
+func _closest_target_point(from_pos: Vector3, targets: Array, fallback: Vector3) -> Vector3:
+	var best := fallback
+	var best_d := INF
+	for t in targets:
+		if typeof(t) != TYPE_VECTOR3:
+			continue
+		var tp: Vector3 = t
+		var d := from_pos.distance_squared_to(tp)
+		if d < best_d:
+			best_d = d
+			best = tp
+	return best
 
 func find_impacts(asteroids: Array, command_center_pos: Vector3) -> Array:
 	var hits: Array = []

@@ -1,7 +1,7 @@
 # ATTACK_PLAN
 
 ## Current Focus
-Virtual cursor margin parity (`D.3`): use web-equivalent edge margin for menu cursor clamping.
+Seeker movement parity (`F.7`): steer seekers toward closest live structure instead of always command-center vector.
 
 ## Complete
 - Session bootstrap files are established (`ATTACK_PLAN.md`, `DECISIONS.md`).
@@ -19,6 +19,9 @@ Virtual cursor margin parity (`D.3`): use web-equivalent edge margin for menu cu
   - `godot/ui/MainMenuController.gd`: menu hit testing now scans top-most first and ignores disabled/hidden controls.
   - `godot/ui/MainMenuController.gd`: activation path guards against disabled/hidden targets.
   - `godot/ui/MainMenuController.gd`: cursor clamp margin aligned to web value (`14`).
+- Asteroid movement slice completed this session:
+  - `godot/systems/AsteroidSystem.gd`: seeker asteroids now retarget closest live structure each update.
+  - `godot/scripts/main.gd`: provides live structure target list (`CC`, turrets, economy, depots, nuclear) for seeker steering.
 
 ## In Progress
 - Runtime parse validation remains pending from automation context (`godot --headless --check-only` unavailable here).

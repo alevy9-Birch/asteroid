@@ -806,7 +806,7 @@ func _spawn_asteroid_at(pos: Vector3, variant: String, split_level: int = 0) -> 
 
 
 func _update_asteroids(delta: float) -> void:
-	asteroids = asteroid_system.update_asteroids(delta, asteroids, command_center_pos)
+	asteroids = asteroid_system.update_asteroids(delta, asteroids, command_center_pos, _seeker_target_points())
 	for i in range(asteroids.size() - 1, -1, -1):
 		var a = asteroids[i]
 		if bool(a.get("spawnReady", false)):
@@ -823,6 +823,27 @@ func _update_asteroids(delta: float) -> void:
 		_remove_asteroid(i, "impact")
 		if phase != AppPhase.PLAYING:
 			return
+
+
+func _seeker_target_points() -> Array:
+	var points: Array = [command_center_pos]
+	for t in turrets:
+		if not t.has("pos"):
+			continue
+		points.append(Vector3(t["pos"]))
+	for e in economy_buildings:
+		if not e.has("pos"):
+			continue
+		points.append(Vector3(e["pos"]))
+	for d in supply_depots:
+		if not d.has("pos"):
+			continue
+		points.append(Vector3(d["pos"]))
+	for n in nuclear_plants:
+		if not n.has("pos"):
+			continue
+		points.append(Vector3(n["pos"]))
+	return points
 
 
 func _remove_asteroid(index: int, reason: String = "combat") -> void:
